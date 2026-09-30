@@ -1,0 +1,135 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useToast } from "@/lib/toast";
+import {
+  PropertyItem,
+  approvePropertyApi,
+  rejectPropertyApi,
+  updatePropertyStatusApi,
+} from "@/lib/api";
+import Icon from "@/components/icons";
+
+interface PropertyStatusChangeDialogProps {
+  property: PropertyItem | null;
+  newStatus: string;
+  onClose: () => void;
+  onSuccess: (updatedPropertyId?: string) => void;
+}
+
+export default function PropertyStatusChangeDialog({
+  property,
+  newStatus,
+  onClose,
+  onSuccess,
+}: PropertyStatusChangeDialogProps) {
+  const toast = useToast();
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (property) {
+      setRejectionReason(property.rejectionReason || "");
+    } else {
+      setRejectionReason("");
+    }
+  }, [property]);
+
+  if (!property) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (newStatus === "rejected" && !rejectionReason.trim()) {
+      toast("Rejection reason is required when rejecting a property.");
+      return;
+    }
+
+    setSubmitting(true);
+    let res;
+    if (newStatus === "approved") {
+      res = await approvePropertyApi(property._id);
+    } else if (newStatus === "rejected") {
+      res = await rejectPropertyApi(property._id, rejectionReason.trim());
+    } else {
+      res = await updatePropertyStatusApi(
+        property._id,
+        newStatus,
+        rejectionReason.trim()
+      );
+    }
+    setSubmitting(false);
+
+    if (res.success) {
+      toast(`Property status updated to "${newStatus.toUpperCase()}".`);
+      onSuccess(property._id);
+      onClose();
+    } else {
+      toast(res.message || "Failed to update property status");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity">
+      <div className="w-full max-w-[440px] bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl space-y-4 text-slate-900">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <h3 className="text-base font-semibold text-slate-900">
+            Change Status: <span className="uppercase text-amber-600">{newStatus}</span>
+          </h3>
+          <button
+            type="button"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <Icon name="x" size={14} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="text-xs text-slate-700">
+            Target Property: <strong className="text-slate-900 font-semibold">&quot;{property.title}&quot;</strong>
+          </div>
+
+          {newStatus === "rejected" && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                Rejection Reason *
+              </label>
+              <textarea
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-all"
+                rows={3}
+                placeholder="Provide feedback on why this property listing is rejected…"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              className="px-4 py-2 text-xs font-semibold rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all disabled:opacity-50"
+              onClick={onClose}
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className={`px-5 py-2 text-xs font-semibold rounded-full text-white shadow-md transition-all active:scale-95 disabled:opacity-50 ${
+                newStatus === "rejected"
+                  ? "bg-rose-600 hover:bg-rose-700"
+                  : "bg-amber-500 hover:bg-amber-600"
+              }`}
+              disabled={submitting}
+            >
+              {submitting ? "Updating…" : `Confirm ${newStatus.toUpperCase()}`}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+:root {
+  /* Fonts */
+  --font-poppins-family: var(--font-poppins), Arial, Helvetica, sans-serif;
+  --font-roboto-serif-family: var(--font-robotoSerif), Georgia, serif;
+  --font-inter-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  --font-family: var(--font-poppins-family);
+
+  /* User Specified Color Palette */
+  --color-brand-dark: #073A81;
+  --color-brand-sky: #0196FD;
+  --color-brand-blue: #0066F9;
+  --color-brand-ice: #F2FAFD;
+  --color-white: #FFFFFF;
+  --color-black: #000000;
+
+  /* Semantic Design Tokens */
+  --background: var(--color-brand-ice);
+  --background-light: var(--color-white);
+  --background-dark: var(--color-brand-dark);
+
+  --text: var(--color-brand-dark);
+  --text-muted: #4A5568;
+  --text-white: var(--color-white);
+
+  --border: #D1E4F5;
+  --border-light: #E2EFF9;
+  --border-dark: #052A5E;
+
+  --primary: var(--color-brand-dark);
+  --primary-hover: #052A5E;
+  --primary-foreground: var(--color-white);
+
+  --secondary: var(--color-brand-sky);
+  --secondary-hover: #0084E0;
+  --secondary-foreground: var(--color-white);
+
+  --accent: var(--color-brand-blue);
+  --accent-hover: #0052C7;
+  --accent-foreground: var(--color-white);
+
+  color-scheme: light;
+}
+
+@theme inline {
+  --breakpoint-3xl: 1800px;
+  --font-sans: var(--font-poppins-family);
+  --font-poppins: var(--font-poppins-family);
+  --font-serif: var(--font-roboto-serif-family);
+  --font-roboto-serif: var(--font-roboto-serif-family);
+  --font-inter: var(--font-inter-family);
+
+  /* User Color Tokens */
+  --color-brand-dark: #073A81;
+  --color-brand-sky: #0196FD;
+  --color-brand-blue: #0066F9;
+  --color-brand-ice: #F2FAFD;
+  --color-white: #FFFFFF;
+  --color-black: #000000;
+
+  /* Semantic Theme Mappings */
+  --color-background: var(--background);
+  --color-background-light: var(--background-light);
+  --color-background-dark: var(--background-dark);
+
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-white: var(--text-white);
+
+  --color-border: var(--border);
+  --color-border-light: var(--border-light);
+  --color-border-dark: var(--border-dark);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+}
+
+html,
+body {
+  background: var(--background-light);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+@layer utilities {
+  .font-roboto-serif {
+    font-family: var(--font-roboto-serif-family);
+  }
+
+  .font-inter {
+    font-family: var(--font-inter-family);
+  }
+
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Lenis smooth scroll adjustments */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
