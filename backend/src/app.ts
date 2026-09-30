@@ -1,10 +1,11 @@
-import express, { Express, Request, Response } from 'express';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import routes from './routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { config } from './config/env';
+import { connectDB } from './config/db';
 
 const app: Express = express();
 
@@ -22,6 +23,21 @@ app.use(cookieParser());
 // Serve static files from public/uploads directory at /uploads
 const uploadsPath = path.resolve(__dirname, '../public/uploads');
 app.use('/uploads', express.static(uploadsPath));
+
+// Ensure MongoDB is connected before handling API requests
+app.use(async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err: any) {
+    console.error('[Database Middleware] Connection error:', err?.message || err);
+    res.status(500).json({
+      success: false,
+      message: 'Database connection failed. Please ensure MongoDB is reachable.',
+      error: config.nodeMode === 'development' ? err?.message : undefined,
+    });
+  }
+});
 
 // API Routes
 app.use('/api', routes);
