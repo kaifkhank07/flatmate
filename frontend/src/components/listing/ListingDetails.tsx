@@ -141,7 +141,7 @@ export default function ListingDetails({ slug: propSlug, listingData }: ListingD
         if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:") || url.startsWith("blob:")) {
             return url;
         }
-        const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").replace(/\/api\/?$/, "");
+        const apiBase = (`${process.env.NEXT_PUBLIC_API_URL}/api`).replace(/\/api\/?$/, "");
         return `${apiBase}${url.startsWith("/") ? "" : "/"}${url}`;
     };
 
