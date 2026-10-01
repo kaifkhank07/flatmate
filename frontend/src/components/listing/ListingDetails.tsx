@@ -94,8 +94,8 @@ interface ListingDetailsProps {
         location?: string;
         gender?: string;
         rent?: string;
-        occupancy?: string;
-        lookingFor?: string;
+        occupationPreference?: string;
+        genderPreference?: string;
         singleSharing?: string;
         doubleSharing?: string;
         tripleSharing?: string;
@@ -190,8 +190,8 @@ export default function ListingDetails({ slug: propSlug, listingData }: ListingD
     }
     const rent = listingData?.rent || computedRent;
 
-    const occupancy = listingData?.occupancy || (propertyDoc ? propertyDoc.bedrooms ? `${propertyDoc.bedrooms} BHK` : "Single" : flatmateDoc?.peopleCount ? `${flatmateDoc.peopleCount} Person` : "Single");
-    const lookingFor = listingData?.lookingFor || (propertyDoc ? propertyDoc.genderPreference : flatmateDoc?.genderPreference) || "Any";
+    const occupationPreference = listingData?.occupationPreference || (propertyDoc ? propertyDoc.occupationPreference : flatmateDoc?.occupationPreference) || "Any";
+    const genderPreference = listingData?.genderPreference || (propertyDoc ? propertyDoc.genderPreference : flatmateDoc?.genderPreference) || "Any";
 
     const sourceType = selectedListing?.sourceType || 'property';
 
@@ -439,7 +439,7 @@ export default function ListingDetails({ slug: propSlug, listingData }: ListingD
     }
 
     return (
-        <section className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
+        <section className="w-full py-6 md:py-8 lg:py-12 px-4 sm:px-6 lg:px-16 overflow-hidden">
             {/* Main Container Card matching reference UI design */}
             <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 drop-shadow-md p-6 sm:p-10 md:p-14 transition-all">
                 <div className="flex flex-col lg:flex-row items-center md:items-start gap-8 md:gap-14 lg:gap-16">
@@ -522,12 +522,12 @@ export default function ListingDetails({ slug: propSlug, listingData }: ListingD
                         </h2>
 
                         {/* Action Buttons Stacked Vertically */}
-                        <div className="flex flex-col gap-3 w-full items-center">
+                        <div className="flex flex-row lg:flex-col justify-center gap-3 w-full items-center">
                             {/* Call Button */}
                             <button
                                 type="button"
                                 onClick={() => setShowCallModal(true)}
-                                className="w-28 py-2 px-3 bg-accent hover:bg-blue-700 text-white font-light text-sm sm:text-base md:text-lg rounded-full flex items-center justify-center gap-2.5 shadow-md shadow-blue-500/20 active:scale-95 transition-all cursor-pointer"
+                                className="w-28 py-2 px-3 bg-blue-700 hover:bg-accent text-white font-light text-sm sm:text-base md:text-lg rounded-full flex items-center justify-center gap-2.5 transition-all cursor-pointer"
                             >
                                 <Phone size={20} />
                                 <span>Call</span>
@@ -537,7 +537,7 @@ export default function ListingDetails({ slug: propSlug, listingData }: ListingD
                             <button
                                 type="button"
                                 onClick={() => setShowChatModal(true)}
-                                className="w-28 py-2 px-3 bg-accent/80 hover:bg-blue-700 text-white font-light text-sm sm:text-base md:text-lg rounded-full flex items-center justify-center gap-2.5 shadow-md shadow-blue-500/20 active:scale-95 transition-all cursor-pointer"
+                                className="w-28 py-2 px-3 bg-accent hover:bg-blue-700 text-white font-light text-sm sm:text-base md:text-lg rounded-full flex items-center justify-center gap-2.5 transition-all cursor-pointer"
                             >
                                 <MessageSquare size={20} />
                                 <span>Chat</span>
@@ -649,34 +649,34 @@ export default function ListingDetails({ slug: propSlug, listingData }: ListingD
                                 Information
                             </h3>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
-                                <div>
+                                {/* <div>
                                     <span className="block text-gray-500 text-sm sm:text-lg font-regular">
                                         Gender
                                     </span>
                                     <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">
                                         {gender}
                                     </p>
-                                </div>
-                                <div>
+                                </div> */}
+                                {sourceType !== 'property' && (<div>
                                     <span className="block text-gray-500 text-sm sm:text-lg font-regular">
                                         Approx Rent
                                     </span>
                                     <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{rent}</p>
-                                </div>
+                                </div>)}
                                 <div>
                                     <span className="block text-gray-500 text-sm sm:text-lg font-regular">
-                                        Occupancy
+                                        Gender Preference
                                     </span>
                                     <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">
-                                        {occupancy}
+                                        {genderPreference}
                                     </p>
                                 </div>
                                 <div>
                                     <span className="block text-gray-500 text-sm sm:text-lg font-regular">
-                                        Looking For
+                                        Occupation Preference
                                     </span>
                                     <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">
-                                        {lookingFor}
+                                        {occupationPreference}
                                     </p>
                                 </div>
                             </div>

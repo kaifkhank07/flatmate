@@ -17,11 +17,14 @@ import {
 interface ListingState {
   // State
   listings: UnifiedListingItem[];
+  latestListings: UnifiedListingItem[];
   selectedListing: UnifiedListingItem | null;
   loading: boolean;
+  loadingLatestListings: boolean;
   loadingDetails: boolean;
   loadingOptions: boolean;
   error: string | null;
+  latestListingsError: string | null;
   optionsError: string | null;
   pagination: PaginationInfo;
   filters: ListingQueryParams;
@@ -29,6 +32,7 @@ interface ListingState {
 
   // Actions
   fetchListings: (customParams?: ListingQueryParams) => Promise<void>;
+  fetchLatestListings: () => Promise<void>;
   fetchListingBySlug: (
     slug: string,
     sourceType?: 'property' | 'flatmate_requirement'
@@ -98,11 +102,14 @@ const initialOptions: ListingOptions = {
 export const useListingStore = create<ListingState>((set, get) => ({
   // Initial State
   listings: [],
+  latestListings: [],
   selectedListing: null,
   loading: false,
+  loadingLatestListings: false,
   loadingDetails: false,
   loadingOptions: false,
   error: null,
+  latestListingsError: null,
   optionsError: null,
   pagination: initialPagination,
   filters: initialFilters,
@@ -366,11 +373,62 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
 
   /**
+   * Fetch latest 12 listings for homepage (independent of normal listing state)
+   */
+  fetchLatestListings: async () => {
+    set({ loadingLatestListings: true, latestListingsError: null });
+
+    try {
+      const response = await apiClient.get<
+        ApiResponse<GetListingsResponseData>
+      >('/listings', {
+        params: {
+          page: 1,
+          limit: 12,
+          // sourceType: 'all',
+          sourceType: 'property',
+          sortBy: 'createdAt',
+          order: 'desc',
+        },
+      });
+
+      const responseData = response.data?.data;
+
+      if (responseData) {
+        set({
+          latestListings: responseData.listings || [],
+          loadingLatestListings: false,
+          latestListingsError: null,
+        });
+      } else {
+        set({
+          latestListings: [],
+          loadingLatestListings: false,
+          latestListingsError: null,
+        });
+      }
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to fetch latest listings';
+      set({
+        latestListings: [],
+        loadingLatestListings: false,
+        latestListingsError: errorMsg,
+      });
+    }
+  },
+
+  /**
    * Reset store state
    */
   resetListings: () => {
     set({
       listings: [],
+      latestListings: [],
+      loadingLatestListings: false,
+      latestListingsError: null,
       selectedListing: null,
       loading: false,
       loadingDetails: false,

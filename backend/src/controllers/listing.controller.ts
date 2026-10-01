@@ -10,8 +10,33 @@ import { logger } from '../utils/logger.util';
 interface SlicedIndexItem {
   id: Types.ObjectId;
   createdAt: Date;
+  locationId?: string;
+  distance?: number;
   sourceType: 'property' | 'flatmate_requirement';
 }
+
+/**
+ * Helper: Calculate Haversine distance between two coordinates in km rounded to 2 decimal places
+ */
+const calculateHaversineDistance = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number => {
+  const R = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c;
+  return Math.round(d * 100) / 100;
+};
 
 /**
  * Get unified list of public/user listings (Property + FlatmateRequirement)
@@ -33,9 +58,9 @@ export const getListings = async (req: Request, res: Response): Promise<Response
       return sendError(res, 'Invalid sourceType parameter. Must be one of: all, property, flatmate_requirement', 400);
     }
 
-    const sortBy = (query.sortBy as string) || 'createdAt';
-    const orderStr = (query.order as string) || 'desc';
-    const sortOrder = orderStr === 'asc' || orderStr === '1' ? 1 : -1;
+    // Default sortBy: 'distance' (nearest first) when geographic search is active, else 'createdAt'
+    const requestedSortBy = query.sortBy as string | undefined;
+    const requestedOrder = query.order as string | undefined;
 
     // 2. Base Filters (Only Approved and Non-Expired Public Listings)
     const now = new Date();
@@ -58,65 +83,171 @@ export const getListings = async (req: Request, res: Response): Promise<Response
       ],
     };
 
-    // 3. Search & Location Filter (Search strictly via Location fields or Title/Description)
-    const searchStr = (query.q || query.search) as string;
-    const locationVal = query.location as string;
+    // 3. Geographic Search vs. Text & Location ID Search
+    let isGeographicSearch = false;
+    let targetLat: number | undefined;
+    let targetLng: number | undefined;
+    let targetPlaceId: string | undefined;
+    let searchRadiusKm = 25;
 
-    if (locationVal && locationVal !== 'all') {
-      if (!Types.ObjectId.isValid(locationVal)) {
-        return sendError(res, 'Invalid location ID format', 400);
+    const paramLat =
+      query.latitude !== undefined && query.latitude !== ''
+        ? parseFloat(query.latitude as string)
+        : query.lat !== undefined && query.lat !== ''
+        ? parseFloat(query.lat as string)
+        : undefined;
+
+    const paramLng =
+      query.longitude !== undefined && query.longitude !== ''
+        ? parseFloat(query.longitude as string)
+        : query.lng !== undefined && query.lng !== ''
+        ? parseFloat(query.lng as string)
+        : undefined;
+
+    const paramPlaceId = (query.locationPlaceId || query.placeId) as string;
+    const paramRadius =
+      query.radius !== undefined && query.radius !== ''
+        ? parseFloat(query.radius as string)
+        : 25;
+
+    if (paramRadius && !isNaN(paramRadius)) {
+      searchRadiusKm = Math.min(200, Math.max(1, paramRadius));
+    }
+
+    // A. Prioritize explicit latitude and longitude from search request if valid
+    if (
+      paramLat !== undefined &&
+      paramLng !== undefined &&
+      !isNaN(paramLat) &&
+      !isNaN(paramLng)
+    ) {
+      targetLat = paramLat;
+      targetLng = paramLng;
+      targetPlaceId = paramPlaceId || undefined;
+      isGeographicSearch = true;
+    } else if (paramPlaceId && paramPlaceId.trim()) {
+      // B. Fallback: Resolve coordinates via placeId in DB if placeId supplied without coordinates
+      const foundLocation = await Location.findOne({
+        placeId: paramPlaceId.trim(),
+      }).lean();
+      if (
+        foundLocation &&
+        typeof foundLocation.latitude === 'number' &&
+        typeof foundLocation.longitude === 'number'
+      ) {
+        targetLat = foundLocation.latitude;
+        targetLng = foundLocation.longitude;
+        targetPlaceId = foundLocation.placeId;
+        isGeographicSearch = true;
       }
-      const locId = new Types.ObjectId(locationVal);
-      propertyFilter.location = locId;
-      flatmateFilter.location = locId;
-    } else if (searchStr && searchStr.trim()) {
-      const escaped = searchStr.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const searchRegex = new RegExp(escaped, 'i');
+    }
 
-      // Find matching location IDs from Location model by address, city, state, locality, name
-      const matchingLocations = await Location.find(
-        {
-          $or: [
-            { name: searchRegex },
-            { formattedAddress: searchRegex },
-            { 'address.city': searchRegex },
-            { 'address.state': searchRegex },
-            { 'address.locality': searchRegex },
-            { 'address.subLocality': searchRegex },
-          ],
-        },
-        { _id: 1 }
+    const locationDistanceMap = new Map<string, number>();
+
+    if (isGeographicSearch && targetLat !== undefined && targetLng !== undefined) {
+      // Query active locations to calculate distance for radius filtering and distance sorting
+      const activeLocations = await Location.find(
+        { isActive: true },
+        { _id: 1, latitude: 1, longitude: 1, geoLocation: 1 }
       ).lean();
 
-      const locationIds = matchingLocations.map((loc) => loc._id);
+      const matchingLocationIds: Types.ObjectId[] = [];
 
-      if (locationIds.length > 0) {
-        propertyFilter.location = { $in: locationIds };
-        flatmateFilter.location = { $in: locationIds };
+      activeLocations.forEach((loc) => {
+        const lat =
+          typeof loc.latitude === 'number' && !isNaN(loc.latitude)
+            ? loc.latitude
+            : loc.geoLocation?.coordinates?.[1];
+        const lng =
+          typeof loc.longitude === 'number' && !isNaN(loc.longitude)
+            ? loc.longitude
+            : loc.geoLocation?.coordinates?.[0];
+
+        if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
+          const dist = calculateHaversineDistance(
+            targetLat!,
+            targetLng!,
+            lat,
+            lng
+          );
+          locationDistanceMap.set(loc._id.toString(), dist);
+
+          if (dist <= searchRadiusKm) {
+            matchingLocationIds.push(loc._id);
+          }
+        }
+      });
+
+      if (matchingLocationIds.length > 0) {
+        propertyFilter.location = { $in: matchingLocationIds };
+        flatmateFilter.location = { $in: matchingLocationIds };
       } else {
-        // Search by location text or title/description
-        propertyFilter.$and = propertyFilter.$and || [];
-        propertyFilter.$and.push({
-          $or: [
-            { title: searchRegex },
-            { description: searchRegex },
-            { slug: searchRegex },
-          ],
-        });
+        // Zero locations in radius -> zero listings
+        propertyFilter.location = { $in: [] };
+        flatmateFilter.location = { $in: [] };
+      }
+    } else {
+      // Non-geographic search: Location ObjectId or Text Search fallback
+      const searchStr = (query.q || query.search) as string;
+      const locationVal = query.location as string;
 
-        flatmateFilter.$and = flatmateFilter.$and || [];
-        flatmateFilter.$and.push({
-          $or: [
-            { title: searchRegex },
-            { description: searchRegex },
-            { slug: searchRegex },
-          ],
-        });
+      if (locationVal && locationVal !== 'all') {
+        if (!Types.ObjectId.isValid(locationVal)) {
+          return sendError(res, 'Invalid location ID format', 400);
+        }
+        const locId = new Types.ObjectId(locationVal);
+        propertyFilter.location = locId;
+        flatmateFilter.location = locId;
+      } else if (searchStr && searchStr.trim()) {
+        const escaped = searchStr.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const searchRegex = new RegExp(escaped, 'i');
+
+        const matchingLocations = await Location.find(
+          {
+            $or: [
+              { name: searchRegex },
+              { formattedAddress: searchRegex },
+              { 'address.city': searchRegex },
+              { 'address.state': searchRegex },
+              { 'address.locality': searchRegex },
+              { 'address.subLocality': searchRegex },
+            ],
+          },
+          { _id: 1 }
+        ).lean();
+
+        const locationIds = matchingLocations.map((loc) => loc._id);
+
+        if (locationIds.length > 0) {
+          propertyFilter.location = { $in: locationIds };
+          flatmateFilter.location = { $in: locationIds };
+        } else {
+          propertyFilter.$and = propertyFilter.$and || [];
+          propertyFilter.$and.push({
+            $or: [
+              { title: searchRegex },
+              { description: searchRegex },
+              { slug: searchRegex },
+            ],
+          });
+
+          flatmateFilter.$and = flatmateFilter.$and || [];
+          flatmateFilter.$and.push({
+            $or: [
+              { title: searchRegex },
+              { description: searchRegex },
+              { slug: searchRegex },
+            ],
+          });
+        }
       }
     }
 
     // 4. Budget / Rent Filter
-    const budgetVal = query.budget !== undefined && query.budget !== '' ? parseFloat(query.budget as string) : undefined;
+    const budgetVal =
+      query.budget !== undefined && query.budget !== ''
+        ? parseFloat(query.budget as string)
+        : undefined;
     if (budgetVal !== undefined && !isNaN(budgetVal)) {
       propertyFilter.rent = budgetVal;
       flatmateFilter.budget = budgetVal;
@@ -141,7 +272,11 @@ export const getListings = async (req: Request, res: Response): Promise<Response
     if (dateValStr) {
       const dateVal = new Date(dateValStr);
       if (isNaN(dateVal.getTime())) {
-        return sendError(res, 'Invalid date format provided for moveInDate / availableFrom', 400);
+        return sendError(
+          res,
+          'Invalid date format provided for moveInDate / availableFrom',
+          400
+        );
       }
       propertyFilter.availableFrom = { $gte: dateVal };
       flatmateFilter.moveInDate = { $gte: dateVal };
@@ -160,7 +295,11 @@ export const getListings = async (req: Request, res: Response): Promise<Response
       const postTypeStr = (query.postType as string).toLowerCase();
       const allowedPostTypes = ['all', 'property', 'partner'];
       if (!allowedPostTypes.includes(postTypeStr)) {
-        return sendError(res, 'Invalid postType parameter. Must be one of: all, property, partner', 400);
+        return sendError(
+          res,
+          'Invalid postType parameter. Must be one of: all, property, partner',
+          400
+        );
       }
       if (postTypeStr !== 'all') {
         flatmateFilter.postType = postTypeStr;
@@ -179,47 +318,97 @@ export const getListings = async (req: Request, res: Response): Promise<Response
       }
     }
 
-    // 10. Fetch index items (projections of _id and createdAt) based on sourceType
+    // 10. Fetch index items (projections of _id, createdAt, location) based on sourceType
     let propertyItems: SlicedIndexItem[] = [];
     let flatmateItems: SlicedIndexItem[] = [];
 
     const fetchProperties = sourceType === 'all' || sourceType === 'property';
-    const fetchFlatmates = sourceType === 'all' || sourceType === 'flatmate_requirement';
+    const fetchFlatmates =
+      sourceType === 'all' || sourceType === 'flatmate_requirement';
 
     const [rawProps, rawFlatmates] = await Promise.all([
-      fetchProperties ? Property.find(propertyFilter, { _id: 1, createdAt: 1 }).lean() : [],
-      fetchFlatmates ? FlatmateRequirement.find(flatmateFilter, { _id: 1, createdAt: 1 }).lean() : [],
+      fetchProperties
+        ? Property.find(propertyFilter, {
+            _id: 1,
+            createdAt: 1,
+            location: 1,
+          }).lean()
+        : [],
+      fetchFlatmates
+        ? FlatmateRequirement.find(flatmateFilter, {
+            _id: 1,
+            createdAt: 1,
+            location: 1,
+          }).lean()
+        : [],
     ]);
 
     if (fetchProperties) {
-      propertyItems = rawProps.map((p) => ({
-        id: p._id,
-        createdAt: p.createdAt,
-        sourceType: 'property',
-      }));
+      propertyItems = rawProps.map((p) => {
+        const locIdStr = p.location ? p.location.toString() : '';
+        const distance =
+          isGeographicSearch && locIdStr
+            ? locationDistanceMap.get(locIdStr)
+            : undefined;
+        return {
+          id: p._id,
+          createdAt: p.createdAt,
+          locationId: locIdStr,
+          distance,
+          sourceType: 'property',
+        };
+      });
     }
 
     if (fetchFlatmates) {
-      flatmateItems = rawFlatmates.map((f) => ({
-        id: f._id,
-        createdAt: f.createdAt,
-        sourceType: 'flatmate_requirement',
-      }));
+      flatmateItems = rawFlatmates.map((f) => {
+        const locIdStr = f.location ? f.location.toString() : '';
+        const distance =
+          isGeographicSearch && locIdStr
+            ? locationDistanceMap.get(locIdStr)
+            : undefined;
+        return {
+          id: f._id,
+          createdAt: f.createdAt,
+          locationId: locIdStr,
+          distance,
+          sourceType: 'flatmate_requirement',
+        };
+      });
     }
 
     // 11. Combine & Sort Index Items
     const combinedIndex = [...propertyItems, ...flatmateItems];
 
-    combinedIndex.sort((a, b) => {
-      const timeA = new Date(a.createdAt).getTime();
-      const timeB = new Date(b.createdAt).getTime();
-      if (timeA !== timeB) {
-        return sortOrder === 1 ? timeA - timeB : timeB - timeA;
-      }
-      const idA = a.id.toString();
-      const idB = b.id.toString();
-      return sortOrder === 1 ? idA.localeCompare(idB) : idB.localeCompare(idA);
-    });
+    // Whenever geographic location search is active, ALWAYS sort by nearest distance first (distance asc).
+    // When no geographic search is active, sort by requested sortBy or default to createdAt desc.
+    const effectiveSortBy = isGeographicSearch ? 'distance' : (requestedSortBy || 'createdAt');
+    const orderStr = isGeographicSearch ? 'asc' : (requestedOrder || (effectiveSortBy === 'distance' ? 'asc' : 'desc'));
+    const sortOrder = orderStr === 'asc' || orderStr === '1' ? 1 : -1;
+
+    if (effectiveSortBy === 'distance' && isGeographicSearch) {
+      combinedIndex.sort((a, b) => {
+        const distA = a.distance !== undefined ? a.distance : Number.MAX_VALUE;
+        const distB = b.distance !== undefined ? b.distance : Number.MAX_VALUE;
+        if (distA !== distB) {
+          return sortOrder === -1 ? distB - distA : distA - distB;
+        }
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        return timeB - timeA;
+      });
+    } else {
+      combinedIndex.sort((a, b) => {
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        if (timeA !== timeB) {
+          return sortOrder === 1 ? timeA - timeB : timeB - timeA;
+        }
+        const idA = a.id.toString();
+        const idB = b.id.toString();
+        return sortOrder === 1 ? idA.localeCompare(idB) : idB.localeCompare(idA);
+      });
+    }
 
     const total = combinedIndex.length;
     const totalPages = Math.ceil(total / limit) || 1;
@@ -240,7 +429,10 @@ export const getListings = async (req: Request, res: Response): Promise<Response
     const [propDocs, flatDocs] = await Promise.all([
       propIdsForPage.length > 0
         ? Property.find({ _id: { $in: propIdsForPage } })
-            .populate('ownerId', 'email mobile role accountStatus profileVerified isOnline')
+            .populate(
+              'ownerId',
+              'email mobile role accountStatus profileVerified isOnline'
+            )
             .populate('location')
             .populate('amenities')
             .populate('images')
@@ -249,7 +441,10 @@ export const getListings = async (req: Request, res: Response): Promise<Response
         : [],
       flatIdsForPage.length > 0
         ? FlatmateRequirement.find({ _id: { $in: flatIdsForPage } })
-            .populate('userId', 'email mobile role accountStatus profileVerified isOnline')
+            .populate(
+              'userId',
+              'email mobile role accountStatus profileVerified isOnline'
+            )
             .populate('location')
             .populate('images')
             .populate('videos')
@@ -297,14 +492,15 @@ export const getListings = async (req: Request, res: Response): Promise<Response
     const propMap = new Map(propDocs.map((doc: any) => [doc._id.toString(), doc]));
     const flatMap = new Map(flatDocs.map((doc: any) => [doc._id.toString(), doc]));
 
-    // 15. Re-assemble Final Result Array in Sorted Order with sourceType
+    // 15. Re-assemble Final Result Array in Sorted Order with sourceType & distance
     const listings = pageIndexItems
       .map((item) => {
         const idStr = item.id.toString();
+        let resultObj: any = null;
         if (item.sourceType === 'property') {
           const doc = propMap.get(idStr);
           if (!doc) return null;
-          return {
+          resultObj = {
             ...doc,
             ownerId: enrichUserData(doc.ownerId),
             sourceType: 'property',
@@ -312,17 +508,35 @@ export const getListings = async (req: Request, res: Response): Promise<Response
         } else {
           const doc = flatMap.get(idStr);
           if (!doc) return null;
-          return {
+          resultObj = {
             ...doc,
             userId: enrichUserData(doc.userId),
             sourceType: 'flatmate_requirement',
           };
         }
+
+        if (item.distance !== undefined) {
+          resultObj.distance = item.distance;
+          resultObj.distanceUnit = 'km';
+        }
+
+        return resultObj;
       })
       .filter(Boolean);
 
+    const searchLocation = isGeographicSearch
+      ? {
+          placeId: targetPlaceId,
+          latitude: targetLat,
+          longitude: targetLng,
+          radius: searchRadiusKm,
+          name: (query.searchLocationName || query.locationName) as string | undefined,
+        }
+      : undefined;
+
     return sendSuccess(res, 'Listings fetched successfully', {
       listings,
+      searchLocation,
       pagination: {
         page,
         limit,

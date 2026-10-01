@@ -264,8 +264,8 @@ export default function ListingOptionSelector({
   ];
 
   return (
-    <section className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
-      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto space-y-6 sm:space-y-10 md:space-y-12">
+    <section className="w-full py-16 md:py-20 overflow-hidden">
+      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto px-4 sm:px-6 lg:px-16 space-y-6 sm:space-y-10 md:space-y-12">
         {/* Top Header Section */}
         <SectionHeading
           title="Post Your Requirement"

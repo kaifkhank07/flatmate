@@ -11,7 +11,7 @@ export default function AboutHero() {
 
   return (
     <section className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
-      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto">
+      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto space-y-6 sm:space-y-10 md:space-y-12">
         <ViewReveal duration={800}>
           {/* Header Top Row */}
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 md:gap-12">
@@ -29,7 +29,7 @@ export default function AboutHero() {
         </ViewReveal>
 
         {/* Hero Image */}
-        <ViewReveal duration={900} startDelay={150} className="mt-8 sm:mt-12">
+        <ViewReveal duration={900} startDelay={150}>
           <div className="relative w-full h-[280px] sm:h-[400px] md:h-[500px] lg:h-[580px] rounded-2xl sm:rounded-3xl md:rounded-[36px] overflow-hidden shadow-sm border border-gray-100/80">
             <Image
               src={assets.aboutbg}

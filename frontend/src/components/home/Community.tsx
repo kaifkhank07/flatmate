@@ -25,7 +25,7 @@ export default function Community() {
 
             {/* Floating Badge Card inside Image */}
             <PopUpReveal
-              delay={1.2}
+              delay={0.5}
               duration={0.7}
               className="absolute bottom-4 right-4 sm:bottom-36 sm:right-12 z-20"
             >

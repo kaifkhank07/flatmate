@@ -1,5 +1,5 @@
 import React from "react";
-import PreferencesManager from "@/components/profile/PreferencesManager";
+import PreferencesManager from "@/components/dashboard/PreferencesManager";
 import { Metadata } from "next";
 import Faq from "@/components/ui/Faq";
 

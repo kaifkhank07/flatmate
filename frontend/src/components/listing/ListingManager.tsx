@@ -1,15 +1,17 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   ListingCategory,
   GenderFilter,
   mapUnifiedListingToCard,
-} from "@/data/listings";
+} from "@/types/listing";
 import { useListingStore } from "@/store/useListingStore";
 import ListingFilterBar from "./ListingFilterBar";
 import ListingCard from "./ListingCard";
 import { Loader2 } from "lucide-react";
+import { searchFrontendGooglePlaces, getFrontendPlaceDetails } from "@/lib/googlePlaces";
 
 export default function ListingManager() {
   const {
@@ -22,24 +24,111 @@ export default function ListingManager() {
     resetFilters,
   } = useListingStore();
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const cityParam = searchParams.get("city");
+
   const [selectedCategory, setSelectedCategory] =
     useState<ListingCategory>("All");
   const [selectedGender, setSelectedGender] = useState<GenderFilter>("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPlace, setSelectedPlace] = useState<{
+    placeId: string;
+    latitude: number;
+    longitude: number;
+    name: string;
+  } | null>(null);
 
-  // Fetch listings when component mounts
-  useEffect(() => {
-    fetchListings();
-  }, [fetchListings]);
+  // Helper to remove ?city=... from URL if present
+  const clearCityUrlParam = () => {
+    if (searchParams.get("city")) {
+      router.replace("/listing", { scroll: false });
+    }
+  };
 
-  // Debounced search query handler
+  // Sync city param from URL on initial load or URL change
   useEffect(() => {
+    if (cityParam && cityParam.trim()) {
+      const trimmedCity = cityParam.trim();
+      setSearchQuery(trimmedCity);
+
+      searchFrontendGooglePlaces(trimmedCity)
+        .then(async (suggestions) => {
+          if (suggestions && suggestions.length > 0) {
+            try {
+              const details = await getFrontendPlaceDetails(suggestions[0].placeId);
+              setSelectedPlace({
+                placeId: details.placeId,
+                latitude: details.latitude,
+                longitude: details.longitude,
+                name: details.name || suggestions[0].mainText || trimmedCity,
+              });
+              setFilters({
+                locationPlaceId: details.placeId,
+                latitude: details.latitude,
+                longitude: details.longitude,
+                searchLocationName: details.name || suggestions[0].mainText || trimmedCity,
+                q: undefined,
+                page: 1,
+              });
+              return;
+            } catch (e) {
+              // Fallback to q text search
+            }
+          }
+          setFilters({ q: trimmedCity, page: 1 });
+        })
+        .catch(() => {
+          setFilters({ q: trimmedCity, page: 1 });
+        });
+    } else {
+      fetchListings();
+    }
+  }, [cityParam, fetchListings, setFilters]);
+
+  // Debounced text search query handler (only active when no Google Place is selected)
+  useEffect(() => {
+    if (selectedPlace) return;
+
     const timer = setTimeout(() => {
       setFilters({ q: searchQuery.trim() || undefined, page: 1 });
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, setFilters]);
+  }, [searchQuery, selectedPlace, setFilters]);
+
+  // Handle Google Place selection
+  const handleSelectPlace = (
+    place: {
+      placeId: string;
+      latitude: number;
+      longitude: number;
+      name: string;
+    } | null
+  ) => {
+    setSelectedPlace(place);
+
+    if (place) {
+      setFilters({
+        locationPlaceId: place.placeId,
+        latitude: place.latitude,
+        longitude: place.longitude,
+        searchLocationName: place.name,
+        q: undefined,
+        page: 1,
+      });
+    } else {
+      clearCityUrlParam();
+      setFilters({
+        locationPlaceId: undefined,
+        latitude: undefined,
+        longitude: undefined,
+        searchLocationName: undefined,
+        q: searchQuery.trim() || undefined,
+        page: 1,
+      });
+    }
+  };
 
   // Handle Category Selection
   const handleSelectCategory = (cat: ListingCategory) => {
@@ -81,11 +170,21 @@ export default function ListingManager() {
     setFilters({ genderPreference, page: 1 });
   };
 
+  // Handle Search Input Change
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      clearCityUrlParam();
+    }
+  };
+
   // Handle Filter Reset
   const handleResetFilters = () => {
     setSelectedCategory("All");
     setSelectedGender("All");
     setSearchQuery("");
+    setSelectedPlace(null);
+    clearCityUrlParam();
     resetFilters();
   };
 
@@ -98,11 +197,13 @@ export default function ListingManager() {
         selectedGender={selectedGender}
         onSelectGender={handleSelectGender}
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={handleSearchChange}
+        selectedPlace={selectedPlace}
+        onSelectPlace={handleSelectPlace}
       />
 
       {/* Listing Cards Grid */}
-      <div className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-16">
+      <div className="w-full py-6 md:py-8 lg:py-12 px-4 sm:px-6 lg:px-16">
         <div className="w-full max-w-8xl mx-auto">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">

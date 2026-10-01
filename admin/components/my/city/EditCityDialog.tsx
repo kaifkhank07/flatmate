@@ -83,7 +83,7 @@ export default function EditCityDialog({
             description: seoDescription.trim() || undefined,
             keywords: keywordsArr.length > 0 ? keywordsArr : undefined,
           }
-        : undefined;
+        : null;
 
     let payload: FormData | any;
     if (selectedFile) {
@@ -95,6 +95,8 @@ export default function EditCityDialog({
       formData.append("isActive", String(isActive));
       if (seoObj) {
         formData.append("seo", JSON.stringify(seoObj));
+      } else {
+        formData.append("seo", "null");
       }
       formData.append("file", selectedFile);
       payload = formData;
@@ -106,6 +108,7 @@ export default function EditCityDialog({
         isPopular,
         isActive,
         seo: seoObj,
+        removeImage: previewUrl === null && !!city.image?.url,
       };
     }
 

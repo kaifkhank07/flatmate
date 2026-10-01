@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import { useAssets } from "@/data/assets";
 import SectionHeading from "../utils/SectionHeading";
 import ArrowLink from "../utils/ArrowLink";
+import { AnimatedImage } from "../animation";
 
 export default function Cta() {
     const assets = useAssets();
@@ -15,7 +15,14 @@ export default function Cta() {
                 {/* Left Column: Lifestyle Community Image */}
                 <div className="relative w-full lg:pr-12">
                     <div className="relative w-full rounded-2xl sm:rounded-3xl lg:rounded-4xl overflow-hidden shadow-lg aspect-[4/3] sm:aspect-[1.15/1]">
-                        <Image
+                        {/* <Image
+                            src={assets.cta}
+                            alt="CTA Illustration"
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 1024px) 100vw, 50vw"
+                        /> */}
+                        <AnimatedImage
                             src={assets.cta}
                             alt="CTA Illustration"
                             fill

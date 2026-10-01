@@ -281,39 +281,18 @@ export default function ProfileManager() {
   }
 
   return (
-    <section className="w-full py-12 md:py-16 px-4 sm:px-6 lg:px-16 overflow-hidden">
-      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto space-y-8 sm:space-y-12">
+    <section className="w-full py-16 md:py-20 overflow-hidden">
+      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto px-4 sm:px-6 lg:px-16 space-y-6 sm:space-y-10 md:space-y-12">
         {/* Page Title & Profile Completion */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <SectionHeading title="Your Profile" />
-
-          {/* Profile Completion Badge */}
-          <div className="bg-[#F3F9FD] border border-[#E2EFF8] rounded-2xl p-4 sm:px-6 flex items-center gap-4 w-fit">
-            <div className="flex flex-col">
-              <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-                Profile Completion
-              </span>
-              <span className="text-lg font-bold text-[#0066F9]">
-                {completionPercentage}% Complete
-              </span>
-            </div>
-            <div className="w-24 sm:w-32 bg-gray-200 h-2.5 rounded-full overflow-hidden">
-              <div
-                className="bg-[#0066F9] h-full rounded-full transition-all duration-500"
-                style={{ width: `${Math.max(5, completionPercentage)}%` }}
-              />
-            </div>
-          </div>
-        </div>
+        <SectionHeading title="Your Profile" />
 
         {/* Notification Banner */}
         {statusMessage && (
           <div
-            className={`p-4 rounded-2xl flex items-center gap-3 text-sm transition-all duration-300 animate-in fade-in-50 ${
-              statusMessage.type === "success"
-                ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                : "bg-red-50 text-red-800 border border-red-200"
-            }`}
+            className={`p-4 rounded-2xl flex items-center gap-3 text-sm transition-all duration-300 animate-in fade-in-50 ${statusMessage.type === "success"
+              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+              : "bg-red-50 text-red-800 border border-red-200"
+              }`}
           >
             {statusMessage.type === "success" ? (
               <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
@@ -324,75 +303,98 @@ export default function ProfileManager() {
           </div>
         )}
 
-        {/* Profile Avatar / Photo Section */}
-        <div className="bg-[#F8FBFE] border border-[#E2EFF8] rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6">
-          <div className="relative group">
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-2 border-[#0066F9]/30 bg-white shadow-sm flex items-center justify-center relative">
-              {profile?.image?.url ? (
-                <Image
-                  src={profile.image.url}
-                  alt="Profile Photo"
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <UserIcon className="w-12 h-12 text-[#0066F9]/50" />
-              )}
-              {isUploadingPhoto && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <Loader2 className="w-6 h-6 text-white animate-spin" />
-                </div>
-              )}
-            </div>
+        {/* Profile Avatar / Photo & Completion Card */}
+        <div className="bg-[#F8FBFE] border border-[#E2EFF8] rounded-2xl sm:rounded-3xl p-5 sm:p-7 md:p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+          {/* Left: Avatar & User Info */}
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left w-full sm:w-auto flex-1 min-w-0">
+            {/* Avatar Container */}
+            <div className="relative shrink-0 group">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-2 border-[#0066F9]/30 bg-white shadow-sm flex items-center justify-center relative">
+                {profile?.image?.url ? (
+                  <Image
+                    src={profile.image.url}
+                    alt="Profile Photo"
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <UserIcon className="w-10 h-10 sm:w-12 sm:h-12 text-[#0066F9]/50" />
+                )}
+                {isUploadingPhoto && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                  </div>
+                )}
+              </div>
 
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploadingPhoto}
-              aria-label="Upload photo"
-              className="absolute bottom-0 right-0 p-2 rounded-full bg-[#0066F9] hover:bg-[#0052C7] text-white shadow-md transition-transform active:scale-90 cursor-pointer"
-            >
-              <Camera className="w-4 h-4" />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/jpg"
-              onChange={handlePhotoUpload}
-              className="hidden"
-            />
-          </div>
-
-          <div className="flex-1 text-center sm:text-left space-y-1">
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
-              {firstName ? `${firstName} ${lastName}`.trim() : "Your Name"}
-            </h3>
-            <p className="text-sm text-gray-500">
-              Upload a clear photo to build trust and increase match requests by 90%.
-            </p>
-            <div className="flex items-center justify-center sm:justify-start gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploadingPhoto}
-                className="text-xs sm:text-sm font-medium text-[#0066F9] hover:underline cursor-pointer"
+                aria-label="Upload photo"
+                className="absolute bottom-0 right-0 p-1.5 sm:p-2 rounded-full bg-[#0066F9] hover:bg-[#0052C7] text-white shadow-md transition-transform active:scale-90 cursor-pointer"
               >
-                Change Photo
+                <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
-              {profile?.image?.url && (
-                <>
-                  <span className="text-gray-300">•</span>
-                  <button
-                    type="button"
-                    onClick={handlePhotoDelete}
-                    disabled={isUploadingPhoto}
-                    className="text-xs sm:text-sm font-medium text-red-600 hover:underline cursor-pointer"
-                  >
-                    Remove Photo
-                  </button>
-                </>
-              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/jpg"
+                onChange={handlePhotoUpload}
+                className="hidden"
+              />
             </div>
+
+            {/* User Info & Photo Action Links */}
+            <div className="space-y-1 min-w-0">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
+                {firstName ? `${firstName} ${lastName}`.trim() : "Your Name"}
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 max-w-md">
+                Upload a clear photo to build trust and increase match requests by 90%.
+              </p>
+              {/* <div className="flex items-center justify-center sm:justify-start gap-3 pt-1.5 sm:pt-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingPhoto}
+                  className="text-xs sm:text-sm font-medium text-[#0066F9] hover:underline cursor-pointer"
+                >
+                  Change Photo
+                </button>
+                {profile?.image?.url && (
+                  <>
+                    <span className="text-gray-300">•</span>
+                    <button
+                      type="button"
+                      onClick={handlePhotoDelete}
+                      disabled={isUploadingPhoto}
+                      className="text-xs sm:text-sm font-medium text-red-600 hover:underline cursor-pointer"
+                    >
+                      Remove Photo
+                    </button>
+                  </>
+                )}
+              </div> */}
+            </div>
+          </div>
+
+          {/* Right: Profile Completion Badge */}
+          <div className="bg-white sm:bg-[#F3F9FD] border border-[#E2EFF8] rounded-2xl p-4 sm:px-6 sm:py-4 flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto shrink-0 shadow-xs">
+            <div className="flex flex-col">
+              <span className="text-[10px] sm:text-xs text-gray-500 font-medium uppercase tracking-wider">
+                Profile Completion
+              </span>
+              <span className="text-base sm:text-lg font-bold text-[#0066F9]">
+                {completionPercentage}% Complete
+              </span>
+            </div>
+            {/* <div className="w-24 sm:w-32 bg-gray-100 sm:bg-gray-200 h-2.5 rounded-full overflow-hidden shrink-0">
+              <div
+                className="bg-[#0066F9] h-full rounded-full transition-all duration-500"
+                style={{ width: `${Math.max(5, completionPercentage)}%` }}
+              />
+            </div> */}
           </div>
         </div>
 
@@ -514,11 +516,10 @@ export default function ProfileManager() {
                         setGender(gender === g ? "" : g);
                         if (statusMessage) setStatusMessage(null);
                       }}
-                      className={`px-7 py-2.5 rounded-full text-base font-regular capitalize transition-all cursor-pointer ${
-                        gender === g
-                          ? "bg-[#E3F2FD] text-[#0066F9] border border-[#BCE0FD] shadow-xs"
-                          : "bg-[#F3F9FD] text-gray-600 border border-[#E2EFF8] hover:bg-[#EAF4FC]"
-                      }`}
+                      className={`px-7 py-2.5 rounded-full text-base font-regular capitalize transition-all cursor-pointer ${gender === g
+                        ? "bg-accent text-white"
+                        : "bg-background text-gray-600 border border-[#E2EFF8] hover:bg-[#EAF4FC]"
+                        }`}
                     >
                       {g}
                     </button>
@@ -551,11 +552,10 @@ export default function ProfileManager() {
                       setOccupation(occupation === occ.value ? "" : occ.value);
                       if (statusMessage) setStatusMessage(null);
                     }}
-                    className={`px-5 py-2.5 rounded-full text-sm sm:text-base font-regular transition-all cursor-pointer ${
-                      occupation === occ.value
-                        ? "bg-[#E3F2FD] text-[#0066F9] border border-[#BCE0FD] shadow-xs"
-                        : "bg-[#F3F9FD] text-gray-600 border border-[#E2EFF8] hover:bg-[#EAF4FC]"
-                    }`}
+                    className={`px-5 py-2.5 rounded-full text-base font-regular capitalize transition-all cursor-pointer ${occupation === occ.value
+                      ? "bg-accent text-white"
+                      : "bg-background text-gray-600 border border-[#E2EFF8] hover:bg-[#EAF4FC]"
+                      }`}
                   >
                     {occ.label}
                   </button>
@@ -576,59 +576,16 @@ export default function ProfileManager() {
                       key={lang}
                       type="button"
                       onClick={() => handleLanguageToggle(lang)}
-                      className={`px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
-                        isSelected
-                          ? "bg-[#0066F9] text-white shadow-xs"
-                          : "bg-[#F3F9FD] text-gray-600 border border-[#E2EFF8] hover:bg-[#EAF4FC]"
-                      }`}
+                      className={`px-5 py-2.5 rounded-full text-base font-regular capitalize transition-all cursor-pointer ${isSelected
+                        ? "bg-accent text-white"
+                        : "bg-background text-gray-600 border border-[#E2EFF8] hover:bg-[#EAF4FC]"
+                        }`}
                     >
-                      {lang} {isSelected && "✓"}
+                      {lang}
                     </button>
                   );
                 })}
               </div>
-
-              {/* Custom Language Adder */}
-              {/* <div className="flex items-center gap-2 max-w-md">
-                <input
-                  type="text"
-                  value={customLanguage}
-                  onChange={(e) => setCustomLanguage(e.target.value)}
-                  onKeyDown={handleAddCustomLanguage}
-                  placeholder="Add other language..."
-                  className="w-full px-5 py-2.5 rounded-full bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9]"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddCustomLanguage}
-                  className="p-2.5 rounded-full bg-[#0066F9] text-white hover:bg-[#0055D4] transition shadow-xs cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div> */}
-
-              {/* Selected custom tags */}
-              {/* {languagesKnown.filter((l) => !COMMON_LANGUAGES.includes(l)).length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {languagesKnown
-                    .filter((l) => !COMMON_LANGUAGES.includes(l))
-                    .map((lang) => (
-                      <span
-                        key={lang}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-50 text-[#0066F9] text-xs font-medium border border-blue-200"
-                      >
-                        {lang}
-                        <button
-                          type="button"
-                          onClick={() => handleLanguageToggle(lang)}
-                          className="hover:text-red-500 cursor-pointer"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </span>
-                    ))}
-                </div>
-              )} */}
             </div>
           </div>
 

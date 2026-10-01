@@ -1,5 +1,5 @@
 import React from "react";
-import ProfileManager from "@/components/profile/ProfileManager";
+import ProfileManager from "@/components/dashboard/ProfileManager";
 import { Metadata } from "next";
 import Faq from "@/components/ui/Faq";
 

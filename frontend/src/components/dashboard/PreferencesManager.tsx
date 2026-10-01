@@ -14,6 +14,7 @@ import {
   Wine,
   RefreshCw,
 } from "lucide-react";
+import SectionHeading from "../utils/SectionHeading";
 
 export default function PreferencesManager() {
   const router = useRouter();
@@ -118,7 +119,7 @@ export default function PreferencesManager() {
   const renderPreferenceImage = (pref: UserPreferenceItem) => {
     if (pref.image?.url) {
       return (
-        <div className="relative w-14 h-14 sm:w-16 sm:h-16">
+        <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20">
           <Image
             src={pref.image.url}
             alt={pref.name}
@@ -153,24 +154,21 @@ export default function PreferencesManager() {
   }
 
   return (
-    <section className="w-full py-12 md:py-16 px-4 sm:px-6 lg:px-12 bg-white">
-      <div className="w-full max-w-5xl mx-auto">
+    <section className="w-full py-16 md:py-20 overflow-hidden">
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-16 space-y-6 sm:space-y-10 md:space-y-12">
         {/* Header matching design */}
-        <div className="text-center mb-10 sm:mb-12">
-          <h1 className="font-roboto-serif font-normal text-3xl sm:text-4xl text-gray-900 tracking-tight">
-            Your Preferences
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-2.5 max-w-2xl mx-auto font-normal leading-relaxed">
-            It Will Show Others What Kind Of Flatmate You Prefer. Please Select At Least 5 Preferences To Update.
-          </p>
-        </div>
+        <SectionHeading
+          title="Your Preferences"
+          description="It Will Show Others What Kind Of Flatmate You Prefer. Please Select At Least 5 Preferences To Update."
+          align="center"
+        />
 
         {/* Notification Banner */}
         {statusMessage && (
           <div
             className={`max-w-2xl mx-auto mb-8 p-4 rounded-2xl flex items-center gap-3 text-sm transition-all duration-300 animate-in fade-in-50 ${statusMessage.type === "success"
-                ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                : "bg-red-50 text-red-800 border border-red-200"
+              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+              : "bg-red-50 text-red-800 border border-red-200"
               }`}
           >
             {statusMessage.type === "success" ? (
@@ -216,15 +214,15 @@ export default function PreferencesManager() {
                       type="button"
                       onClick={() => handleTogglePreference(pref._id)}
                       aria-label={`Select ${pref.name}`}
-                      className={`w-28 h-28 sm:w-32 sm:h-32 rounded-[28px] flex items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${isSelected
-                          ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
-                          : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
+                      className={`w-28 h-28 sm:w-32 sm:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${isSelected
+                        ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
+                        : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
                         }`}
                     >
                       {renderPreferenceImage(pref)}
                     </button>
 
-                    <span className="text-xs sm:text-sm font-medium text-gray-800 mt-3 text-center tracking-tight">
+                    <span className="text-gray-800 text-sm sm:text-base md:text-lg font-regular mt-3 text-center tracking-tight">
                       {pref.name}
                     </span>
                   </div>

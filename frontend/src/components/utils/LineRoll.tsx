@@ -89,7 +89,7 @@ export default function LineRoll({
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
-            <span className="block pointer-events-none">{text}</span>
+            <span className="block pointer-events-none mb-0.5">{text}</span>
 
             {/* Underline */}
             <span className="absolute left-0 bottom-0 w-full h-[2px] overflow-hidden pointer-events-none">
@@ -100,4 +100,4 @@ export default function LineRoll({
             </span>
         </span>
     );
-}
+}

@@ -251,7 +251,7 @@ export const updateCity = async (req: Request, res: Response): Promise<Response>
     if (!city) return sendError(res, 'City not found', 404);
 
     const oldImageKey = city.image?.key || extractKeyFromUrl(city.image?.url);
-    const { name, state, country, isPopular, isActive, seo } = req.body;
+    const { name, state, country, isPopular, isActive, seo, removeImage } = req.body;
 
     if (name !== undefined) {
       if (typeof name !== 'string' || !name.trim()) {
@@ -281,22 +281,46 @@ export const updateCity = async (req: Request, res: Response): Promise<Response>
     }
 
     if (seo !== undefined) {
+      let parsedSeo: any = seo;
       if (typeof seo === 'string') {
-        try {
-          city.seo = JSON.parse(seo);
-        } catch {
-          // ignore invalid json
+        if (!seo.trim() || seo === 'null' || seo === 'undefined') {
+          parsedSeo = undefined;
+        } else {
+          try {
+            parsedSeo = JSON.parse(seo);
+          } catch {
+            parsedSeo = undefined;
+          }
         }
-      } else if (typeof seo === 'object') {
-        city.seo = seo;
       }
+      city.seo = parsedSeo || undefined;
     }
 
-    const imageObj = await parseImageInput(req, 'city', 'image');
-    if (imageObj !== undefined) {
-      city.image = imageObj;
-      if (imageObj?.key) {
-        uploadedKey = imageObj.key;
+    const isRemoveImage =
+      removeImage === true ||
+      removeImage === 'true' ||
+      req.body.image === 'null' ||
+      req.body.image === null;
+
+    if (isRemoveImage) {
+      if (oldImageKey) {
+        deleteFile(oldImageKey).catch((err) =>
+          logger.error(`[CityController] Delete old S3 image failed ${oldImageKey}:`, err)
+        );
+      }
+      city.image = undefined;
+    } else {
+      const imageObj = await parseImageInput(req, 'city', 'image');
+      if (imageObj !== undefined) {
+        if (oldImageKey && imageObj.key && oldImageKey !== imageObj.key) {
+          deleteFile(oldImageKey).catch((err) =>
+            logger.error(`[CityController] Delete previous S3 image failed ${oldImageKey}:`, err)
+          );
+        }
+        city.image = imageObj;
+        if (imageObj?.key) {
+          uploadedKey = imageObj.key;
+        }
       }
     }
 

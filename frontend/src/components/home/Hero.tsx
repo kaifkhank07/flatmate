@@ -11,7 +11,7 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className="relative min-h-screen h-screen flex flex-col md:justify-between gap-12 overflow-hidden pt-24 sm:pt-28 lg:pt-32 pb-4 sm:pb-6 lg:pb-8"
+      className="relative min-h-screen h-screen flex flex-col lg:justify-between gap-4 sm:gap-6 md:gap-8 lg:gap-12 overflow-hidden pt-40 sm:pt-60 lg:pt-32 pb-4 sm:pb-6 lg:pb-8"
     >
       {/* HERO BACKGROUND IMAGE */}
       <div
@@ -28,7 +28,7 @@ export default function Hero() {
       />
 
       {/* Middle Hero Content: Heading & Supporting Text */}
-      <div className="relative z-10 w-full max-w-8xl 3xl:max-w-[1450px] mx-auto md:my-auto px-4 sm:px-6 lg:px-16 space-y-4 sm:space-y-6 md:space-y-8">
+      <div className="relative z-10 w-full max-w-8xl 3xl:max-w-[1450px] mx-auto lg:mt-auto px-4 sm:px-6 lg:px-16 space-y-4 sm:space-y-6 md:space-y-8">
         {/* White Heading Card */}
         <ViewReveal duration={800} startDelay={100}>
           <div className="bg-white rounded-2xl sm:rounded-4xl p-6 sm:p-8 md:py-10 w-fit">

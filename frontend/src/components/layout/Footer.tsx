@@ -11,18 +11,18 @@ export default function Footer() {
 
   const quickLinks1 = [
     { title: "Home", href: "/" },
+    { title: "Listings", href: "/listing" },
     { title: "About Us", href: "/about" },
     { title: "Contact Us", href: "/contact" },
-    { title: "Blogs", href: "/blogs" },
-    { title: "Rooms", href: "/listing" },
+    { title: "Blogs", href: "/blog" },
   ];
 
   const quickLinks2 = [
-    { title: "Home", href: "/" },
-    { title: "About Us", href: "/about" },
-    { title: "Contact Us", href: "/contact" },
-    { title: "Blogs", href: "/blogs" },
-    { title: "Rooms", href: "/listing" },
+    { title: "info@gmail.com", href: "mailto:info@gmail.com" },
+    { title: "1234567890", href: "tel:+91-1234567890" },
+    { title: "Terms & Conditions", href: "/terms-conditions" },
+    { title: "Privacy Policy", href: "/privacy-policy" },
+    { title: "Cities", href: "/city" },
   ];
 
   return (
@@ -39,7 +39,8 @@ export default function Footer() {
                 alt="Flatmate Logo"
                 width={140}
                 height={44}
-                className="h-12 md:h-16 w-auto object-contain"
+                // className="h-12 md:h-16 w-auto object-contain"
+                className="h-12 sm:h-14 md:h-20 lg:h-22 w-auto object-contain"
                 priority
               />
             </Link>
@@ -71,7 +72,7 @@ export default function Footer() {
           {/* Column 3: Quick Links */}
           <div className="space-y-2 sm:space-y-4">
             <h4 className="text-black text-base sm:text-lg md:text-[22px] font-medium">
-              Quick Links
+              Other Links
             </h4>
             <ul className="space-y-2">
               {quickLinks2.map((item, index) => (

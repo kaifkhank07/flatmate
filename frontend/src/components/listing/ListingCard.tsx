@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { FlatmateListingItem } from "@/data/listings";
+import { FlatmateListingItem } from "@/types/listing";
 import AvatarIllustration from "./AvatarIllustration";
 import { MapPin, MessageSquare } from "lucide-react";
 import Link from "next/link";
@@ -13,6 +13,7 @@ interface ListingCardProps {
 export default function ListingCard({ item }: ListingCardProps) {
   // Format distance text to make the distance number bold (e.g. "2.8 Km" bold, "From Your Search" normal)
   const renderDistance = (distanceStr: string) => {
+    if (!distanceStr) return null;
     const match = distanceStr.match(/^([\d.]+\s*\w+)\s*(.*)$/);
     if (match) {
       return (
