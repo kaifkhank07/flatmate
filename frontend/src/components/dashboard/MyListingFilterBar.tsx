@@ -36,7 +36,7 @@ interface MyListingFilterBarProps {
 
 const statusOptions: { label: string; value: StatusFilter }[] = [
   { label: "All Status", value: "all" },
-  { label: "Draft", value: "draft" },
+  // { label: "Draft", value: "draft" },
   { label: "Pending", value: "pending" },
   { label: "Approved", value: "approved" },
   { label: "Rejected", value: "rejected" },
@@ -138,7 +138,7 @@ export default function MyListingFilterBar({
   const selectedStatusLabel = selectedStatusObj?.label || "All Status";
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-4 pt-8 md:pt-12">
       {/* Category Tabs & Status Filter Bar */}
       <div className="w-full py-3 px-4 sm:px-6 lg:px-16 relative z-20">
         <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
@@ -151,11 +151,10 @@ export default function MyListingFilterBar({
                   key={cat.label}
                   type="button"
                   onClick={() => onSelectCategory(cat.label)}
-                  className={`flex flex-col items-center justify-center gap-1.5 py-1 transition-all cursor-pointer relative shrink-0 ${
-                    isActive
-                      ? "text-black font-semibold"
-                      : "text-gray-400 hover:text-gray-600 font-medium"
-                  }`}
+                  className={`flex flex-col items-center justify-center gap-1.5 py-1 transition-all cursor-pointer relative shrink-0 ${isActive
+                    ? "text-black font-semibold"
+                    : "text-gray-400 hover:text-gray-600 font-medium"
+                    }`}
                 >
                   {cat.icon}
                   <span className="text-xs sm:text-sm">{cat.displayLabel}</span>
@@ -190,11 +189,10 @@ export default function MyListingFilterBar({
                         onSelectStatus(opt.value);
                         setStatusOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${
-                        statusFilter === opt.value
-                          ? "bg-blue-50 text-[#0066FF] font-semibold"
-                          : "text-gray-700 hover:bg-gray-50"
-                      }`}
+                      className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${statusFilter === opt.value
+                        ? "bg-blue-50 text-[#0066FF] font-semibold"
+                        : "text-gray-700 hover:bg-gray-50"
+                        }`}
                     >
                       {opt.label}
                     </button>
