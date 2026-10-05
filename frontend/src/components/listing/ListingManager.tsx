@@ -6,6 +6,7 @@ import {
   ListingCategory,
   GenderFilter,
   mapUnifiedListingToCard,
+  getCategoryFilters,
 } from "@/types/listing";
 import { useListingStore } from "@/store/useListingStore";
 import ListingFilterBar from "./ListingFilterBar";
@@ -27,6 +28,8 @@ export default function ListingManager() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const cityParam = searchParams.get("city");
+  const categoryParam = searchParams.get("category");
+  const listingTypeParam = searchParams.get("listingType");
 
   const [selectedCategory, setSelectedCategory] =
     useState<ListingCategory>("All");
@@ -39,15 +42,34 @@ export default function ListingManager() {
     name: string;
   } | null>(null);
 
-  // Helper to remove ?city=... from URL if present
+  // Helper to remove ?city=... / ?category=... / ?listingType=... from URL if present
   const clearCityUrlParam = () => {
-    if (searchParams.get("city")) {
+    if (
+      searchParams.get("city") ||
+      searchParams.get("category") ||
+      searchParams.get("listingType")
+    ) {
       router.replace("/listing", { scroll: false });
     }
   };
 
-  // Sync city param from URL on initial load or URL change
+  // Sync city, category, and listingType params from URL on initial load or URL change
   useEffect(() => {
+    let categoryToSet: ListingCategory = "All";
+    if (
+      categoryParam === "Flat" ||
+      categoryParam === "Flatmate" ||
+      categoryParam === "Property"
+    ) {
+      categoryToSet = categoryParam as ListingCategory;
+    }
+    setSelectedCategory(categoryToSet);
+
+    const catFilters = getCategoryFilters(categoryToSet);
+    if (listingTypeParam) {
+      catFilters.listingType = listingTypeParam as any;
+    }
+
     if (cityParam && cityParam.trim()) {
       const trimmedCity = cityParam.trim();
       setSearchQuery(trimmedCity);
@@ -64,6 +86,7 @@ export default function ListingManager() {
                 name: details.name || suggestions[0].mainText || trimmedCity,
               });
               setFilters({
+                ...catFilters,
                 locationPlaceId: details.placeId,
                 latitude: details.latitude,
                 longitude: details.longitude,
@@ -76,26 +99,31 @@ export default function ListingManager() {
               // Fallback to q text search
             }
           }
-          setFilters({ q: trimmedCity, page: 1 });
+          setFilters({ ...catFilters, q: trimmedCity, page: 1 });
         })
         .catch(() => {
-          setFilters({ q: trimmedCity, page: 1 });
+          setFilters({ ...catFilters, q: trimmedCity, page: 1 });
         });
     } else {
-      fetchListings();
+      if (categoryParam || listingTypeParam) {
+        setFilters({ ...catFilters, page: 1 });
+      } else {
+        fetchListings();
+      }
     }
-  }, [cityParam, fetchListings, setFilters]);
+  }, [cityParam, categoryParam, listingTypeParam, fetchListings, setFilters]);
 
   // Debounced text search query handler (only active when no Google Place is selected)
   useEffect(() => {
     if (selectedPlace) return;
+    if (cityParam && searchQuery === cityParam.trim()) return;
 
     const timer = setTimeout(() => {
       setFilters({ q: searchQuery.trim() || undefined, page: 1 });
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, selectedPlace, setFilters]);
+  }, [searchQuery, selectedPlace, setFilters, cityParam]);
 
   // Handle Google Place selection
   const handleSelectPlace = (
@@ -133,27 +161,10 @@ export default function ListingManager() {
   // Handle Category Selection
   const handleSelectCategory = (cat: ListingCategory) => {
     setSelectedCategory(cat);
-
-    let sourceType: "all" | "property" | "flatmate_requirement" = "all";
-    let postType: "property" | "partner" | undefined = undefined;
-
-    if (cat === "Flat") {
-      sourceType = "flatmate_requirement";
-      postType = "property";
-    } else if (cat === "Flatmate") {
-      sourceType = "flatmate_requirement";
-      postType = "partner";
-    } else if (cat === "Property") {
-      sourceType = "property";
-      postType = undefined;
-    } else {
-      sourceType = "all";
-      postType = undefined;
-    }
+    const catFilters = getCategoryFilters(cat);
 
     setFilters({
-      sourceType,
-      postType,
+      ...catFilters,
       listingType: undefined,
       partnerType: undefined,
       propertyType: undefined,

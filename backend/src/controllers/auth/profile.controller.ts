@@ -4,6 +4,7 @@ import path from 'path';
 
 import { UserProfile, IUserProfile } from '../../models/auth/userProfile.model';
 import { UserPreference } from '../../models/auth/userPreference.model';
+import { Avatar } from '../../models/auth/avatar.model';
 
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
@@ -85,6 +86,7 @@ export const parseProfileImageInput = async (
 
 /**
  * Helper to calculate profile completion percentage (0 - 100)
+ * Note: Avatar and custom image act interchangeably for the image field completion slot.
  */
 export const calculateProfileCompletion = (profile: Partial<IUserProfile>): number => {
   const fields = [
@@ -102,7 +104,10 @@ export const calculateProfileCompletion = (profile: Partial<IUserProfile>): numb
   let completedFields = 0;
 
   for (const field of fields) {
-    const val = (profile as any)[field];
+    let val = (profile as any)[field];
+    if (field === 'image' && (!val || (typeof val === 'object' && Object.keys(val).length === 0))) {
+      val = (profile as any)['avatar'];
+    }
     if (val !== undefined && val !== null) {
       if (Array.isArray(val) && val.length > 0) {
         completedFields++;
@@ -131,16 +136,30 @@ export const getProfile = async (req: Request, res: Response): Promise<Response>
       return sendError(res, 'Authentication required', 401);
     }
 
-    let profile = await UserProfile.findOne({ userId: req.user._id }).populate({
-      path: 'preferences',
-      select: 'name category image isActive',
-    });
+    let profile = await UserProfile.findOne({ userId: req.user._id })
+      .populate({
+        path: 'preferences',
+        select: 'name category image isActive',
+      })
+      .populate({
+        path: 'avatar',
+        select: '_id name image isActive',
+      });
 
     if (!profile) {
       profile = await UserProfile.create({
         userId: req.user._id,
         profileCompletion: 0,
       });
+      profile = await UserProfile.findById(profile._id)
+        .populate({
+          path: 'preferences',
+          select: 'name category image isActive',
+        })
+        .populate({
+          path: 'avatar',
+          select: '_id name image isActive',
+        });
     }
 
     return sendSuccess(res, 'Profile fetched successfully', profile);
@@ -221,13 +240,40 @@ export const updateProfile = async (req: Request, res: Response): Promise<Respon
       }
     }
 
-    // Handle image upload / update / removal
+    // Handle Avatar selection vs Custom Image mutual exclusivity
+    if (req.body.avatar !== undefined) {
+      const avatarVal = req.body.avatar;
+      if (avatarVal === null || avatarVal === '' || avatarVal === 'null' || req.body.removeAvatar === true || req.body.removeAvatar === 'true') {
+        profile.avatar = undefined;
+      } else {
+        if (!Types.ObjectId.isValid(String(avatarVal))) {
+          return sendError(res, 'Invalid avatar ID', 400);
+        }
+        const avatarDoc = await Avatar.findById(avatarVal);
+        if (!avatarDoc || !avatarDoc.isActive) {
+          return sendError(res, 'Selected avatar is invalid or inactive', 400);
+        }
+        profile.avatar = avatarDoc._id;
+        // Mutually exclusive: selecting an avatar clears custom image & deletes old custom S3 image
+        if (oldKey) {
+          deleteFile(oldKey).catch((err) =>
+            logger.error(`[ProfileController] Failed to delete old profile custom image ${oldKey}:`, err)
+          );
+        }
+        profile.image = undefined;
+      }
+      delete req.body.avatar;
+      delete req.body.removeAvatar;
+    }
+
+    // Handle custom image upload / update / removal
     const imageObj = await parseProfileImageInput(req, 'users', 'profile');
     if (imageObj !== undefined) {
       if (imageObj === null) {
         profile.image = undefined;
       } else {
         profile.image = imageObj;
+        profile.avatar = undefined; // Mutually exclusive: uploading a custom image clears avatar
         if (imageObj.key) {
           uploadedKey = imageObj.key;
         }
@@ -241,14 +287,19 @@ export const updateProfile = async (req: Request, res: Response): Promise<Respon
     profile.profileCompletion = calculateProfileCompletion(profile.toObject());
     await profile.save();
 
-    const populatedProfile = await UserProfile.findById(profile._id).populate({
-      path: 'preferences',
-      select: 'name category image isActive',
-    });
+    const populatedProfile = await UserProfile.findById(profile._id)
+      .populate({
+        path: 'preferences',
+        select: 'name category image isActive',
+      })
+      .populate({
+        path: 'avatar',
+        select: '_id name image isActive',
+      });
 
-    // If image key changed, clean up old S3 object safely
+    // If custom image key changed to another custom image key, clean up old S3 object
     const newKey = profile.image?.key || (profile.image?.url ? extractKeyFromUrl(profile.image.url) : undefined);
-    if (oldKey && oldKey !== newKey) {
+    if (oldKey && newKey && oldKey !== newKey) {
       deleteFile(oldKey).catch((err) =>
         logger.error(`[ProfileController] Failed to delete old profile image ${oldKey}:`, err)
       );
@@ -269,7 +320,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<Respon
 
 /**
  * Upload profile image for current user
- * POST /api/profile/image or /api/profile/profile-image or /api/profile/avatar
+ * POST /api/profile/image or /api/profile/profile-image
  */
 export const uploadProfileImage = async (req: Request, res: Response): Promise<Response> => {
   let uploadedKey: string | undefined;
@@ -314,6 +365,8 @@ export const uploadProfileImage = async (req: Request, res: Response): Promise<R
     }
 
     profile.image = { url, key };
+    profile.avatar = undefined; // Mutually exclusive!
+
     profile.profileCompletion = calculateProfileCompletion(profile.toObject());
     await profile.save();
 
@@ -324,10 +377,19 @@ export const uploadProfileImage = async (req: Request, res: Response): Promise<R
       );
     }
 
+    const populatedProfile = await UserProfile.findById(profile._id)
+      .populate({
+        path: 'preferences',
+        select: 'name category image isActive',
+      })
+      .populate({
+        path: 'avatar',
+        select: '_id name image isActive',
+      });
+
     logger.info(`Profile image uploaded for user: ${req.user._id}`);
-    return sendSuccess(res, 'Profile image uploaded successfully', profile);
+    return sendSuccess(res, 'Profile image uploaded successfully', populatedProfile);
   } catch (error: any) {
-    // If S3 upload succeeded but MongoDB update failed, roll back S3 object
     if (uploadedKey) {
       deleteFile(uploadedKey).catch((err) =>
         logger.error(`[ProfileController] Rollback S3 profile image failed ${uploadedKey}:`, err)
@@ -340,7 +402,7 @@ export const uploadProfileImage = async (req: Request, res: Response): Promise<R
 
 /**
  * Delete profile image of current user
- * DELETE /api/profile/image or /api/profile/profile-image or /api/profile/avatar
+ * DELETE /api/profile/image or /api/profile/profile-image
  */
 export const deleteProfileImage = async (req: Request, res: Response): Promise<Response> => {
   try {
@@ -349,13 +411,15 @@ export const deleteProfileImage = async (req: Request, res: Response): Promise<R
     }
 
     const profile = await UserProfile.findOne({ userId: req.user._id });
-    if (!profile || !profile.image) {
-      return sendError(res, 'No profile image to delete', 404);
+    if (!profile || (!profile.image && !profile.avatar)) {
+      return sendError(res, 'No profile image or avatar to delete', 404);
     }
 
-    const oldKey = profile.image.key;
+    const oldKey = profile.image?.key;
 
     profile.image = undefined;
+    profile.avatar = undefined;
+
     profile.profileCompletion = calculateProfileCompletion(profile.toObject());
     await profile.save();
 
@@ -363,11 +427,72 @@ export const deleteProfileImage = async (req: Request, res: Response): Promise<R
       await deleteFile(oldKey);
     }
 
+    const populatedProfile = await UserProfile.findById(profile._id)
+      .populate({
+        path: 'preferences',
+        select: 'name category image isActive',
+      })
+      .populate({
+        path: 'avatar',
+        select: '_id name image isActive',
+      });
+
     logger.info(`Profile image deleted for user: ${req.user._id}`);
-    return sendSuccess(res, 'Profile image deleted successfully', profile);
+    return sendSuccess(res, 'Profile image deleted successfully', populatedProfile);
   } catch (error) {
     logger.error('[ProfileController] Failed to delete profile image:', error);
     return sendError(res, 'Failed to delete profile image', 500);
   }
 };
 
+/**
+ * Check profile completion status of current authenticated user
+ * GET /api/users/profile/completion-status or GET /api/profile/completion-status
+ */
+export const getProfileCompletionStatus = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    if (!req.user) {
+      return sendError(res, 'Authentication required', 401);
+    }
+
+    const profile = await UserProfile.findOne({ userId: req.user._id }).select('completedOnce').lean();
+
+    return sendSuccess(res, 'Profile completion status fetched successfully', {
+      completedOnce: profile?.completedOnce === true,
+    });
+  } catch (error) {
+    logger.error('[ProfileController] Failed to get profile completion status:', error);
+    return sendError(res, 'Failed to fetch profile completion status', 500);
+  }
+};
+
+/**
+ * Mark profile as completed once for current authenticated user
+ * PATCH /api/users/profile/complete or PATCH /api/profile/complete
+ */
+export const markProfileAsCompleted = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    if (!req.user) {
+      return sendError(res, 'Authentication required', 401);
+    }
+
+    let profile = await UserProfile.findOne({ userId: req.user._id });
+    if (!profile) {
+      profile = new UserProfile({
+        userId: req.user._id,
+        profileCompletion: 0,
+      });
+    }
+
+    profile.completedOnce = true;
+    await profile.save();
+
+    logger.info(`Profile marked as completed for user: ${req.user._id}`);
+    return sendSuccess(res, 'Profile marked as completed successfully', {
+      completedOnce: true,
+    });
+  } catch (error) {
+    logger.error('[ProfileController] Failed to mark profile as completed:', error);
+    return sendError(res, 'Failed to mark profile as completed', 500);
+  }
+};

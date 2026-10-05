@@ -1,19 +1,19 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Search,
   UploadCloud,
-  CheckCircle2,
-  ArrowLeft,
   Loader2,
   X,
   MapPin,
-  Video as VideoIcon,
-  ImageIcon,
   Plus,
-  Trash2,
-  Check,
+  Sparkles,
+  Utensils,
+  PawPrint,
+  Wine,
 } from "lucide-react";
 import SectionHeading from "@/components/utils/SectionHeading";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -53,6 +53,7 @@ interface VideoStateItem {
 export default function PropertyCreationForm({
   onBack,
 }: PropertyCreationFormProps) {
+  const router = useRouter();
   const { user } = useAuthStore();
   const { createProperty } = useListingStore();
 
@@ -75,7 +76,7 @@ export default function PropertyCreationForm({
   const [rentAmount, setRentAmount] = useState("");
   const [securityDeposit, setSecurityDeposit] = useState("");
   const [maintenanceAmount, setMaintenanceAmount] = useState("");
-  const [maintenanceFrequency, setMaintenanceFrequency] = useState<"monthly" | "yearly" | "included" | "one_time">("monthly");
+  const [maintenanceFrequency, setMaintenanceFrequency] = useState<"monthly" | "yearly" | "included" | "one_time">("yearly");
   const [furnishing, setFurnishing] = useState<"fully_furnished" | "semi_furnished" | "unfurnished">("semi_furnished");
   const [parkingAvailable, setParkingAvailable] = useState(false);
   const [availableFrom, setAvailableFrom] = useState("");
@@ -90,7 +91,6 @@ export default function PropertyCreationForm({
 
   // Submission & Status State
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Fetch Amenities on Component Load
@@ -166,6 +166,34 @@ export default function PropertyCreationForm({
     );
   };
 
+  // Helper to render image / icon for property amenities matching PreferencesManager style
+  const renderAmenityImage = (amenity: PropertyAmenityItem) => {
+    if (amenity.image?.url) {
+      return (
+        <div className="relative w-12 h-12 sm:w-14 sm:h-14">
+          <Image
+            src={amenity.image.url}
+            alt={amenity.name}
+            fill
+            unoptimized
+            className="object-contain p-1"
+          />
+        </div>
+      );
+    }
+
+    if (amenity.category === "food") {
+      return <Utensils className="w-8 h-8 text-emerald-500" />;
+    }
+    if (amenity.category === "pets") {
+      return <PawPrint className="w-8 h-8 text-amber-500" />;
+    }
+    if (amenity.category === "drink") {
+      return <Wine className="w-8 h-8 text-blue-500" />;
+    }
+    return <Sparkles className="w-8 h-8 text-[#0066F9]" />;
+  };
+
   // Photo Upload Handler
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -239,6 +267,26 @@ export default function PropertyCreationForm({
       return;
     }
 
+    if (securityDeposit === "" || Number(securityDeposit) < 0) {
+      setErrorMessage("Security deposit is required.");
+      return;
+    }
+
+    if (!availableFrom) {
+      setErrorMessage("Available from date is required.");
+      return;
+    }
+
+    if (photoItems.length === 0) {
+      setErrorMessage("At least one property photo is required.");
+      return;
+    }
+
+    if (selectedAmenities.length < 3) {
+      setErrorMessage("Please select at least 3 property amenities.");
+      return;
+    }
+
     setIsSubmitting(true);
     const createdImageIds: string[] = [];
     const createdVideoIds: string[] = [];
@@ -292,7 +340,7 @@ export default function PropertyCreationForm({
 
       const locationId = locRes.data._id;
 
-      // Step 4: Create Property Document (Owner ID bound implicitly to user._id, Status implicitly set to 'pending')
+      // Step 4: Create Property Document
       const payload: any = {
         ownerId: user?._id,
         title: title.trim(),
@@ -334,8 +382,7 @@ export default function PropertyCreationForm({
       }
 
       setIsSubmitting(false);
-      setIsSubmitted(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      router.push("/my-listings");
     } catch (err: any) {
       await cleanupUploadedMedia();
       setIsSubmitting(false);
@@ -345,41 +392,7 @@ export default function PropertyCreationForm({
 
   return (
     <section className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
-      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto space-y-6 sm:space-y-8">
-        {/* Top Back Button */}
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-brand-blue bg-white border border-gray-200 px-4 py-2 rounded-full shadow-xs hover:border-brand-blue/40 transition-all cursor-pointer group"
-          >
-            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            Back to Options
-          </button>
-        </div>
-
-        {/* Success Banner */}
-        {isSubmitted && (
-          <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start gap-4 animate-in zoom-in-95 duration-200">
-            <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-base font-semibold text-emerald-900">
-                Property Listing Created Successfully
-              </h3>
-              <p className="text-sm text-emerald-700 mt-1">
-                Your property listing has been submitted and is currently pending review.
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsSubmitted(false)}
-                className="mt-2 text-xs font-semibold text-emerald-800 underline hover:text-emerald-950"
-              >
-                Create Another Property Listing
-              </button>
-            </div>
-          </div>
-        )}
-
+      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto space-y-6 sm:space-y-10 md:space-y-12">
         {/* Error Banner */}
         {errorMessage && (
           <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between gap-4 text-rose-700 text-sm">
@@ -395,7 +408,7 @@ export default function PropertyCreationForm({
         )}
 
         {/* Main Card Wrapper */}
-        <div className="bg-white border border-gray-100 rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 md:p-12 shadow-sm space-y-8 sm:space-y-10 md:space-y-12">
+        <div className="bg-white border border-gray-100 rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 md:p-12 space-y-6 sm:space-y-10 md:space-y-12">
           {/* Header Title & Description */}
           <SectionHeading
             title="Add New Property Listing"
@@ -531,12 +544,13 @@ export default function PropertyCreationForm({
               {/* Listing Type */}
               <div className="space-y-2">
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  Listing Type
+                  Property Type <span className="text-rose-500">*</span>
                 </label>
                 <select
                   value={listingType}
                   onChange={(e) => setListingType(e.target.value as any)}
                   className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
+                  required
                 >
                   <option value="flat">Flat</option>
                   <option value="room">Room</option>
@@ -573,7 +587,7 @@ export default function PropertyCreationForm({
                 {/* Security Deposit */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Security Deposit (₹)
+                    Security Deposit (₹) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -582,13 +596,14 @@ export default function PropertyCreationForm({
                     onChange={(e) => setSecurityDeposit(e.target.value)}
                     placeholder="e.g. 30000"
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
+                    required
                   />
                 </div>
 
                 {/* Furnishing Status */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Furnishing Status
+                    Furnishing Status <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={furnishing}
@@ -632,21 +647,23 @@ export default function PropertyCreationForm({
                 </div>
 
                 {/* Maintenance Frequency */}
-                <div className="space-y-2">
-                  <label className="block text-sm sm:text-base font-regular text-black">
-                    Maintenance Frequency
-                  </label>
-                  <select
-                    value={maintenanceFrequency}
-                    onChange={(e) => setMaintenanceFrequency(e.target.value as any)}
-                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                  >
-                    <option value="monthly">Monthly</option>
-                    <option value="yearly">Yearly</option>
-                    <option value="included">Included in Rent</option>
-                    <option value="one_time">One Time</option>
-                  </select>
-                </div>
+                {maintenanceAmount && maintenanceAmount.trim() !== "" && (
+                  <div className="space-y-2 animate-in fade-in duration-200">
+                    <label className="block text-sm sm:text-base font-regular text-black">
+                      Maintenance Frequency
+                    </label>
+                    <select
+                      value={maintenanceFrequency}
+                      onChange={(e) => setMaintenanceFrequency(e.target.value as any)}
+                      className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="yearly">Yearly</option>
+                      <option value="included">Included in Rent</option>
+                      <option value="one_time">One Time</option>
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -660,13 +677,14 @@ export default function PropertyCreationForm({
                 {/* Available From */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Available From
+                    Available From <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="date"
                     value={availableFrom}
                     onChange={(e) => setAvailableFrom(e.target.value)}
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
+                    required
                   />
                 </div>
 
@@ -725,39 +743,45 @@ export default function PropertyCreationForm({
                 />
               </div>
 
-              {/* Property Amenities Pills */}
-              <div className="space-y-2">
+              {/* Property Amenities Grid Select UI (Matching PreferencesManager) */}
+              <div className="space-y-3">
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  Property Amenities ({selectedAmenities.length} Selected)
+                  Property Amenities ({selectedAmenities.length}/3 minimum selected) <span className="text-rose-500">*</span>
                 </label>
 
                 {loadingAmenities ? (
-                  <div className="p-4 bg-[#F8FAFC] rounded-2xl text-xs text-gray-400 flex items-center justify-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
+                  <div className="p-8 bg-[#F8FBFE] rounded-3xl border border-[#E2EFF8] text-xs text-gray-500 flex items-center justify-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin text-[#0066F9]" />
                     Loading amenities…
                   </div>
                 ) : amenityOptions.length > 0 ? (
-                  <div className="flex flex-wrap gap-2.5 p-4 bg-[#F8FAFC] border border-gray-100 rounded-2xl max-h-48 overflow-y-auto">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-x-4 gap-y-6 justify-items-center p-4 sm:p-6 bg-[#F8FAFC] border border-gray-100 rounded-3xl">
                     {amenityOptions.map((am) => {
                       const isSelected = selectedAmenities.includes(am._id);
                       return (
-                        <button
-                          key={am._id}
-                          type="button"
-                          onClick={() => toggleAmenity(am._id)}
-                          className={`px-3.5 py-1.5 text-xs font-medium rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${isSelected
-                              ? "bg-brand-blue text-white shadow-xs"
-                              : "bg-white text-gray-700 border border-gray-200 hover:border-brand-blue/40 hover:bg-blue-50/50"
-                            }`}
-                        >
-                          {isSelected && <Check className="w-3.5 h-3.5" />}
-                          {am.name}
-                        </button>
+                        <div key={am._id} className="flex flex-col items-center">
+                          <button
+                            type="button"
+                            onClick={() => toggleAmenity(am._id)}
+                            aria-label={`Select ${am.name}`}
+                            title={am.name}
+                            className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${isSelected
+                              ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
+                              : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
+                              }`}
+                          >
+                            {renderAmenityImage(am)}
+                          </button>
+
+                          <span className="text-gray-800 text-xs sm:text-sm font-medium mt-2.5 text-center tracking-tight max-w-[110px] truncate">
+                            {am.name}
+                          </span>
+                        </div>
                       );
                     })}
                   </div>
                 ) : (
-                  <div className="p-4 bg-[#F8FAFC] rounded-2xl text-xs text-gray-400 text-center">
+                  <div className="p-8 bg-[#F8FBFE] rounded-3xl border border-[#E2EFF8] text-xs text-gray-400 text-center">
                     No property amenities available
                   </div>
                 )}
@@ -774,10 +798,10 @@ export default function PropertyCreationForm({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Property Photos ({photoItems.length})
+                    Property Photos ({photoItems.length}) <span className="text-rose-500">*</span>
                   </label>
-                  <label className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-brand-blue hover:bg-brand-blue/90 text-white cursor-pointer transition-all shadow-xs">
-                    <Plus className="w-3.5 h-3.5" />
+                  <label className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-regular rounded-xl bg-brand-blue hover:bg-brand-blue/90 text-white cursor-pointer transition-all shadow-xs">
+                    <Plus className="w-3.5 h-3.5 stroke-0.5" />
                     <span>Select Photos</span>
                     <input
                       type="file"
@@ -836,9 +860,10 @@ export default function PropertyCreationForm({
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Walkthrough Videos ({videoItems.length})
                   </label>
-                  <label className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-gray-800 hover:bg-gray-900 text-white cursor-pointer transition-all shadow-xs">
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Select Video</span>
+
+                  <label className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-regular rounded-xl bg-brand-blue hover:bg-brand-blue/90 text-white cursor-pointer transition-all shadow-xs">
+                    <Plus className="w-3.5 h-3.5 stroke-0.5" />
+                    <span>Select Videos</span>
                     <input
                       type="file"
                       multiple
@@ -850,37 +875,31 @@ export default function PropertyCreationForm({
                 </div>
 
                 {videoItems.length > 0 ? (
-                  <div className="space-y-3 p-3 bg-[#F8FAFC] border border-gray-100 rounded-2xl max-h-64 overflow-y-auto">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 p-3 bg-[#F8FAFC] border border-gray-100 rounded-2xl max-h-64 overflow-y-auto">
                     {videoItems.map((item) => (
                       <div
                         key={item.id}
-                        className="p-3 bg-white border border-gray-200 rounded-xl space-y-2 relative"
+                        className="relative group rounded-xl overflow-hidden border border-gray-200 aspect-video bg-gray-900 flex items-center justify-center"
                       >
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-semibold text-gray-800 truncate max-w-[280px]">
-                            {item.file.name}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveVideo(item.id)}
-                            className="p-1 text-gray-400 hover:text-rose-600 rounded transition-colors"
-                            title="Remove Video"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                        <div className="aspect-video w-full max-w-md mx-auto bg-black rounded-lg overflow-hidden border border-gray-200">
-                          <video
-                            src={item.previewUrl}
-                            controls
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
+                        <video
+                          src={item.previewUrl}
+                          controls
+                          className="w-full h-full object-cover"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveVideo(item.id)}
+                          className="absolute top-1.5 right-1.5 bg-black/70 hover:bg-rose-600 text-white rounded-full p-1 transition-colors z-10"
+                          title="Remove Video"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <label className="border-2 border-dashed border-gray-300 hover:border-gray-800 rounded-2xl py-8 px-4 flex flex-col justify-center items-center cursor-pointer bg-[#F8FAFC] hover:bg-gray-100/60 transition-colors group">
+                  <label className="border-2 border-dashed border-gray-300 hover:border-brand-blue rounded-2xl py-8 px-4 flex flex-col justify-center items-center cursor-pointer bg-[#F8FAFC] hover:bg-blue-50/40 transition-colors group">
                     <input
                       type="file"
                       multiple
@@ -888,7 +907,9 @@ export default function PropertyCreationForm({
                       onChange={handleVideoUpload}
                       className="hidden"
                     />
-                    <VideoIcon className="w-8 h-8 text-gray-600 group-hover:scale-110 transition-transform duration-200" />
+
+                    <UploadCloud className="w-8 h-8 text-brand-blue group-hover:scale-110 transition-transform duration-200" />
+
                     <span className="text-xs text-gray-500 mt-2">
                       Click to upload property video walkthroughs (MP4, WebM)
                     </span>
@@ -898,14 +919,22 @@ export default function PropertyCreationForm({
             </div>
 
             {/* Submit Button */}
-            <div className="pt-4">
+            <div className="flex justify-center sm:justify-start items-center gap-2 sm:gap-4 pt-4">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-accent hover:bg-accent/80 text-white py-3.5 px-10 md:px-14 rounded-2xl font-medium text-base transition-all shadow-md active:scale-98 cursor-pointer inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="bg-accent hover:bg-accent/80 text-white py-3.5 px-10 md:px-14 rounded-2xl font-regular text-base md:text-lg transition-all cursor-pointer inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                {isSubmitting ? "Submitting Listing…" : "Submit Property Listing"}
+                {isSubmitting ? "Submitting…" : "Submit"}
+              </button>
+
+              <button
+                type="button"
+                onClick={onBack}
+                className="bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7] text-[#407B9D] py-3.5 px-10 md:px-14 rounded-2xl font-regular text-base md:text-lg transition-all cursor-pointer inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Cancel
               </button>
             </div>
           </form>

@@ -14,6 +14,7 @@ export type NavItem = {
 export const adminNav: NavItem[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: "grid", section: "Menu", mobile: true },
   { href: "/admin/preferences", label: "Preferences Options", icon: "filter", section: "User Management", mobile: true },
+  { href: "/admin/avatars", label: "Avatars Master", icon: "user", mobile: true },
   { href: "/admin/users", label: "User", icon: "users", mobile: true },
   { href: "/admin/chats", label: "Chat Management", icon: "chat", mobile: true },
   { href: "/admin/amenities", label: "Property Amenities", icon: "grid", section: "Listing Management", mobile: true },
@@ -33,6 +34,7 @@ export const superAdminNav: NavItem[] = [
   { href: "/super-admin/dashboard", label: "Dashboard", icon: "grid", section: "Menu", mobile: true },
   { href: "/super-admin/admins", label: "Admin Staff", icon: "head", section: "Staff Management", superAdminOnly: true, mobile: true },
   { href: "/super-admin/preferences", label: "Preferences Options", icon: "filter", section: "User Management", mobile: true },
+  { href: "/super-admin/avatars", label: "Avatars Master", icon: "user", mobile: true },
   { href: "/super-admin/users", label: "User", icon: "users", mobile: true },
   { href: "/super-admin/chats", label: "Chat Management", icon: "chat", mobile: true },
   { href: "/super-admin/amenities", label: "Property Amenities", icon: "grid", section: "Listing Management", mobile: true },

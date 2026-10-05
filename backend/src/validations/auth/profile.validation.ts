@@ -48,6 +48,11 @@ export const updateProfileSchema = z.object({
         .nullable()
         .optional()
     ),
+    avatar: z
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid avatar ID')
+      .nullable()
+      .optional(),
     preferences: z.preprocess(
       preprocessJsonOrArray,
       z.array(z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid preference ID')).optional()
@@ -74,6 +79,11 @@ export const updateUserProfileByAdminSchema = z.object({
         .nullable()
         .optional()
     ),
+    avatar: z
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid avatar ID')
+      .nullable()
+      .optional(),
     preferences: z.preprocess(
       preprocessJsonOrArray,
       z.array(z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid preference ID')).optional()

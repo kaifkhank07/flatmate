@@ -27,6 +27,10 @@ import {
   updateUserSchema,
   updateUserByAdminSchema,
 } from '../../validations/auth/user.validation';
+import {
+  getProfileCompletionStatus,
+  markProfileAsCompleted,
+} from '../../controllers/auth/profile.controller';
 import { updateUserProfileByAdminSchema } from '../../validations/auth/profile.validation';
 
 const router = Router();
@@ -41,6 +45,8 @@ router.post('/refresh-token', refreshToken);
 router.get('/me', authenticateUser, getCurrentUser);
 router.patch('/me', authenticateUser, validate(updateUserSchema), updateCurrentUser);
 router.delete('/me', authenticateUser, deleteCurrentUser);
+router.get('/profile/completion-status', authenticateUser, getProfileCompletionStatus);
+router.patch('/profile/complete', authenticateUser, markProfileAsCompleted);
 
 // ==========================================
 // Admin Operations on Users (Admins Only)

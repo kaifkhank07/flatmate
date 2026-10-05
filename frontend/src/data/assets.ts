@@ -29,7 +29,7 @@ export const useAssets = () => {
 
     listingicon1: "/assets/Images/icon-01.png",
     listingicon2: "/assets/Images/icon-02.png",
-    listingicon3: "/assets/Images/icon-01.png",
+    listingicon3: "/assets/Images/icon-03.png",
 
     login: "/assets/Images/image-04.png",
   };

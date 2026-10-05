@@ -181,4 +181,42 @@ export async function fetchUserPreferencesApi(params?: { category?: string; page
   return res.data;
 }
 
+/**
+ * Delete Property Listing
+ * DELETE /api/properties/:id
+ */
+export async function deletePropertyApi(id: string) {
+  const res = await apiClient.delete<ApiResponse<any>>(`/properties/${id}`);
+  return res.data;
+}
+
+/**
+ * Delete Flatmate Requirement Listing
+ * DELETE /api/flatmate-requirements/:id
+ */
+export async function deleteFlatmateRequirementApi(id: string) {
+  const res = await apiClient.delete<ApiResponse<any>>(`/flatmate-requirements/${id}`);
+  return res.data;
+}
+
+/**
+ * Update Property Listing
+ * PUT /api/properties/:id
+ */
+export async function updatePropertyApi(id: string, payload: any) {
+  const res = await apiClient.put<ApiResponse<PropertyListingItem>>(`/properties/${id}`, payload);
+  return res.data;
+}
+
+/**
+ * Update Flatmate Requirement Listing
+ * PUT /api/flatmate-requirements/:id
+ */
+export async function updateFlatmateRequirementApi(id: string, payload: any) {
+  const res = await apiClient.put<ApiResponse<FlatmateRequirementItem>>(`/flatmate-requirements/${id}`, payload);
+  return res.data;
+}
+
+
+
 

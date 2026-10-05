@@ -1,7 +1,15 @@
 import { Router } from 'express';
-import { getListings, getListingBySlug } from '../controllers/listing.controller';
+import {
+    getListings,
+    getListingBySlug,
+    getMyListings,
+} from '../controllers/listing.controller';
 import { validate } from '../middlewares/validate.middleware';
-import { getListingsQuerySchema } from '../validations/listing.validation';
+import {
+    getListingsQuerySchema,
+    getMyListingsQuerySchema,
+} from '../validations/listing.validation';
+import { authenticateUser } from '../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -11,6 +19,21 @@ const router = Router();
  * @access  Public
  */
 router.get('/', validate(getListingsQuerySchema), getListings);
+
+/**
+ * @route   GET /api/listings/my-listings
+ * @desc    Get authenticated user's own listings
+ * @access  Private
+ *
+ * IMPORTANT:
+ * This route must be before /:slug.
+ */
+router.get(
+    '/my-listings',
+    authenticateUser,
+    validate(getMyListingsQuerySchema),
+    getMyListings
+);
 
 /**
  * @route   GET /api/listings/slug/:slug

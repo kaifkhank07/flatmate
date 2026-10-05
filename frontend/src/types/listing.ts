@@ -259,6 +259,40 @@ export interface GetListingsResponseData {
 export type ListingCategory = "All" | "Flat" | "Flatmate" | "Property";
 export type GenderFilter = "All" | "Male" | "Female";
 
+export function getCategoryFilters(cat: ListingCategory): {
+  sourceType: SourceType;
+  postType: PostType | undefined;
+  listingType?: ListingType;
+} {
+  if (cat === "Flat") {
+    return { sourceType: "flatmate_requirement", postType: "property" };
+  } else if (cat === "Flatmate") {
+    return { sourceType: "flatmate_requirement", postType: "partner" };
+  } else if (cat === "Property") {
+    return { sourceType: "property", postType: undefined };
+  } else {
+    return { sourceType: "all", postType: undefined };
+  }
+}
+
+export function getCategoryMappingFromLookingFor(lookingForLabel: string): {
+  category?: ListingCategory;
+  listingType?: ListingType;
+} {
+  switch (lookingForLabel) {
+    case "A Flat":
+      return { category: "Flat" };
+    case "A Flatmate":
+      return { category: "Flatmate" };
+    case "Single Room":
+      return { category: "Flat", listingType: "room" };
+    case "Shared Room":
+      return { category: "Flatmate", listingType: "room" };
+    default:
+      return { category: "Flat" };
+  }
+}
+
 export interface FlatmateListingItem {
   id: string;
   name: string;
@@ -320,7 +354,18 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
     const avatarType: "male1" | "female1" | "female2" | "female3" | "male2" | "female4" =
       gender === "Male" ? "male1" : "female1";
 
-    const userImg = property.ownerId?.image || property.ownerId?.profileImage || property.ownerId?.avatar;
+    const getUserAvatarUrl = (userObj: any): string | undefined => {
+      if (!userObj) return undefined;
+      if (typeof userObj.image === "string" && userObj.image) return userObj.image;
+      if (typeof userObj.image === "object" && userObj.image?.url) return userObj.image.url;
+      if (typeof userObj.profileImage === "string" && userObj.profileImage) return userObj.profileImage;
+      if (typeof userObj.profileImage === "object" && userObj.profileImage?.url) return userObj.profileImage.url;
+      if (typeof userObj.avatar === "string" && userObj.avatar) return userObj.avatar;
+      if (typeof userObj.avatar === "object" && userObj.avatar?.image?.url) return userObj.avatar.image.url;
+      return undefined;
+    };
+
+    const userImg = getUserAvatarUrl(property.ownerId);
 
     return {
       id: property.slug || property._id,
@@ -376,7 +421,18 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
     const avatarType: "male1" | "female1" | "female2" | "female3" | "male2" | "female4" =
       gender === "Male" ? "male2" : "female2";
 
-    const userImg = req.userId?.image || req.userId?.profileImage || req.userId?.avatar;
+    const getUserAvatarUrl = (userObj: any): string | undefined => {
+      if (!userObj) return undefined;
+      if (typeof userObj.image === "string" && userObj.image) return userObj.image;
+      if (typeof userObj.image === "object" && userObj.image?.url) return userObj.image.url;
+      if (typeof userObj.profileImage === "string" && userObj.profileImage) return userObj.profileImage;
+      if (typeof userObj.profileImage === "object" && userObj.profileImage?.url) return userObj.profileImage.url;
+      if (typeof userObj.avatar === "string" && userObj.avatar) return userObj.avatar;
+      if (typeof userObj.avatar === "object" && userObj.avatar?.image?.url) return userObj.avatar.image.url;
+      return undefined;
+    };
+
+    const userImg = getUserAvatarUrl(req.userId);
 
     return {
       id: req.slug || req._id,

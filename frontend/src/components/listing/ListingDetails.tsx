@@ -158,7 +158,12 @@ export default function ListingDetails({ slug: propSlug, listingData }: ListingD
     const gender = listingData?.gender || userObj?.gender || "Female";
     const userMobile = listingData?.userMobile || userObj?.mobile || userObj?.contact || "+91 98765 43210";
     const userEmail = listingData?.userEmail || userObj?.email || "";
-    const userImage = userObj?.image || userObj?.profileImage || userObj?.avatar;
+    const uAny = userObj as any;
+    const userImage =
+      (typeof uAny?.image === "string" ? uAny.image : uAny?.image?.url) ||
+      (typeof uAny?.profileImage === "string" ? uAny.profileImage : uAny?.profileImage?.url) ||
+      (typeof uAny?.avatar === "string" ? uAny.avatar : uAny?.avatar?.image?.url) ||
+      undefined;
 
     // Listing Details (PG Name, Category, Location, Rent, etc.)
     const pgName = listingData?.pgName || propertyDoc?.title || flatmateDoc?.title || "Sumit PG";

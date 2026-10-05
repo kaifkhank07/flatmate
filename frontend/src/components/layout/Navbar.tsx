@@ -161,11 +161,10 @@ export default function Navbar({ activeItem }: NavbarProps) {
         <Link
           href="/my-profile"
           onClick={() => setProfileDropdownOpen(false)}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${
-            pathname === "/my-profile"
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${pathname === "/my-profile"
               ? "bg-brand-ice text-brand-blue font-semibold"
               : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
-          }`}
+            }`}
         >
           <User className="w-4 h-4 text-brand-blue" />
           My Profile
@@ -174,11 +173,10 @@ export default function Navbar({ activeItem }: NavbarProps) {
         <Link
           href="/my-preferences"
           onClick={() => setProfileDropdownOpen(false)}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${
-            pathname === "/my-preferences"
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${pathname === "/my-preferences"
               ? "bg-brand-ice text-brand-blue font-semibold"
               : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
-          }`}
+            }`}
         >
           <Sliders className="w-4 h-4 text-brand-blue" />
           My Preferences
@@ -187,11 +185,10 @@ export default function Navbar({ activeItem }: NavbarProps) {
         <Link
           href="/my-listings"
           onClick={() => setProfileDropdownOpen(false)}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${
-            pathname === "/my-listings"
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${pathname === "/my-listings"
               ? "bg-brand-ice text-brand-blue font-semibold"
               : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
-          }`}
+            }`}
         >
           <Home className="w-4 h-4 text-brand-blue" />
           My Listings
@@ -200,11 +197,10 @@ export default function Navbar({ activeItem }: NavbarProps) {
         <Link
           href="/my-notifications"
           onClick={() => setProfileDropdownOpen(false)}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${
-            pathname === "/my-notifications"
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${pathname === "/my-notifications"
               ? "bg-brand-ice text-brand-blue font-semibold"
               : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
-          }`}
+            }`}
         >
           <Bell className="w-4 h-4 text-brand-blue" />
           My Notifications
@@ -256,11 +252,10 @@ export default function Navbar({ activeItem }: NavbarProps) {
               <Link
                 key={item.label}
                 href={item.href}
-                className={`relative text-sm md::text-base xl:text-lg font-regular transition-colors ${
-                  isActive
+                className={`relative text-sm md::text-base xl:text-lg font-regular transition-colors ${isActive
                     ? "text-brand-blue"
                     : "text-gray-700 hover:text-brand-blue"
-                }`}
+                  }`}
               >
                 <LineRoll
                   text={item.label}
@@ -280,11 +275,10 @@ export default function Navbar({ activeItem }: NavbarProps) {
               <Link
                 href="/wishlist"
                 aria-label="Wishlist"
-                className={`p-2 transition-colors rounded-full hover:bg-gray-50 cursor-pointer ${
-                  pathname === "/wishlist"
+                className={`p-2 transition-colors rounded-full hover:bg-gray-50 cursor-pointer ${pathname === "/wishlist"
                     ? "text-brand-blue bg-blue-50/60"
                     : "text-gray-700 hover:text-brand-blue"
-                }`}
+                  }`}
               >
                 <Heart className="w-5 h-5 lg:w-6 lg:h-6" />
               </Link>
@@ -293,11 +287,10 @@ export default function Navbar({ activeItem }: NavbarProps) {
               <Link
                 href="/chat"
                 aria-label="Chat"
-                className={`p-2 transition-colors rounded-full hover:bg-gray-50 cursor-pointer ${
-                  pathname === "/chat"
+                className={`p-2 transition-colors rounded-full hover:bg-gray-50 cursor-pointer ${pathname === "/chat"
                     ? "text-brand-blue bg-blue-50/60"
                     : "text-gray-700 hover:text-brand-blue"
-                }`}
+                  }`}
               >
                 <MessageCircle className="w-5 h-5 lg:w-6 lg:h-6" />
               </Link>
@@ -305,6 +298,12 @@ export default function Navbar({ activeItem }: NavbarProps) {
               {/* Add Listing */}
               <Link
                 href="/my-listings/create"
+                // add click event listener to reset the form
+                onClick={() => {
+                  if (pathname === "/my-listings/create") {
+                    window.dispatchEvent(new Event("reset-add-listing-form"));
+                  }
+                }}
                 className="flex items-center gap-2 bg-brand-blue text-white px-5 lg:px-6 py-2.5 rounded-full text-sm lg:text-base font-medium hover:bg-[#0052c7] transition-all shadow-sm active:scale-95"
               >
                 Add Listing
@@ -324,9 +323,9 @@ export default function Navbar({ activeItem }: NavbarProps) {
                   className="flex items-center justify-center p-0.5 rounded-full hover:ring-2 hover:ring-brand-blue/30 transition-all cursor-pointer select-none focus:outline-none active:scale-95"
                 >
                   <div className="relative w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center shadow-xs">
-                    {profile?.image?.url ? (
+                    {profile?.image?.url || (profile?.avatar && typeof profile.avatar === 'object' && profile.avatar.image?.url) ? (
                       <Image
-                        src={profile.image.url}
+                        src={profile?.image?.url || (profile?.avatar && typeof profile.avatar === 'object' ? profile.avatar.image?.url! : "")}
                         alt="User Avatar"
                         fill
                         unoptimized
@@ -368,9 +367,9 @@ export default function Navbar({ activeItem }: NavbarProps) {
                 className="p-0.5 rounded-full hover:bg-gray-50 transition-colors focus:outline-none"
               >
                 <div className="relative w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
-                  {profile?.image?.url ? (
+                  {profile?.image?.url || (profile?.avatar && typeof profile.avatar === 'object' && profile.avatar.image?.url) ? (
                     <Image
-                      src={profile.image.url}
+                      src={profile?.image?.url || (profile?.avatar && typeof profile.avatar === 'object' ? profile.avatar.image?.url! : "")}
                       alt="User Avatar"
                       fill
                       unoptimized
@@ -433,11 +432,10 @@ export default function Navbar({ activeItem }: NavbarProps) {
                 key={item.label}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`px-4 py-2 rounded-2xl text-base font-medium transition-colors ${
-                  isActive
+                className={`px-4 py-2 rounded-2xl text-base font-medium transition-colors ${isActive
                     ? "bg-brand-ice text-brand-blue font-semibold"
                     : "text-gray-700 hover:bg-gray-50"
-                }`}
+                  }`}
               >
                 <LineRoll
                   text={item.label}

@@ -4,6 +4,7 @@ import { Types } from 'mongoose';
 import { User } from '../../models/auth/user.model';
 import { UserProfile } from '../../models/auth/userProfile.model';
 import { UserPreference } from '../../models/auth/userPreference.model';
+import { Avatar } from '../../models/auth/avatar.model';
 import { UserSession } from '../../models/auth/userSession.model';
 
 import { calculateProfileCompletion, parseProfileImageInput } from './profile.controller';
@@ -248,16 +249,30 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<Respo
       return sendError(res, 'Authentication required', 401);
     }
 
-    let profile = await UserProfile.findOne({ userId: req.user._id }).populate({
-      path: 'preferences',
-      select: 'name category image isActive',
-    });
+    let profile = await UserProfile.findOne({ userId: req.user._id })
+      .populate({
+        path: 'preferences',
+        select: 'name category image isActive',
+      })
+      .populate({
+        path: 'avatar',
+        select: '_id name image isActive',
+      });
 
     if (!profile) {
       profile = await UserProfile.create({
         userId: req.user._id,
         profileCompletion: 0,
       });
+      profile = await UserProfile.findById(profile._id)
+        .populate({
+          path: 'preferences',
+          select: 'name category image isActive',
+        })
+        .populate({
+          path: 'avatar',
+          select: '_id name image isActive',
+        });
     }
 
     const userJson = req.user.toObject();
@@ -459,10 +474,15 @@ export const getUserDetails = async (req: Request, res: Response): Promise<Respo
       return sendError(res, 'User not found', 404);
     }
 
-    const profile = await UserProfile.findOne({ userId }).populate({
-      path: 'preferences',
-      select: 'name category image isActive',
-    });
+    const profile = await UserProfile.findOne({ userId })
+      .populate({
+        path: 'preferences',
+        select: 'name category image isActive',
+      })
+      .populate({
+        path: 'avatar',
+        select: '_id name image isActive',
+      });
 
     const activeSessionsCount = await UserSession.countDocuments({
       userId,
@@ -496,16 +516,30 @@ export const getUserProfileByAdmin = async (req: Request, res: Response): Promis
       return sendError(res, 'User not found', 404);
     }
 
-    let profile = await UserProfile.findOne({ userId }).populate({
-      path: 'preferences',
-      select: 'name category image isActive',
-    });
+    let profile = await UserProfile.findOne({ userId })
+      .populate({
+        path: 'preferences',
+        select: 'name category image isActive',
+      })
+      .populate({
+        path: 'avatar',
+        select: '_id name image isActive',
+      });
 
     if (!profile) {
       profile = await UserProfile.create({
         userId: new Types.ObjectId(userId),
         profileCompletion: 0,
       });
+      profile = await UserProfile.findById(profile._id)
+        .populate({
+          path: 'preferences',
+          select: 'name category image isActive',
+        })
+        .populate({
+          path: 'avatar',
+          select: '_id name image isActive',
+        });
     }
 
     return sendSuccess(res, 'User profile fetched successfully', {
@@ -591,6 +625,31 @@ export const updateUserProfileByAdmin = async (req: Request, res: Response): Pro
       }
     }
 
+    // Handle Avatar selection vs Custom Image mutual exclusivity
+    if (req.body.avatar !== undefined) {
+      const avatarVal = req.body.avatar;
+      if (avatarVal === null || avatarVal === '' || avatarVal === 'null' || req.body.removeAvatar === true || req.body.removeAvatar === 'true') {
+        profile.avatar = undefined;
+      } else {
+        if (!Types.ObjectId.isValid(String(avatarVal))) {
+          return sendError(res, 'Invalid avatar ID', 400);
+        }
+        const avatarDoc = await Avatar.findById(avatarVal);
+        if (!avatarDoc || !avatarDoc.isActive) {
+          return sendError(res, 'Selected avatar is invalid or inactive', 400);
+        }
+        profile.avatar = avatarDoc._id;
+        if (oldKey) {
+          deleteFile(oldKey).catch((err) =>
+            logger.error(`[UserController] Failed to delete old profile custom image ${oldKey}:`, err)
+          );
+        }
+        profile.image = undefined;
+      }
+      delete req.body.avatar;
+      delete req.body.removeAvatar;
+    }
+
     // Handle image upload / update / removal
     const imageObj = await parseProfileImageInput(req, 'users', 'profile');
     if (imageObj !== undefined) {
@@ -598,6 +657,7 @@ export const updateUserProfileByAdmin = async (req: Request, res: Response): Pro
         profile.image = undefined;
       } else {
         profile.image = imageObj;
+        profile.avatar = undefined; // Mutually exclusive
         if (imageObj.key) {
           uploadedKey = imageObj.key;
         }
@@ -611,14 +671,19 @@ export const updateUserProfileByAdmin = async (req: Request, res: Response): Pro
     profile.profileCompletion = calculateProfileCompletion(profile.toObject());
     await profile.save();
 
-    const populatedProfile = await UserProfile.findById(profile._id).populate({
-      path: 'preferences',
-      select: 'name category image isActive',
-    });
+    const populatedProfile = await UserProfile.findById(profile._id)
+      .populate({
+        path: 'preferences',
+        select: 'name category image isActive',
+      })
+      .populate({
+        path: 'avatar',
+        select: '_id name image isActive',
+      });
 
     // If image key changed, clean up old S3 object safely
     const newKey = profile.image?.key || (profile.image?.url ? extractKeyFromUrl(profile.image.url) : undefined);
-    if (oldKey && oldKey !== newKey) {
+    if (oldKey && newKey && oldKey !== newKey) {
       deleteFile(oldKey).catch((err) =>
         logger.error(`[UserController] Failed to delete old user profile image ${oldKey}:`, err)
       );

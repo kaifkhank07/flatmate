@@ -13,6 +13,12 @@ export interface User {
   updatedAt?: string;
 }
 
+export interface UserProfileAvatar {
+  _id: string;
+  name?: string;
+  image?: { url?: string; key?: string };
+}
+
 export interface UserProfile {
   _id?: string;
   userId?: string;
@@ -24,8 +30,19 @@ export interface UserProfile {
   languagesKnown?: string[];
   aboutMe?: string;
   image?: { url?: string; key?: string };
+  avatar?: UserProfileAvatar | string;
   preferences?: any[];
   profileCompletion?: number;
+  completedOnce?: boolean;
+}
+
+export interface AvatarItem {
+  _id: string;
+  name: string;
+  image: { url: string; key: string };
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface RegisterWithMobileOTPRequest {

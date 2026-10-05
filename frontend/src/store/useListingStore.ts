@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import apiClient from '@/lib/api';
 import {
+  deletePropertyApi,
+  deleteFlatmateRequirementApi,
+  updatePropertyApi,
+  updateFlatmateRequirementApi,
+} from '@/lib/apiServices';
+import {
   UnifiedListingItem,
   ListingQueryParams,
   PaginationInfo,
@@ -18,28 +24,125 @@ interface ListingState {
   // State
   listings: UnifiedListingItem[];
   latestListings: UnifiedListingItem[];
+  myListings: UnifiedListingItem[];
+
   selectedListing: UnifiedListingItem | null;
+
   loading: boolean;
   loadingLatestListings: boolean;
   loadingDetails: boolean;
   loadingOptions: boolean;
+  loadingMyListings: boolean;
+
   error: string | null;
   latestListingsError: string | null;
   optionsError: string | null;
+  myListingsError: string | null;
+
   pagination: PaginationInfo;
+  myListingsPagination: PaginationInfo;
+
   filters: ListingQueryParams;
   options: ListingOptions;
 
   // Actions
   fetchListings: (customParams?: ListingQueryParams) => Promise<void>;
   fetchLatestListings: () => Promise<void>;
+
+  fetchMyListings: (params?: {
+    page?: number;
+    limit?: number;
+
+    sourceType?: 'all' | 'property' | 'flatmate_requirement';
+
+    q?: string;
+    search?: string;
+
+    location?: string;
+    locationPlaceId?: string;
+
+    latitude?: number;
+    longitude?: number;
+    radius?: number;
+
+    budget?: number;
+
+    genderPreference?:
+    | 'male'
+    | 'female'
+    | 'other'
+    | 'any'
+    | 'all';
+
+    occupationPreference?:
+    | 'student'
+    | 'working_professional'
+    | 'self_employed'
+    | 'business_owner'
+    | 'freelancer'
+    | 'any'
+    | 'all';
+
+    moveInDate?: string;
+    availableFrom?: string;
+
+    listingType?:
+    | 'flat'
+    | 'room'
+    | 'pg'
+    | 'shared_apartment'
+    | 'entire_property'
+    | 'all';
+
+    furnishing?:
+    | 'fully_furnished'
+    | 'semi_furnished'
+    | 'unfurnished'
+    | 'all';
+
+    postType?: 'property' | 'partner' | 'all';
+
+    propertyType?:
+    | 'room'
+    | 'flat'
+    | 'pg'
+    | 'shared_apartment'
+    | 'all';
+
+    partnerType?:
+    | 'roommate'
+    | 'flatmate'
+    | 'all';
+
+    peopleCount?: number;
+
+    status?:
+    | 'all'
+    | 'draft'
+    | 'pending'
+    | 'approved'
+    | 'rejected'
+    | 'blocked'
+    | 'closed'
+    | 'expired';
+
+    sortBy?: 'createdAt' | 'updatedAt' | 'distance';
+
+    order?: 'asc' | 'desc' | '1' | '-1';
+  }) => Promise<void>;
+
   fetchListingBySlug: (
     slug: string,
     sourceType?: 'property' | 'flatmate_requirement'
   ) => Promise<UnifiedListingItem | null>;
   fetchListingOptions: () => Promise<void>;
+
   createProperty: (payload: any) => Promise<PropertyListingItem | null>;
   createFlatmateRequirement: (payload: any) => Promise<FlatmateRequirementItem | null>;
+  updateProperty: (id: string, payload: any) => Promise<PropertyListingItem | null>;
+  updateFlatmateRequirement: (id: string, payload: any) => Promise<FlatmateRequirementItem | null>;
+  deleteListing: (id: string, sourceType: 'property' | 'flatmate_requirement') => Promise<boolean>;
+
   setFilters: (
     newFilters: Partial<ListingQueryParams>,
     refetch?: boolean
@@ -103,15 +206,24 @@ export const useListingStore = create<ListingState>((set, get) => ({
   // Initial State
   listings: [],
   latestListings: [],
+  myListings: [],
+
   selectedListing: null,
+
   loading: false,
   loadingLatestListings: false,
+  loadingMyListings: false,
   loadingDetails: false,
   loadingOptions: false,
+
   error: null,
   latestListingsError: null,
+  myListingsError: null,
   optionsError: null,
+
   pagination: initialPagination,
+  myListingsPagination: initialPagination,
+
   filters: initialFilters,
   options: initialOptions,
 
@@ -156,6 +268,74 @@ export const useListingStore = create<ListingState>((set, get) => ({
       const errorMsg = err?.response?.data?.message || err.message || 'Failed to create flatmate requirement';
       set({ loading: false, error: errorMsg });
       return null;
+    }
+  },
+
+  /**
+   * Update existing Property listing
+   */
+  updateProperty: async (id: string, payload: any) => {
+    set({ loading: true, error: null });
+    try {
+      const res = await updatePropertyApi(id, payload);
+      if (res.success && res.data) {
+        set({ loading: false });
+        return res.data;
+      } else {
+        const errorMsg = res.message || 'Failed to update property';
+        set({ loading: false, error: errorMsg });
+        return null;
+      }
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || err.message || 'Failed to update property';
+      set({ loading: false, error: errorMsg });
+      return null;
+    }
+  },
+
+  /**
+   * Update existing Flatmate Requirement listing
+   */
+  updateFlatmateRequirement: async (id: string, payload: any) => {
+    set({ loading: true, error: null });
+    try {
+      const res = await updateFlatmateRequirementApi(id, payload);
+      if (res.success && res.data) {
+        set({ loading: false });
+        return res.data;
+      } else {
+        const errorMsg = res.message || 'Failed to update flatmate requirement';
+        set({ loading: false, error: errorMsg });
+        return null;
+      }
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || err.message || 'Failed to update flatmate requirement';
+      set({ loading: false, error: errorMsg });
+      return null;
+    }
+  },
+
+  /**
+   * Delete listing (Property or Flatmate Requirement)
+   */
+  deleteListing: async (id: string, sourceType: 'property' | 'flatmate_requirement') => {
+    set({ loading: true, error: null });
+    try {
+      if (sourceType === 'property') {
+        await deletePropertyApi(id);
+      } else {
+        await deleteFlatmateRequirementApi(id);
+      }
+      set((state) => ({
+        myListings: state.myListings.filter((item: any) => item._id !== id),
+        selectedListing: state.selectedListing?._id === id ? null : state.selectedListing,
+        loading: false,
+      }));
+      return true;
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || err.message || 'Failed to delete listing';
+      set({ error: errorMsg, loading: false });
+      throw new Error(errorMsg);
     }
   },
 
@@ -286,6 +466,116 @@ export const useListingStore = create<ListingState>((set, get) => ({
         error: err.message || 'Failed to fetch listing details',
       });
       return null;
+    }
+  },
+
+  /**
+   * Fetch authenticated user's own listings
+   *
+   * GET /api/listings/my-listings
+   *
+   * Uses the same filters, geographic search,
+   * sorting and pagination options as GET /api/listings.
+   *
+   * Additional filter:
+   * - status
+   */
+  fetchMyListings: async (params = {}) => {
+    set({
+      loadingMyListings: true,
+      myListingsError: null,
+    });
+
+    try {
+      const cleanParams: Record<string, any> = {};
+
+      Object.entries(params).forEach(([key, value]) => {
+        if (
+          value !== undefined &&
+          value !== '' &&
+          value !== 'all'
+        ) {
+          cleanParams[key] = value;
+        }
+      });
+
+      // Maintain explicit pagination
+      cleanParams.page = params.page || 1;
+      cleanParams.limit = params.limit || 10;
+
+      // Maintain same sorting defaults as public listings
+      if (params.sortBy) {
+        cleanParams.sortBy = params.sortBy;
+      } else {
+        cleanParams.sortBy = 'createdAt';
+      }
+
+      if (params.order) {
+        cleanParams.order = params.order;
+      } else {
+        cleanParams.order = 'desc';
+      }
+
+      // Source type
+      if (
+        params.sourceType &&
+        params.sourceType !== 'all'
+      ) {
+        cleanParams.sourceType =
+          params.sourceType;
+      }
+
+      // Status is additional for My Listings
+      if (
+        params.status &&
+        params.status !== 'all'
+      ) {
+        cleanParams.status = params.status;
+      }
+
+      const response = await apiClient.get<
+        ApiResponse<GetListingsResponseData>
+      >('/listings/my-listings', {
+        params: cleanParams,
+      });
+
+      const responseData =
+        response.data?.data;
+
+      if (responseData) {
+        set({
+          myListings:
+            responseData.listings || [],
+
+          myListingsPagination:
+            responseData.pagination ||
+            initialPagination,
+
+          loadingMyListings: false,
+          myListingsError: null,
+        });
+      } else {
+        set({
+          myListings: [],
+          myListingsPagination:
+            initialPagination,
+          loadingMyListings: false,
+          myListingsError: null,
+        });
+      }
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to fetch your listings';
+
+      set({
+        myListings: [],
+        myListingsPagination:
+          initialPagination,
+        loadingMyListings: false,
+        myListingsError: errorMsg,
+      });
     }
   },
 
@@ -427,13 +717,22 @@ export const useListingStore = create<ListingState>((set, get) => ({
     set({
       listings: [],
       latestListings: [],
+      myListings: [],
+
       loadingLatestListings: false,
+      loadingMyListings: false,
+
       latestListingsError: null,
+      myListingsError: null,
+
       selectedListing: null,
+
       loading: false,
       loadingDetails: false,
+
       error: null,
       pagination: initialPagination,
+      myListingsPagination: initialPagination,
       filters: initialFilters,
     });
   },

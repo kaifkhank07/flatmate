@@ -16,7 +16,8 @@
     "seed:post-requirements": "tsx src/scripts/seed-post-requirements.ts",
     "seed:reports": "tsx src/scripts/seed-reports.ts",
     "seed:chats": "tsx src/scripts/seed-chats.ts",
-    "seed:blog-categories": "tsx src/scripts/seed-blog-categories.ts"
+    "seed:blog-categories": "tsx src/scripts/seed-blog-categories.ts",
+    "seed:avatars": "tsx src/scripts/seed-avatars.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.587.0",

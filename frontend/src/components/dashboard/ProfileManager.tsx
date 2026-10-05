@@ -62,6 +62,9 @@ export default function ProfileManager() {
   const {
     user,
     profile,
+    masterPreferences,
+    avatars,
+    isAvatarsLoading,
     isAuthenticated,
     isInitialized,
     isProfileLoading,
@@ -69,6 +72,8 @@ export default function ProfileManager() {
     updateProfile,
     uploadProfileImage,
     deleteProfileImage,
+    fetchAvatars,
+    selectAvatar,
     logout,
   } = useAuthStore();
 
@@ -88,10 +93,17 @@ export default function ProfileManager() {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (showAvatarModal && avatars.length === 0) {
+      fetchAvatars();
+    }
+  }, [showAvatarModal, avatars, fetchAvatars]);
 
   // Sync auth state
   useEffect(() => {
@@ -192,13 +204,40 @@ export default function ProfileManager() {
       if (success) {
         setStatusMessage({
           type: "success",
-          text: "Profile photo removed.",
+          text: "Profile photo / avatar removed.",
         });
       }
     } catch (err: any) {
       setStatusMessage({
         type: "error",
-        text: err?.message || "Failed to delete photo.",
+        text: err?.message || "Failed to delete photo / avatar.",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleAvatarSelect = async (avatarId: string) => {
+    setIsUploadingPhoto(true);
+    setStatusMessage(null);
+    try {
+      const success = await selectAvatar(avatarId);
+      if (success) {
+        setStatusMessage({
+          type: "success",
+          text: "Avatar selected successfully!",
+        });
+        setShowAvatarModal(false);
+      } else {
+        setStatusMessage({
+          type: "error",
+          text: useAuthStore.getState().profileError || "Failed to select avatar.",
+        });
+      }
+    } catch (err: any) {
+      setStatusMessage({
+        type: "error",
+        text: err?.message || "Failed to select avatar.",
       });
     } finally {
       setIsUploadingPhoto(false);
@@ -310,10 +349,10 @@ export default function ProfileManager() {
             {/* Avatar Container */}
             <div className="relative shrink-0 group">
               <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-2 border-[#0066F9]/30 bg-white shadow-sm flex items-center justify-center relative">
-                {profile?.image?.url ? (
+                {profile?.image?.url || (profile?.avatar && typeof profile.avatar === "object" && profile.avatar.image?.url) ? (
                   <Image
-                    src={profile.image.url}
-                    alt="Profile Photo"
+                    src={profile?.image?.url || (profile?.avatar && typeof profile.avatar === "object" ? profile.avatar.image?.url! : "")}
+                    alt="Profile Visual"
                     fill
                     className="object-cover"
                   />
@@ -345,24 +384,35 @@ export default function ProfileManager() {
               />
             </div>
 
-            {/* User Info & Photo Action Links */}
+            {/* User Info & Photo / Avatar Action Links */}
             <div className="space-y-1 min-w-0">
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
                 {firstName ? `${firstName} ${lastName}`.trim() : "Your Name"}
               </h3>
               <p className="text-xs sm:text-sm text-gray-500 max-w-md">
-                Upload a clear photo to build trust and increase match requests by 90%.
+                Upload a custom photo or choose a preset avatar to personalize your profile visual.
               </p>
-              {/* <div className="flex items-center justify-center sm:justify-start gap-3 pt-1.5 sm:pt-2">
+              {/* <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1.5 sm:pt-2">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploadingPhoto}
-                  className="text-xs sm:text-sm font-medium text-[#0066F9] hover:underline cursor-pointer"
+                  className="text-xs sm:text-sm font-medium text-[#0066F9] hover:underline cursor-pointer flex items-center gap-1"
                 >
-                  Change Photo
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Upload Photo</span>
                 </button>
-                {profile?.image?.url && (
+                <span className="text-gray-300">•</span>
+                <button
+                  type="button"
+                  onClick={() => setShowAvatarModal(true)}
+                  disabled={isUploadingPhoto}
+                  className="text-xs sm:text-sm font-medium text-[#0066F9] hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  <UserIcon className="w-3.5 h-3.5" />
+                  <span>Choose Avatar</span>
+                </button>
+                {(profile?.image?.url || profile?.avatar) && (
                   <>
                     <span className="text-gray-300">•</span>
                     <button
@@ -371,7 +421,7 @@ export default function ProfileManager() {
                       disabled={isUploadingPhoto}
                       className="text-xs sm:text-sm font-medium text-red-600 hover:underline cursor-pointer"
                     >
-                      Remove Photo
+                      Remove
                     </button>
                   </>
                 )}
@@ -704,6 +754,92 @@ export default function ProfileManager() {
                   ) : (
                     <span>Yes, Delete Account</span>
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Avatar Selection Modal */}
+        {showAvatarModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in-50">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-gray-100 max-h-[85vh] flex flex-col">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Choose Profile Avatar</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Select a master avatar for your profile visual</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAvatarModal(false)}
+                  className="p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="py-6 overflow-y-auto flex-1">
+                {isAvatarsLoading ? (
+                  <div className="flex flex-col items-center justify-center py-10">
+                    <Loader2 className="w-8 h-8 text-[#0066F9] animate-spin mb-2" />
+                    <p className="text-sm text-gray-500">Loading avatars...</p>
+                  </div>
+                ) : avatars.length === 0 ? (
+                  <div className="text-center py-10 text-gray-500 text-sm">
+                    No avatars available right now. Please upload a custom image.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                    {avatars.map((avatarItem) => {
+                      const isSelected =
+                        profile?.avatar &&
+                        typeof profile.avatar === "object" &&
+                        profile.avatar._id === avatarItem._id;
+                      return (
+                        <button
+                          key={avatarItem._id}
+                          type="button"
+                          onClick={() => handleAvatarSelect(avatarItem._id)}
+                          disabled={isUploadingPhoto}
+                          className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all cursor-pointer group ${isSelected
+                              ? "border-[#0066F9] bg-[#F0F7FF] ring-2 ring-[#0066F9]/20"
+                              : "border-gray-100 bg-gray-50/50 hover:border-[#0066F9]/40 hover:bg-white shadow-xs"
+                            }`}
+                        >
+                          <div className="relative w-16 h-16 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center">
+                            {avatarItem.image?.url ? (
+                              <Image
+                                src={avatarItem.image.url}
+                                alt={avatarItem.name}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              <UserIcon className="w-8 h-8 text-[#0066F9]/50" />
+                            )}
+                            {isSelected && (
+                              <div className="absolute inset-0 bg-[#0066F9]/30 flex items-center justify-center">
+                                <CheckCircle2 className="w-6 h-6 text-white drop-shadow-md" />
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-xs font-medium text-gray-700 group-hover:text-[#0066F9] truncate w-full text-center">
+                            {avatarItem.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-gray-100 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowAvatarModal(false)}
+                  className="px-6 py-2.5 rounded-full border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition"
+                >
+                  Close
                 </button>
               </div>
             </div>

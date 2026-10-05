@@ -24,8 +24,10 @@ export interface IUserProfile extends Document {
   languagesKnown?: string[];
   aboutMe?: string;
   image?: IProfileImage;
+  avatar?: Types.ObjectId;
   preferences?: Types.ObjectId[];
   profileCompletion: number;
+  completedOnce: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +65,10 @@ const userProfileSchema = new Schema<IUserProfile>(
       url: { type: String, trim: true },
       key: { type: String, trim: true },
     },
+    avatar: {
+      type: Schema.Types.ObjectId,
+      ref: 'Avatar',
+    },
     preferences: [
       {
         type: Schema.Types.ObjectId,
@@ -75,6 +81,10 @@ const userProfileSchema = new Schema<IUserProfile>(
       min: 0,
       max: 100,
     },
+    completedOnce: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
@@ -82,5 +92,6 @@ const userProfileSchema = new Schema<IUserProfile>(
 );
 
 userProfileSchema.index({ preferences: 1 });
+// userProfileSchema.index({ avatar: 1 });
 
 export const UserProfile = model<IUserProfile>('UserProfile', userProfileSchema);

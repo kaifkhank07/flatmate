@@ -80,7 +80,7 @@ export default function MobileNavbar() {
     {
       id: "add-listing",
       label: "Add Listing",
-      href: "/my-listing/create",
+      href: "/my-listings/create",
       icon: (
         <div className="relative">
           <svg className="w-6.5 h-6.5 stroke-current fill-none stroke-[1.8]" viewBox="0 0 24 24">

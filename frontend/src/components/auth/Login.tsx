@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Phone, ArrowLeft, CheckCircle2 } from "lucide-react";
+import React, { useState } from "react";
+import { Phone, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import LineRoll from "../utils/LineRoll";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -12,23 +12,14 @@ interface LoginProps {
 
 export default function Login({ onSwitchToSignUp }: LoginProps) {
   const router = useRouter();
-  const { sendLoginOTP, verifyLoginOTP, tempOtp, isLoading, error, clearError } = useAuthStore();
+  const { sendLoginOTP, verifyLoginOTP, checkProfileCompletionStatus, tempOtp, isLoading, error, clearError } = useAuthStore();
 
   const [mobileNumber, setMobileNumber] = useState("");
-  const [step, setStep] = useState<"phone" | "otp" | "success">("phone");
+  const [step, setStep] = useState<"phone" | "otp">("phone");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [localError, setLocalError] = useState("");
 
   const activeError = localError || error;
-
-  useEffect(() => {
-    if (step === "success") {
-      const timer = setTimeout(() => {
-        router.push("/");
-      }, 1200);
-      return () => clearTimeout(timer);
-    }
-  }, [step, router]);
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +72,12 @@ export default function Login({ onSwitchToSignUp }: LoginProps) {
     });
 
     if (success) {
-      setStep("success");
+      const isCompleted = await checkProfileCompletionStatus();
+      if (!isCompleted) {
+        router.push("/my-profile-complete");
+      } else {
+        router.push("/");
+      }
     }
   };
 
@@ -224,24 +220,6 @@ export default function Login({ onSwitchToSignUp }: LoginProps) {
             {isLoading ? "Verifying..." : "Verify & Proceed"}
           </button>
         </form>
-      )}
-
-      {step === "success" && (
-        <div className="text-center space-y-4 py-8">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600">
-            <CheckCircle2 className="w-10 h-10" />
-          </div>
-          <h2 className="text-2xl font-semibold text-gray-900">Login Successful!</h2>
-          <p className="text-gray-500 text-sm">Redirecting to home page...</p>
-          <button
-            onClick={() => {
-              router.push("/");
-            }}
-            className="mt-4 text-sm text-accent hover:underline font-medium cursor-pointer"
-          >
-            Go to Home Now
-          </button>
-        </div>
       )}
     </div>
   );

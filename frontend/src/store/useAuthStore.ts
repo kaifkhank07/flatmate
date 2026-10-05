@@ -3,6 +3,7 @@ import apiClient from '@/lib/api';
 import {
   User,
   UserProfile,
+  AvatarItem,
   LoginRequest,
   RegisterWithMobileOTPRequest,
   VerifyRegistrationOTPRequest,
@@ -25,11 +26,13 @@ interface AuthState {
   user: User | null;
   profile: UserProfile | null;
   masterPreferences: UserPreferenceItem[];
+  avatars: AvatarItem[];
   isAuthenticated: boolean;
   isInitialized: boolean;
   isLoading: boolean;
   isProfileLoading: boolean;
   isPreferencesLoading: boolean;
+  isAvatarsLoading: boolean;
   error: string | null;
   profileError: string | null;
   preferencesError: string | null;
@@ -58,6 +61,10 @@ interface AuthState {
   updateProfile: (data: Partial<UserProfile> | FormData) => Promise<boolean>;
   uploadProfileImage: (file: File) => Promise<boolean>;
   deleteProfileImage: () => Promise<boolean>;
+  selectAvatar: (avatarId: string) => Promise<boolean>;
+  fetchAvatars: () => Promise<AvatarItem[]>;
+  checkProfileCompletionStatus: () => Promise<boolean>;
+  completeProfile: () => Promise<boolean>;
 
   // Preference Operations
   fetchMasterPreferences: () => Promise<UserPreferenceItem[]>;
@@ -71,11 +78,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
   masterPreferences: [],
+  avatars: [],
   isAuthenticated: false,
   isInitialized: false,
   isLoading: false,
   isProfileLoading: false,
   isPreferencesLoading: false,
+  isAvatarsLoading: false,
   error: null,
   profileError: null,
   preferencesError: null,
@@ -194,12 +203,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         data
       );
 
+      const responseData = response.data?.data;
+
       if (response.data?.success) {
         set({
+          user: responseData?.user || null,
+          isAuthenticated: true,
           registrationStep: 'success',
           isLoading: false,
           error: null,
         });
+        get().fetchProfile();
         return true;
       } else {
         set({
@@ -511,6 +525,133 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isPreferencesLoading: false,
         preferencesError: errorMessage,
       });
+      return false;
+    }
+  },
+
+  /**
+   * Fetch Active Master Avatars
+   * GET /api/avatars?isActive=true&limit=100
+   */
+  fetchAvatars: async () => {
+    set({ isAvatarsLoading: true });
+    try {
+      const response = await apiClient.get<AuthApiResponse<{ items: AvatarItem[] }>>(
+        '/avatars?isActive=true&limit=100'
+      );
+      if (response.data?.success && response.data?.data?.items) {
+        const items = response.data.data.items;
+        set({
+          avatars: items,
+          isAvatarsLoading: false,
+        });
+        return items;
+      } else {
+        set({ isAvatarsLoading: false });
+        return [];
+      }
+    } catch {
+      set({ isAvatarsLoading: false });
+      return [];
+    }
+  },
+
+  /**
+   * Select an avatar for current user profile
+   * PATCH /api/profile with { avatar: avatarId }
+   */
+  selectAvatar: async (avatarId: string) => {
+    return get().updateProfile({ avatar: avatarId } as any);
+  },
+
+  /**
+   * Check profile completion status of current user
+   * GET /api/users/profile/completion-status
+   */
+  checkProfileCompletionStatus: async (): Promise<boolean> => {
+    try {
+      const response = await apiClient.get<AuthApiResponse<{ completedOnce: boolean }>>(
+        '/users/profile/completion-status'
+      );
+      if (response.data?.success && response.data?.data) {
+        const completedOnce = response.data.data.completedOnce === true;
+        const currentProfile = get().profile;
+        if (currentProfile && currentProfile.completedOnce !== completedOnce) {
+          set({
+            profile: {
+              ...currentProfile,
+              completedOnce,
+            },
+          });
+        }
+        return completedOnce;
+      }
+      return false;
+    } catch {
+      try {
+        const fallbackRes = await apiClient.get<AuthApiResponse<{ completedOnce: boolean }>>(
+          '/profile/completion-status'
+        );
+        if (fallbackRes.data?.success && fallbackRes.data?.data) {
+          const completedOnce = fallbackRes.data.data.completedOnce === true;
+          const currentProfile = get().profile;
+          if (currentProfile && currentProfile.completedOnce !== completedOnce) {
+            set({
+              profile: {
+                ...currentProfile,
+                completedOnce,
+              },
+            });
+          }
+          return completedOnce;
+        }
+      } catch {
+        // Ignore fallback error
+      }
+      return false;
+    }
+  },
+
+  /**
+   * Mark profile as completed once for current user
+   * PATCH /api/users/profile/complete
+   */
+  completeProfile: async (): Promise<boolean> => {
+    try {
+      const response = await apiClient.patch<AuthApiResponse<{ completedOnce: boolean }>>(
+        '/users/profile/complete'
+      );
+      if (response.data?.success) {
+        if (get().profile) {
+          set({
+            profile: {
+              ...get().profile!,
+              completedOnce: true,
+            },
+          });
+        }
+        return true;
+      }
+      return false;
+    } catch {
+      try {
+        const fallbackRes = await apiClient.patch<AuthApiResponse<{ completedOnce: boolean }>>(
+          '/profile/complete'
+        );
+        if (fallbackRes.data?.success) {
+          if (get().profile) {
+            set({
+              profile: {
+                ...get().profile!,
+                completedOnce: true,
+              },
+            });
+          }
+          return true;
+        }
+      } catch {
+        // Ignore fallback error
+      }
       return false;
     }
   },

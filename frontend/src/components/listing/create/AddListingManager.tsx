@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ListingOptionSelector from "./ListingOptionSelector";
 import PropertyCreationForm from "./PropertyCreationForm";
 import FlatmateCreationForm1 from "./FlatmateCreationForm1";
@@ -10,6 +10,18 @@ export type ListingMode = "select" | "property" | "flatmate-room" | "flatmate-ro
 
 export default function AddListingManager() {
   const [mode, setMode] = useState<ListingMode>("select");
+  const [resetKey, setResetKey] = useState(0);
+
+  useEffect(() => {
+    const handleReset = () => {
+      setMode("select");
+      setResetKey((prev) => prev + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    window.addEventListener("reset-add-listing-form", handleReset);
+    return () => window.removeEventListener("reset-add-listing-form", handleReset);
+  }, []);
 
   const handleSelectOption = (selectedOption: "property" | "flatmate-room" | "flatmate-roommate") => {
     setMode(selectedOption);
@@ -22,7 +34,7 @@ export default function AddListingManager() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full" key={resetKey}>
       {/* 1st Component: Two Options Selection Screen (Default) */}
       {mode === "select" && (
         <ListingOptionSelector onSelectOption={handleSelectOption} />

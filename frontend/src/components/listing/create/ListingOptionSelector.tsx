@@ -82,9 +82,7 @@ function ListingOptionCard({
       tl.to(
         buttonRef.current,
         {
-          backgroundColor: "#FFFFFF",
-          color: "#000000",
-          scale: 1.05,
+          color: "#FFFFFF",
         },
         0
       );
@@ -94,7 +92,8 @@ function ListingOptionCard({
       tl.to(
         buttonIconRef.current,
         {
-          x: 3,
+          x: 4,
+          color: "#FFFFFF",
         },
         0
       );
@@ -129,7 +128,7 @@ function ListingOptionCard({
       tl.to(
         cardRef.current,
         {
-          backgroundColor: "#FFFFFF",
+          backgroundColor: "#F2F8FE",
           y: 0,
         },
         0
@@ -150,9 +149,7 @@ function ListingOptionCard({
       tl.to(
         buttonRef.current,
         {
-          backgroundColor: "#0066F9",
-          color: "#FFFFFF",
-          scale: 1,
+          color: "#0066F9",
         },
         0
       );
@@ -163,6 +160,7 @@ function ListingOptionCard({
         buttonIconRef.current,
         {
           x: 0,
+          color: "#0066F9",
         },
         0
       );
@@ -187,7 +185,7 @@ function ListingOptionCard({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={() => onSelectOption(item.type)}
-      className="group relative bg-white rounded-3xl sm:rounded-[36px] p-7 sm:p-10 flex flex-col justify-between min-h-[380px] sm:min-h-[420px] drop-shadow-md cursor-pointer overflow-hidden"
+      className="group relative bg-white rounded-3xl sm:rounded-[36px] p-7 sm:p-9 flex flex-col justify-between min-h-[260px] sm:min-h-[260px] lg:min-h-[340px] cursor-pointer overflow-hidden transition-shadow shadow-sm hover:shadow-md"
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -197,40 +195,34 @@ function ListingOptionCard({
         }
       }}
     >
-      {/* Top text & button */}
-      <div className="space-y-4 sm:space-y-6">
+      {/* Top text & link */}
+      <div className="space-y-2 sm:space-y-3 lg:space-y-4 z-10">
         <h2
           ref={titleRef}
-          className="font-roboto-serif text-3xl sm:text-4xl text-gray-900 font-regular tracking-tight"
+          className="font-roboto-serif text-2xl sm:text-2xl lg:text-[30px] text-[#111827] font-normal tracking-tight leading-tight"
         >
           {item.title}
         </h2>
 
-        <div>
-          <span
-            ref={buttonRef}
-            className="inline-flex items-center gap-2 bg-[#0066F9] text-white text-sm sm:text-base font-medium px-6 py-2.5 rounded-full shadow-sm"
-          >
-            {item.buttonText}
-
-            <span ref={buttonIconRef} className="inline-flex">
-              <ChevronRight className="w-4 h-4" />
-            </span>
+        <div className="flex items-center gap-1.5 font-regular text-[#0066F9] text-base sm:text-base lg:text-xl">
+          <span ref={buttonRef}>{item.buttonText}</span>
+          <span ref={buttonIconRef} className="inline-flex items-center">
+            <ChevronRight className="w-5 h-5 stroke-[2.5]" />
           </span>
         </div>
       </div>
 
-      {/* Bottom Illustration */}
+      {/* Bottom Right Illustration */}
       <div
         ref={imageRef}
-        className="self-end z-10 origin-center"
+        className="absolute bottom-0 right-2 sm:right-4 z-10 origin-bottom-right pointer-events-none"
       >
         <Image
           src={item.image}
           alt={item.title}
-          className="object-contain drop-shadow-sm"
-          width={140}
-          height={140}
+          className="object-contain max-h-[120px] sm:max-h-[80px] lg:max-h-[140px] w-auto drop-shadow-sm"
+          width={150}
+          height={150}
         />
       </div>
     </div>
@@ -250,7 +242,7 @@ export default function ListingOptionSelector({
       image: assets.listingicon1,
     },
     {
-      title: "Have a Roommate",
+      title: "Have A Roommate",
       buttonText: "For Your Room",
       type: "flatmate-roommate",
       image: assets.listingicon2,
@@ -264,8 +256,8 @@ export default function ListingOptionSelector({
   ];
 
   return (
-    <section className="w-full py-16 md:py-20 overflow-hidden">
-      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto px-4 sm:px-6 lg:px-16 space-y-6 sm:space-y-10 md:space-y-12">
+    <section className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
+      <div className="w-full max-w-7xl mx-auto space-y-6 sm:space-y-10 md:space-y-12">
         {/* Top Header Section */}
         <SectionHeading
           title="Post Your Requirement"
@@ -274,7 +266,7 @@ export default function ListingOptionSelector({
         />
 
         {/* Listing Options */}
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
+        <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
           {selectOptions.map((item, index) => (
             <ListingOptionCard
               key={index}
@@ -285,13 +277,12 @@ export default function ListingOptionSelector({
         </div>
 
         {/* Bottom Safety / Warning Badge */}
-        <div className="flex justify-center items-center">
-          <div className="inline-flex items-center gap-2.5 bg-accent hover:bg-accent/80 text-white px-6 py-2.5 rounded-full text-xs sm:text-sm font-medium shadow-md transition-all cursor-pointer select-none active:scale-98">
-            <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
-              <Info className="w-3 h-3 text-white" />
-            </div>
-
-            <span>Beware Of Scams, Verify Flatmates/Tenants</span>
+        <div className="flex justify-center items-center pt-2">
+          <div className="inline-flex items-center gap-2.5 bg-[#0066F9] px-7 py-3 sm:px-9 sm:py-3.5 rounded-full transition-transform cursor-pointer select-none">
+            <Info className="w-4 h-4 text-white shrink-0 stroke-[2.5]" />
+            <span className="text-white text-sm sm:text-base md:text-lg font-regular">
+              Beware Of Scams, Verify Flatmates/Tenants
+            </span>
           </div>
         </div>
       </div>

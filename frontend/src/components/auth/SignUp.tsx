@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { User as UserIcon, Mail, Phone, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { User as UserIcon, Mail, Phone, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import LineRoll from "../utils/LineRoll";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -10,7 +11,8 @@ interface SignUpProps {
 }
 
 export default function SignUp({ onSwitchToLogin }: SignUpProps) {
-  const { register, verifyRegistrationOTP, tempOtp, isLoading, error, clearError } = useAuthStore();
+  const router = useRouter();
+  const { register, verifyRegistrationOTP, checkProfileCompletionStatus, tempOtp, isLoading, error, clearError } = useAuthStore();
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -18,7 +20,7 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
     email: "",
     mobileNumber: "",
   });
-  const [step, setStep] = useState<"details" | "otp" | "success">("details");
+  const [step, setStep] = useState<"details" | "otp">("details");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [localError, setLocalError] = useState("");
 
@@ -102,7 +104,12 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
     });
 
     if (success) {
-      setStep("success");
+      const isCompleted = await checkProfileCompletionStatus();
+      if (!isCompleted) {
+        router.push("/my-profile-complete");
+      } else {
+        router.push("/");
+      }
     }
   };
 
@@ -289,30 +296,6 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
             {isLoading ? "Verifying..." : "Verify & Register"}
           </button>
         </form>
-      )}
-
-      {step === "success" && (
-        <div className="text-center space-y-4 py-6">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600">
-            <CheckCircle2 className="w-10 h-10" />
-          </div>
-          <h2 className="text-2xl font-semibold text-gray-900">Registration Successful!</h2>
-          <p className="text-gray-500 text-sm">
-            Welcome to Flat & Flatmate, {formData.firstName}! Your account has been created.
-          </p>
-          {onSwitchToLogin && (
-            <button
-              type="button"
-              onClick={() => {
-                clearError();
-                onSwitchToLogin();
-              }}
-              className="mt-4 text-sm text-accent hover:underline font-medium cursor-pointer"
-            >
-              Proceed to Log In
-            </button>
-          )}
-        </div>
       )}
     </div>
   );

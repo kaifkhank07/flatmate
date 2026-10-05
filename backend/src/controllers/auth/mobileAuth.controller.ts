@@ -177,14 +177,40 @@ export const verifyRegistrationMobileOTP = async (req: Request, res: Response): 
     }
 
     user.mobileVerified = true;
+    user.lastLoginAt = new Date();
     await user.save();
+
+    // Generate JWT Tokens
+    const accessToken = generateAccessToken({
+      userId: user._id.toString(),
+      type: 'user',
+    });
+
+    const refreshToken = generateRefreshToken({
+      id: user._id.toString(),
+      type: 'user',
+    });
+
+    const refreshTokenHash = hashSecret(refreshToken);
+
+    // Save session
+    await UserSession.create({
+      userId: user._id,
+      refreshTokenHash,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    });
 
     const userJson = user.toObject();
     delete userJson.password;
 
-    logger.info(`[MobileAuth] Registration OTP verified successfully for user: ${user._id}`);
+    // Set HTTP-only Cookies
+    setAuthCookies(res, accessToken, refreshToken);
 
-    return sendSuccess(res, 'Mobile number verified successfully', {
+    logger.info(`[MobileAuth] Registration OTP verified and user logged in: ${user._id}`);
+
+    return sendSuccess(res, 'Mobile number verified and logged in successfully', {
       user: userJson,
     });
   } catch (error) {

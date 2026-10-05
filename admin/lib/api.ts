@@ -421,6 +421,62 @@ export async function deleteUserPreference(id: string) {
 }
 
 // ==========================================
+// Avatar Master Services (Admin Side)
+// ==========================================
+
+export interface AvatarImage {
+  url: string;
+  key: string;
+}
+
+export interface AvatarItem {
+  _id: string;
+  name: string;
+  image: AvatarImage;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchAvatars(params?: { status?: string; search?: string; page?: number; limit?: number }) {
+  const query = new URLSearchParams();
+  if (params?.status && params.status !== "all") query.append("status", params.status);
+  if (params?.search) query.append("search", params.search);
+  if (params?.page) query.append("page", params.page.toString());
+  if (params?.limit) query.append("limit", params.limit.toString());
+
+  const queryString = query.toString();
+  const endpoint = queryString ? `/avatars?${queryString}` : "/avatars";
+
+  return apiFetch<{ items: AvatarItem[]; total: number; page: number; limit: number; totalPages?: number }>(endpoint);
+}
+
+export async function createAvatarApi(payload: FormData | { name: string; image?: any; isActive?: boolean }) {
+  return apiFetch<AvatarItem>("/avatars", {
+    method: "POST",
+    body: payload instanceof FormData ? payload : JSON.stringify(payload),
+  });
+}
+
+export async function updateAvatarApi(id: string, payload: FormData | { name?: string; image?: any; isActive?: boolean }) {
+  return apiFetch<AvatarItem>(`/avatars/${id}`, {
+    method: "PUT",
+    body: payload instanceof FormData ? payload : JSON.stringify(payload),
+  });
+}
+
+export async function toggleAvatarStatusApi(id: string, isActive: boolean) {
+  return apiFetch<AvatarItem>(`/avatars/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ isActive }),
+  });
+}
+
+export async function deleteAvatarApi(id: string) {
+  return apiFetch(`/avatars/${id}`, { method: "DELETE" });
+}
+
+// ==========================================
 // City Management Services (Admin Side)
 // ==========================================
 
