@@ -16,9 +16,9 @@ export const slugify = (text: string): string => {
     .toString()
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9\s-]/g, '') // remove invalid characters
-    .replace(/\s+/g, '-') // replace spaces with -
-    .replace(/-+/g, '-'); // replace multiple - with single -
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
 };
 
 /** Helper to generate a unique slug for Property */
@@ -55,16 +55,16 @@ export const createProperty = async (req: Request, res: Response): Promise<Respo
   try {
     const body = req.body;
 
-    // Determine ownerId from body or authenticated user/admin
-    const ownerId = body.ownerId || (req as any).user?._id || (req as any).admin?._id;
-    if (!ownerId || !Types.ObjectId.isValid(ownerId)) {
-      return sendError(res, 'A valid ownerId is required', 400);
+    // Determine userId from body or authenticated user/admin
+    const userId = body.userId || body.ownerId || (req as any).user?._id || (req as any).admin?._id;
+    if (!userId || !Types.ObjectId.isValid(userId)) {
+      return sendError(res, 'A valid userId is required', 400);
     }
 
-    // Validate referenced owner
-    const ownerExists = await User.findById(ownerId).select('_id').lean();
-    if (!ownerExists) {
-      return sendError(res, 'Referenced property owner user not found', 404);
+    // Validate referenced user
+    const userExists = await User.findById(userId).select('_id').lean();
+    if (!userExists) {
+      return sendError(res, 'Referenced property user not found', 404);
     }
 
     // Verify referenced location document exists in MongoDB
@@ -138,50 +138,37 @@ export const createProperty = async (req: Request, res: Response): Promise<Respo
     };
 
     const propertyData: Partial<IProperty> = {
-      ownerId,
+      userId,
       title: body.title.trim(),
       slug,
       description: body.description.trim(),
-      listingType: body.listingType,
+      propertyType: body.propertyType || body.listingType,
+      area: Number(typeof body.area === 'object' ? body.area?.value : body.area || 0),
       location: locationDoc._id,
       rent: Number(body.rent),
       securityDeposit: Number(body.securityDeposit || 0),
       maintenanceCharges: {
         amount: Number(body.maintenanceCharges?.amount || 0),
-        frequency: body.maintenanceCharges?.frequency || 'monthly',
+        frequency: body.maintenanceCharges?.frequency || 'yearly',
       },
-      furnishing: body.furnishing,
+      furnishing: body.furnishing || 'semi_furnished',
+      parking: typeof body.parking === 'object' ? Boolean(body.parking?.available) : Boolean(body.parking),
       availableFrom: parseValidDate(body.availableFrom) || now,
-      availableUntil: parseValidDate(body.availableUntil),
       genderPreference: body.genderPreference || 'any',
       occupationPreference: body.occupationPreference || 'any',
       amenities: amenitiesList,
       houseRules: body.houseRules || [],
-      parking: {
-        available: Boolean(body.parking?.available),
-      },
-      bedrooms: body.bedrooms !== undefined ? Number(body.bedrooms) : undefined,
-      bathrooms: body.bathrooms !== undefined ? Number(body.bathrooms) : undefined,
-      balconies: body.balconies !== undefined ? Number(body.balconies) : undefined,
-      floors: body.floors !== undefined ? Number(body.floors) : undefined,
-      area: body.area
-        ? {
-          value: Number(body.area.value || 0),
-          unit: body.area.unit || 'sqft',
-        }
-        : undefined,
       images: imageIds,
       videos: videoIds,
       status: initialStatus,
       rejectionReason: initialStatus === 'rejected' ? body.rejectionReason : undefined,
-      expiresAt: parseValidDate(body.expiresAt),
       ...(initialStatus === 'approved' && { approvedAt: now, publishedAt: now }),
     };
 
     const property = await Property.create(propertyData);
 
     const populatedProperty = await Property.findById(property._id)
-      .populate('ownerId', 'name email mobile role accountStatus')
+      .populate('userId', 'name email mobile role accountStatus')
       .populate('location', 'name formattedAddress city state country latitude longitude placeId')
       .populate('amenities')
       .populate('images')
@@ -227,9 +214,10 @@ export const getProperties = async (req: Request, res: Response): Promise<Respon
       filter.status = req.query.status;
     }
 
-    // Listing Type filter
-    if (req.query.listingType && req.query.listingType !== 'all') {
-      filter.listingType = req.query.listingType;
+    // Property Type filter
+    const pType = req.query.propertyType || req.query.listingType;
+    if (pType && pType !== 'all') {
+      filter.propertyType = pType;
     }
 
     // Furnishing filter
@@ -244,10 +232,11 @@ export const getProperties = async (req: Request, res: Response): Promise<Respon
       }
     }
 
-    // Owner filter
-    if (req.query.ownerId) {
-      if (Types.ObjectId.isValid(req.query.ownerId as string)) {
-        filter.ownerId = req.query.ownerId;
+    // User filter
+    const uId = req.query.userId || req.query.ownerId;
+    if (uId && uId !== 'all') {
+      if (Types.ObjectId.isValid(uId as string)) {
+        filter.userId = uId;
       }
     }
 
@@ -284,7 +273,7 @@ export const getProperties = async (req: Request, res: Response): Promise<Respon
         .sort(sortOptions)
         .skip(skip)
         .limit(limit)
-        .populate('ownerId', 'name email mobile role accountStatus')
+        .populate('userId', 'name email mobile role accountStatus')
         .populate('location', 'name formattedAddress city state country')
         .populate('amenities')
         .populate('images')
@@ -320,7 +309,7 @@ export const getPropertyById = async (req: Request, res: Response): Promise<Resp
     }
 
     const property = await Property.findById(id)
-      .populate('ownerId', 'name email mobile role accountStatus profileVerified')
+      .populate('userId', 'name email mobile role accountStatus profileVerified')
       .populate('location', 'name formattedAddress city state country latitude longitude')
       .populate('amenities')
       .populate('images')
@@ -350,7 +339,7 @@ export const getPropertyBySlug = async (req: Request, res: Response): Promise<Re
     }
 
     const property = await Property.findOne({ slug: slug.toLowerCase().trim() })
-      .populate('ownerId', 'name email mobile role accountStatus profileVerified')
+      .populate('userId', 'name email mobile role accountStatus profileVerified')
       .populate('location', 'name formattedAddress city state country latitude longitude')
       .populate('amenities')
       .populate('images')
@@ -389,13 +378,14 @@ export const updateProperty = async (req: Request, res: Response): Promise<Respo
     const oldLocationId = property.location ? property.location.toString() : null;
     let locationChanged = false;
 
-    // Validate referenced owner if changing
-    if (body.ownerId && Types.ObjectId.isValid(body.ownerId)) {
-      const ownerExists = await User.findById(body.ownerId).select('_id').lean();
-      if (!ownerExists) {
-        return sendError(res, 'Referenced property owner user not found', 404);
+    // Validate referenced user if changing
+    const reqUserId = body.userId || body.ownerId;
+    if (reqUserId && Types.ObjectId.isValid(reqUserId)) {
+      const userExists = await User.findById(reqUserId).select('_id').lean();
+      if (!userExists) {
+        return sendError(res, 'Referenced property user not found', 404);
       }
-      property.ownerId = body.ownerId;
+      property.userId = reqUserId;
     }
 
     // Validate location if changing
@@ -423,7 +413,9 @@ export const updateProperty = async (req: Request, res: Response): Promise<Respo
 
     // Direct string/enum fields
     if (body.description !== undefined) property.description = body.description.trim();
-    if (body.listingType !== undefined) property.listingType = body.listingType;
+    if (body.propertyType !== undefined || body.listingType !== undefined) {
+      property.propertyType = body.propertyType || body.listingType;
+    }
     if (body.furnishing !== undefined) property.furnishing = body.furnishing;
     if (body.genderPreference !== undefined) property.genderPreference = body.genderPreference;
     if (body.occupationPreference !== undefined) property.occupationPreference = body.occupationPreference;
@@ -438,7 +430,7 @@ export const updateProperty = async (req: Request, res: Response): Promise<Respo
     if (body.maintenanceCharges !== undefined) {
       property.maintenanceCharges = {
         amount: Number(body.maintenanceCharges.amount || 0),
-        frequency: body.maintenanceCharges.frequency || 'monthly',
+        frequency: body.maintenanceCharges.frequency || 'yearly',
       };
     }
 
@@ -448,32 +440,19 @@ export const updateProperty = async (req: Request, res: Response): Promise<Respo
       return isNaN(d.getTime()) ? undefined : d;
     };
 
-    // Availability Dates
+    // Availability Date
     if (body.availableFrom !== undefined) {
       const parsed = parseValidDate(body.availableFrom);
       if (parsed) property.availableFrom = parsed;
     }
-    if (body.availableUntil !== undefined) {
-      property.availableUntil = parseValidDate(body.availableUntil);
-    }
-    if (body.expiresAt !== undefined) {
-      property.expiresAt = parseValidDate(body.expiresAt);
-    }
 
     // Specifications
     if (body.parking !== undefined) {
-      property.parking = { available: Boolean(body.parking.available) };
+      property.parking = typeof body.parking === 'object' ? Boolean(body.parking?.available) : Boolean(body.parking);
     }
-    if (body.bedrooms !== undefined) property.bedrooms = Number(body.bedrooms);
-    if (body.bathrooms !== undefined) property.bathrooms = Number(body.bathrooms);
-    if (body.balconies !== undefined) property.balconies = Number(body.balconies);
-    if (body.floors !== undefined) property.floors = Number(body.floors);
 
     if (body.area !== undefined) {
-      property.area = {
-        value: Number(body.area.value || 0),
-        unit: body.area.unit || 'sqft',
-      };
+      property.area = Number(typeof body.area === 'object' ? body.area?.value : body.area || 0);
     }
 
     // House Rules & Amenities
@@ -536,7 +515,7 @@ export const updateProperty = async (req: Request, res: Response): Promise<Respo
     }
 
     const updatedProperty = await Property.findById(property._id)
-      .populate('ownerId', 'name email mobile role accountStatus')
+      .populate('userId', 'name email mobile role accountStatus')
       .populate('location', 'name formattedAddress city state country latitude longitude placeId')
       .populate('amenities')
       .populate('images')
@@ -650,7 +629,7 @@ export const updatePropertyStatus = async (req: Request, res: Response): Promise
     await property.save();
 
     const updated = await Property.findById(id)
-      .populate('ownerId', 'name email mobile role')
+      .populate('userId', 'name email mobile role')
       .populate('location', 'name city state')
       .populate('amenities')
       .lean();
@@ -698,7 +677,6 @@ export const closeProperty = async (req: Request, res: Response): Promise<Respon
   req.body = { status: 'closed' };
   return updatePropertyStatus(req, res);
 };
-
 
 /**
  * Media attachment: add image to property

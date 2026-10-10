@@ -151,7 +151,6 @@ export interface PropertyAmenityItem {
   _id: string;
   name: string;
   image?: any;
-  category?: string;
   isActive?: boolean;
 }
 
@@ -159,7 +158,7 @@ export interface PropertyAmenityItem {
  * Fetch Property Amenities
  * GET /api/property-amenities
  */
-export async function fetchPropertyAmenitiesApi(params?: { category?: string; page?: number; limit?: number; search?: string }) {
+export async function fetchPropertyAmenitiesApi(params?: { page?: number; limit?: number; search?: string }) {
   const res = await apiClient.get<ApiResponse<{ items: PropertyAmenityItem[]; total: number }>>("/property-amenities", { params });
   return res.data;
 }
@@ -167,7 +166,6 @@ export async function fetchPropertyAmenitiesApi(params?: { category?: string; pa
 export interface UserPreferenceItem {
   _id: string;
   name: string;
-  category?: string;
   image?: any;
   isActive?: boolean;
 }
@@ -176,7 +174,7 @@ export interface UserPreferenceItem {
  * Fetch Lifestyle User Preferences
  * GET /api/user-preferences
  */
-export async function fetchUserPreferencesApi(params?: { category?: string; page?: number; limit?: number; search?: string }) {
+export async function fetchUserPreferencesApi(params?: { page?: number; limit?: number; search?: string }) {
   const res = await apiClient.get<ApiResponse<{ items: UserPreferenceItem[]; total: number }>>("/user-preferences", { params });
   return res.data;
 }
@@ -216,6 +214,118 @@ export async function updateFlatmateRequirementApi(id: string, payload: any) {
   const res = await apiClient.put<ApiResponse<FlatmateRequirementItem>>(`/flatmate-requirements/${id}`, payload);
   return res.data;
 }
+
+export type ReportReason = 'spam' | 'fraud' | 'inappropriate' | 'misleading' | 'other';
+export type ReportTargetType = 'property' | 'flatmaterequirement';
+
+export interface CreateReportPayload {
+  targetType: ReportTargetType;
+  targetId: string;
+  reason: ReportReason;
+  description?: string;
+}
+
+/**
+ * Submit a Report for a Property or Flatmate Requirement
+ * POST /api/reports
+ */
+export async function createReportApi(payload: CreateReportPayload) {
+  const res = await apiClient.post<ApiResponse<any>>('/reports', payload);
+  return res.data;
+}
+
+export type WishlistTargetType = 'property' | 'flatmaterequirement';
+
+/**
+ * Toggle Wishlist for a Property or Flatmate Requirement
+ * POST /api/wishlist/toggle
+ */
+export async function toggleWishlistApi(targetType: WishlistTargetType, targetId: string) {
+  const res = await apiClient.post<ApiResponse<{ wishlisted: boolean; data?: any }>>('/wishlist/toggle', {
+    targetType,
+    targetId,
+  });
+  return res.data;
+}
+
+/**
+ * Check if a Property or Flatmate Requirement is wishlisted by authenticated user
+ * GET /api/wishlist/check
+ */
+export async function checkWishlistStatusApi(targetType: WishlistTargetType, targetId: string) {
+  const res = await apiClient.get<ApiResponse<{ isWishlisted: boolean; wishlistId: string | null }>>('/wishlist/check', {
+    params: { targetType, targetId },
+  });
+  return res.data;
+}
+
+/**
+ * Fetch Wishlist Items for authenticated user
+ * GET /api/wishlist
+ */
+export async function getWishlistApi(params?: { targetType?: WishlistTargetType; page?: number; limit?: number }) {
+  const res = await apiClient.get<ApiResponse<{ items: any[]; total: number; page: number; limit: number }>>('/wishlist', { params });
+  return res.data;
+}
+
+/**
+ * Delete a wishlist item by document ID or target details
+ * DELETE /api/wishlist/:id or DELETE /api/wishlist/by-target
+ */
+export async function deleteWishlistApi(id: string) {
+  const res = await apiClient.delete<ApiResponse<any>>(`/wishlist/${id}`);
+  return res.data;
+}
+
+
+export type RecentlyViewedTargetType = 'property' | 'flatmaterequirement';
+
+/**
+ * Record Recently Viewed Listing for authenticated user
+ * POST /api/recently-viewed
+ */
+export async function addRecentlyViewedApi(targetType: RecentlyViewedTargetType, targetId: string) {
+  const res = await apiClient.post<ApiResponse<any>>('/recently-viewed', {
+    targetType,
+    targetId,
+  });
+  return res.data;
+}
+
+/**
+ * Fetch Recently Viewed Listings for authenticated user
+ * GET /api/recently-viewed
+ */
+export async function getRecentlyViewedApi(params?: { targetType?: RecentlyViewedTargetType; page?: number; limit?: number }) {
+  const res = await apiClient.get<ApiResponse<{ items: any[]; total: number }>>('/recently-viewed', { params });
+  return res.data;
+}
+
+export interface GetMyListingsParams {
+  page?: number;
+  limit?: number;
+  sourceType?: 'all' | 'property' | 'flatmate_requirement';
+  targetType?: 'all' | 'property' | 'flatmate_requirement' | 'flatmaterequirement';
+  postType?: 'property' | 'partner';
+  status?: string;
+  q?: string;
+  search?: string;
+  locationPlaceId?: string;
+  latitude?: number;
+  longitude?: number;
+  sortBy?: string;
+  order?: string;
+}
+
+/**
+ * Fetch My Listings for authenticated user
+ * GET /api/listings/my-listings
+ */
+export async function getMyListingsApi(params?: GetMyListingsParams) {
+  const res = await apiClient.get<ApiResponse<{ listings: any[]; items?: any[]; total: number; page: number; limit: number; pagination?: any }>>('/listings/my-listings', { params });
+  return res.data;
+}
+
 
 
 

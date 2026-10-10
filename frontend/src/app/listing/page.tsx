@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
-import ListingBreadcrum from "@/components/listing/ListingBreadcrum";
-import ListingManager from "@/components/listing/ListingManager";
+import ListingBreadcrum from "@/components/listing/public/ListingBreadcrum";
+import ListingManager from "@/components/listing/public/ListingManager";
 import Faq from "@/components/ui/Faq";
 import JoinCommunityBanner from "@/components/ui/JoinCommunityBanner";
 

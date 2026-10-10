@@ -1,6 +1,6 @@
 import React from "react";
 import { Metadata } from "next";
-import AddListingManager from "@/components/listing/create/AddListingManager";
+import AddListingManager from "@/components/listing/personal/AddListingManager";
 
 export const metadata: Metadata = {
   title: "Post Your Requirement | FlatMate",

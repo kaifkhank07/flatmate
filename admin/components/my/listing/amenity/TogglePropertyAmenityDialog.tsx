@@ -58,7 +58,7 @@ export default function TogglePropertyAmenityDialog({
         {/* Modal Body */}
         <div className="space-y-2 text-sm text-slate-700">
           <p>
-            Are you sure you want to {actionText.toLowerCase()} <strong className="text-slate-900 font-semibold">&quot;{amenity.name}&quot;</strong> ({amenity.category})?
+            Are you sure you want to {actionText.toLowerCase()} <strong className="text-slate-900 font-semibold">&quot;{amenity.name}&quot;</strong>?
           </p>
         </div>
 

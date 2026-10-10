@@ -1,6 +1,6 @@
 import React from "react";
 import { Metadata } from "next";
-import MyListings from "@/components/dashboard/MyListings";
+import MyListingManager from "@/components/listing/personal/MyListingManager";
 import Faq from "@/components/ui/Faq";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function MyListingPage() {
     return (
         <main className="w-full min-h-screen pt-20">
-            <MyListings />
+            <MyListingManager />
             <Faq />
         </main>
     );

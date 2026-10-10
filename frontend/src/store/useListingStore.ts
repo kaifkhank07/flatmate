@@ -359,6 +359,11 @@ export const useListingStore = create<ListingState>((set, get) => ({
         }
       });
 
+      if (cleanParams.listingType && !cleanParams.propertyType) {
+        cleanParams.propertyType = cleanParams.listingType;
+        delete cleanParams.listingType;
+      }
+
       // Maintain explicit pagination and sorting params
       cleanParams.page = activeFilters.page || 1;
       cleanParams.limit = activeFilters.limit || 10;

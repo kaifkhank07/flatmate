@@ -9,7 +9,7 @@ const objectIdString = z
 
 export const createPropertySchema = z.object({
   body: z.object({
-    ownerId: objectIdString.optional(),
+    userId: objectIdString.optional(),
     title: z
       .string({ required_error: 'Title is required' })
       .trim()
@@ -20,10 +20,10 @@ export const createPropertySchema = z.object({
       .string({ required_error: 'Description is required' })
       .trim()
       .min(1, 'Description is required'),
-    listingType: z.enum(['flat', 'room', 'pg', 'shared_apartment', 'entire_property'], {
-      required_error: 'Listing type is required',
+    propertyType: z.enum(['flat', 'room', 'pg', 'shared_apartment', 'entire_property'], {
+      required_error: 'Property type is required',
       invalid_type_error:
-        'Listing type must be one of: flat, room, pg, shared_apartment, entire_property',
+        'Property type must be one of: flat, room, pg, shared_apartment, entire_property',
     }),
     location: z.union([
       z.string().min(1, 'Location is required'),
@@ -33,6 +33,9 @@ export const createPropertySchema = z.object({
         _id: z.string().optional(),
       }),
     ]),
+    area: z
+      .number({ required_error: 'Area is required' })
+      .min(0, 'Area cannot be negative'),
     rent: z
       .number({ required_error: 'Rent amount is required' })
       .min(0, 'Rent amount cannot be negative'),
@@ -48,39 +51,34 @@ export const createPropertySchema = z.object({
           .optional(),
       })
       .optional(),
-    furnishing: z.enum(['fully_furnished', 'semi_furnished', 'unfurnished'], {
-      required_error: 'Furnishing status is required',
-      invalid_type_error:
-        'Furnishing must be one of: fully_furnished, semi_furnished, unfurnished',
-    }),
+    furnishing: z
+      .enum(['fully_furnished', 'semi_furnished', 'unfurnished'], {
+        invalid_type_error:
+          'Furnishing must be one of: fully_furnished, semi_furnished, unfurnished',
+      })
+      .optional(),
+    parking: z.boolean().optional(),
     availableFrom: z.string().or(z.date()),
-    availableUntil: z.string().or(z.date()).optional(),
     genderPreference: z.enum(['male', 'female', 'other', 'any']).optional(),
-    occupationPreference: z.enum(['student', 'working_professional', 'any']).optional(),
+    occupationPreference: z
+      .enum([
+        'student',
+        'working_professional',
+        'self_employed',
+        'business_owner',
+        'freelancer',
+        'other',
+        'any',
+      ])
+      .optional(),
     amenities: z.array(z.string().or(z.object({ _id: z.string() }))).optional(),
     houseRules: z.array(z.string().trim()).optional(),
-    parking: z
-      .object({
-        available: z.boolean().optional(),
-      })
-      .optional(),
-    bedrooms: z.number().min(0).optional(),
-    bathrooms: z.number().min(0).optional(),
-    balconies: z.number().min(0).optional(),
-    floors: z.number().min(0).optional(),
-    area: z
-      .object({
-        value: z.number().min(0).optional(),
-        unit: z.enum(['sqft', 'sqm']).optional(),
-      })
-      .optional(),
     images: z.array(z.string().or(z.object({ _id: z.string().optional(), url: z.string().optional(), key: z.string().optional() }))).optional(),
     videos: z.array(z.string().or(z.object({ _id: z.string().optional(), url: z.string().optional(), key: z.string().optional() }))).optional(),
     status: z
       .enum(['draft', 'pending', 'approved', 'rejected', 'blocked', 'closed', 'expired'])
       .optional(),
     rejectionReason: z.string().trim().optional(),
-    expiresAt: z.string().or(z.date()).optional(),
   }),
 });
 

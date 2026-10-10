@@ -1,7 +1,5 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
-export type PreferenceCategory = 'food' | 'pets' | 'drink';
-
 export interface IPreferenceImage {
   url?: string;
   key?: string;
@@ -10,7 +8,6 @@ export interface IPreferenceImage {
 export interface IUserPreference extends Document {
   _id: Types.ObjectId;
   name: string;
-  category: PreferenceCategory;
   image?: IPreferenceImage;
   isActive: boolean;
   createdAt: Date;
@@ -23,12 +20,6 @@ const userPreferenceSchema = new Schema<IUserPreference>(
       type: String,
       required: [true, 'Preference name is required'],
       trim: true,
-    },
-    category: {
-      type: String,
-      enum: ['food', 'pets', 'drink'],
-      required: [true, 'Preference category is required'],
-      index: true,
     },
     image: {
       url: { type: String, trim: true },
@@ -45,6 +36,7 @@ const userPreferenceSchema = new Schema<IUserPreference>(
   }
 );
 
-userPreferenceSchema.index({ category: 1, name: 1 }, { unique: true });
+userPreferenceSchema.index({ name: 1 }, { unique: true });
 
 export const UserPreference = model<IUserPreference>('UserPreference', userPreferenceSchema);
+

@@ -210,7 +210,7 @@ export const getReports = async (req: Request, res: Response): Promise<Response>
                 slug: 1,
                 status: 1,
                 location: 1,
-                ownerId: 1,
+                userId: 1,
                 images: 1,
               },
             },
@@ -252,19 +252,22 @@ export const getReports = async (req: Request, res: Response): Promise<Response>
                 description: 1,
                 postType: 1,
                 propertyType: 1,
-                partnerType: 1,
-                location: 1,
                 budget: 1,
+                rent: 1,
                 occupationPreference: 1,
                 genderPreference: 1,
                 moveInDate: 1,
-                peopleCount: 1,
+                availableFrom: 1,
+                area: 1,
+                furnishing: 1,
+                securityDeposit: 1,
+                userPreferences: 1,
+                amenities: 1,
                 status: 1,
                 rejectionReason: 1,
                 userId: 1,
                 images: 1,
                 videos: 1,
-                expiresAt: 1,
                 createdAt: 1,
                 updatedAt: 1,
               },
@@ -494,7 +497,7 @@ export const getReportsByTarget = async (
     let target = null;
     if (targetType === 'property') {
       target = await Property.findById(targetId)
-        .select('title slug status location images ownerId rent description')
+        .select('title slug status location images userId rent description')
         .populate('location')
         .lean();
     } else if (targetType === 'flatmaterequirement') {

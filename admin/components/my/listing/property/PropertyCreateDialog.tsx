@@ -12,7 +12,6 @@ import {
   deleteVideoApi,
   createPropertyApi,
   UserItem,
-  LocationItem,
   PropertyAmenityItem,
   PropertyMediaItem,
   AutocompleteSuggestion,
@@ -38,10 +37,10 @@ interface MediaItemState {
 }
 
 interface PropertyFormData {
-  ownerId: string;
+  userId: string;
   title: string;
   description: string;
-  listingType: "flat" | "room" | "pg" | "shared_apartment" | "entire_property";
+  propertyType: "flat" | "room" | "pg" | "shared_apartment" | "entire_property";
   location: string;
   rentAmount: number;
   securityDeposit: number;
@@ -49,50 +48,36 @@ interface PropertyFormData {
   maintenanceFrequency: "monthly" | "yearly" | "included" | "one_time";
   furnishing: "fully_furnished" | "semi_furnished" | "unfurnished";
   availableFrom: string;
-  availableUntil: string;
   genderPreference: "male" | "female" | "other" | "any";
-  occupationPreference: "student" | "working_professional" | "any";
+  occupationPreference: "student" | "working_professional" | "self_employed" | "business_owner" | "freelancer" | "other" | "any";
   parkingAvailable: boolean;
-  bedrooms: number;
-  bathrooms: number;
-  balconies: number;
-  floors: number;
   areaValue: number;
-  areaUnit: "sqft" | "sqm";
   houseRules: string;
   amenities: string[];
   status: ListingStatus;
   rejectionReason?: string;
-  expiresAt?: string;
 }
 
 const DEFAULT_FORM_DATA: PropertyFormData = {
-  ownerId: "",
+  userId: "",
   title: "",
   description: "",
-  listingType: "flat",
+  propertyType: "flat",
   location: "",
   rentAmount: 0,
   securityDeposit: 0,
   maintenanceAmount: 0,
-  maintenanceFrequency: "monthly",
+  maintenanceFrequency: "yearly",
   furnishing: "semi_furnished",
   availableFrom: "",
-  availableUntil: "",
   genderPreference: "any",
   occupationPreference: "any",
   parkingAvailable: false,
-  bedrooms: 0,
-  bathrooms: 0,
-  balconies: 0,
-  floors: 0,
   areaValue: 0,
-  areaUnit: "sqft",
   houseRules: "",
   amenities: [],
   status: "approved",
   rejectionReason: "",
-  expiresAt: "",
 };
 
 export default function PropertyCreateDialog({
@@ -319,7 +304,7 @@ export default function PropertyCreateDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    let resolvedOwnerId = formData.ownerId;
+    let resolvedOwnerId = formData.userId;
     if (!resolvedOwnerId && userSearchTerm.trim() && userOptions.length > 0) {
       const match =
         userOptions.find(
@@ -330,7 +315,7 @@ export default function PropertyCreateDialog({
         ) || userOptions[0];
       if (match) {
         resolvedOwnerId = match._id;
-        setFormData((prev) => ({ ...prev, ownerId: match._id }));
+        setFormData((prev) => ({ ...prev, userId: match._id }));
         setUserSearchTerm(match.email || match.mobile || match._id);
       }
     }
@@ -433,10 +418,10 @@ export default function PropertyCreateDialog({
       // Step 4: Create Property Listing with media and location IDs attached
       toast("Creating property listing…");
       const payload: any = {
-        ownerId: resolvedOwnerId,
+        userId: resolvedOwnerId,
         title: formData.title.trim(),
         description: formData.description.trim(),
-        listingType: formData.listingType,
+        propertyType: formData.propertyType,
         location: resolvedLocationId,
         rent: Number(formData.rentAmount),
         securityDeposit: Number(formData.securityDeposit),
@@ -446,20 +431,10 @@ export default function PropertyCreateDialog({
         },
         furnishing: formData.furnishing,
         availableFrom: formData.availableFrom || new Date().toISOString().split("T")[0],
-        availableUntil: formData.availableUntil || undefined,
         genderPreference: formData.genderPreference,
         occupationPreference: formData.occupationPreference,
-        parking: {
-          available: formData.parkingAvailable,
-        },
-        bedrooms: Number(formData.bedrooms),
-        bathrooms: Number(formData.bathrooms),
-        balconies: Number(formData.balconies),
-        floors: Number(formData.floors),
-        area: {
-          value: Number(formData.areaValue),
-          unit: formData.areaUnit,
-        },
+        parking: formData.parkingAvailable,
+        area: Number(formData.areaValue),
         houseRules: formData.houseRules
           ? formData.houseRules
             .split(",")
@@ -471,7 +446,6 @@ export default function PropertyCreateDialog({
         videos: createdVideoIds,
         status: formData.status,
         rejectionReason: formData.status === "rejected" ? formData.rejectionReason : undefined,
-        expiresAt: formData.expiresAt || undefined,
       };
 
       const res = await createPropertyApi(payload);
@@ -522,7 +496,7 @@ export default function PropertyCreateDialog({
             {/* Section 1: Owner Selection */}
             <div className="space-y-2">
               <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-                1. Property Owner (User) <span className="text-rose-500">*</span>
+                1. Owner (User) <span className="text-rose-500">*</span>
               </h4>
               <div className="relative" ref={ownerDropdownRef}>
                 <div className="relative">
@@ -535,7 +509,7 @@ export default function PropertyCreateDialog({
                       setUserSearchTerm(e.target.value);
                       setIsOwnerDropdownOpen(true);
                       if (!e.target.value.trim()) {
-                        setFormData((prev) => ({ ...prev, ownerId: "" }));
+                        setFormData((prev) => ({ ...prev, userId: "" }));
                       }
                     }}
                     onFocus={() => setIsOwnerDropdownOpen(true)}
@@ -549,7 +523,7 @@ export default function PropertyCreateDialog({
                       className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 transition-colors"
                       onClick={() => {
                         setUserSearchTerm("");
-                        setFormData((prev) => ({ ...prev, ownerId: "" }));
+                        setFormData((prev) => ({ ...prev, userId: "" }));
                         setIsOwnerDropdownOpen(false);
                       }}
                     >
@@ -567,7 +541,7 @@ export default function PropertyCreateDialog({
                       <div className="p-3 text-xs text-slate-500 text-center">No matching users found</div>
                     ) : (
                       userOptions.map((u) => {
-                        const isSelected = formData.ownerId === u._id;
+                        const isSelected = formData.userId === u._id;
                         const displayLabel = u.email || u.mobile || u._id;
                         return (
                           <button
@@ -576,7 +550,7 @@ export default function PropertyCreateDialog({
                             className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-amber-50 border-b border-slate-100 last:border-0 ${isSelected ? "bg-amber-100 font-semibold" : ""
                               }`}
                             onClick={() => {
-                              setFormData((prev) => ({ ...prev, ownerId: u._id }));
+                              setFormData((prev) => ({ ...prev, userId: u._id }));
                               setUserSearchTerm(displayLabel);
                               setIsOwnerDropdownOpen(false);
                             }}
@@ -704,7 +678,7 @@ export default function PropertyCreateDialog({
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Listing Title <span className="text-rose-500">*</span>
+                Title <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
@@ -730,15 +704,16 @@ export default function PropertyCreateDialog({
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Listing Type
+                  Type <span className="text-rose-500">*</span>
                 </label>
                 <select
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
-                  value={formData.listingType}
-                  onChange={(e) => setFormData({ ...formData, listingType: e.target.value as any })}
+                  value={formData.propertyType}
+                  onChange={(e) => setFormData({ ...formData, propertyType: e.target.value as any })}
+                  required
                 >
                   <option value="flat">Flat</option>
                   <option value="room">Room</option>
@@ -750,7 +725,21 @@ export default function PropertyCreateDialog({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Listing Status
+                  Area (sqft)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                  placeholder="e.g. 1200"
+                  value={formData.areaValue || ""}
+                  onChange={(e) => setFormData({ ...formData, areaValue: Number(e.target.value) })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Status
                 </label>
                 <select
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
@@ -759,7 +748,7 @@ export default function PropertyCreateDialog({
                 >
                   <option value="approved">Approved</option>
                   <option value="pending">Pending</option>
-                  <option value="draft">Draft</option>
+                  {/* <option value="draft">Draft</option> */}
                   <option value="rejected">Rejected</option>
                   <option value="blocked">Blocked</option>
                   <option value="closed">Closed</option>
@@ -787,8 +776,9 @@ export default function PropertyCreateDialog({
 
           {/* Section 4: Pricing & Maintenance */}
           <div className="space-y-3 pt-3 border-t border-slate-100">
-            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">4. Pricing & Maintenance</h4>
-
+            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+              4. Pricing & Maintenance
+            </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
@@ -806,7 +796,7 @@ export default function PropertyCreateDialog({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Security Deposit (₹)
+                  Security Deposit (₹) <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -814,12 +804,13 @@ export default function PropertyCreateDialog({
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
                   value={formData.securityDeposit}
                   onChange={(e) => setFormData({ ...formData, securityDeposit: Number(e.target.value) })}
+                  required
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Furnishing Status
+                  Furnishing <span className="text-rose-500">*</span>
                 </label>
                 <select
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
@@ -877,52 +868,25 @@ export default function PropertyCreateDialog({
             </div>
           </div>
 
-          {/* Section 5: Availability */}
+          {/* Section 5: Availability Dates & Tenant Preferences */}
           <div className="space-y-3 pt-3 border-t border-slate-100">
-            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">5. Availability & Dates</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+              5. Availability & Tenant Preferences
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Available From
+                  Available From <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="date"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
                   value={formData.availableFrom}
                   onChange={(e) => setFormData({ ...formData, availableFrom: e.target.value })}
+                  required
                 />
               </div>
 
-              {/* <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Available Until (Optional)
-                </label>
-                <input
-                  type="date"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
-                  value={formData.availableUntil}
-                  onChange={(e) => setFormData({ ...formData, availableUntil: e.target.value })}
-                />
-              </div> */}
-
-              {/* <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Expiration Date (Optional)
-                </label>
-                <input
-                  type="date"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
-                  value={formData.expiresAt}
-                  onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
-                />
-              </div> */}
-            </div>
-          </div>
-
-          {/* Section 6: Preferences */}
-          <div className="space-y-3 pt-3 border-t border-slate-100">
-            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">6. Tenant Preferences</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                   Gender Preference
@@ -951,99 +915,20 @@ export default function PropertyCreateDialog({
                   <option value="any">Any Occupation</option>
                   <option value="student">Student</option>
                   <option value="working_professional">Working Professional</option>
+                  <option value="self_employed">Self Employed</option>
+                  <option value="business_owner">Business Owner</option>
+                  <option value="freelancer">Freelancer</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
             </div>
           </div>
 
-          {/* Section 7: Property Specifications */}
-          {/* <div className="space-y-3 pt-3 border-t border-slate-100">
-            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">7. Specifications & Dimensions</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Bedrooms
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
-                  value={formData.bedrooms}
-                  onChange={(e) => setFormData({ ...formData, bedrooms: Number(e.target.value) })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Bathrooms
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
-                  value={formData.bathrooms}
-                  onChange={(e) => setFormData({ ...formData, bathrooms: Number(e.target.value) })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Balconies
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
-                  value={formData.balconies}
-                  onChange={(e) => setFormData({ ...formData, balconies: Number(e.target.value) })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Floors
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
-                  value={formData.floors}
-                  onChange={(e) => setFormData({ ...formData, floors: Number(e.target.value) })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Area ({formData.areaUnit})
-                </label>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="number"
-                    min={0}
-                    className="w-full px-2 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
-                    value={formData.areaValue}
-                    onChange={(e) => setFormData({ ...formData, areaValue: Number(e.target.value) })}
-                  />
-
-                  here will be a select option for sqft and sqm...
-                </div>
-              </div>
-            </div>
-          </div> */}
-
-          {/* <select
-                    className="px-1.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-amber-500 shrink-0"
-                    value={formData.areaUnit}
-                    onChange={(e) => setFormData({ ...formData, areaUnit: e.target.value as any })}
-                  >
-                    <option value="sqft">sqft</option>
-                    <option value="sqm">sqm</option>
-                  </select> */}
-
-          {/* Section 8: House Rules & Amenities */}
+          {/* Section 6: House Rules & Amenities */}
           <div className="space-y-3 pt-3 border-t border-slate-100">
-            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">7. House Rules & Amenities</h4>
-
+            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+              6. House Rules & Amenities
+            </h4>
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 House Rules (Comma-separated)
@@ -1084,10 +969,11 @@ export default function PropertyCreateDialog({
             )}
           </div>
 
-          {/* Section 9: Media Management */}
+          {/* Section 7: Media Management */}
           <div className="space-y-4 pt-3 border-t border-slate-100">
-            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">8. Media Assets Management</h4>
-
+            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+              7. Media Assets Management
+            </h4>
             {/* Images Upload Section */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">

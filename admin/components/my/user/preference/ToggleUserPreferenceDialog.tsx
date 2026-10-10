@@ -58,7 +58,7 @@ export default function ToggleUserPreferenceDialog({
         {/* Modal Body */}
         <div className="space-y-2 text-sm text-slate-700">
           <p>
-            Are you sure you want to {actionText.toLowerCase()} <strong className="text-slate-900 font-semibold">&quot;{preference.name}&quot;</strong> ({preference.category})?
+            Are you sure you want to {actionText.toLowerCase()} <strong className="text-slate-900 font-semibold">&quot;{preference.name}&quot;</strong>?
           </p>
         </div>
 

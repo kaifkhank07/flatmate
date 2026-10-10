@@ -17,7 +17,7 @@ function CityCard({ item }: { item: CityItem }) {
     >
       <div className="w-full h-64 sm:h-72 relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md">
         <Image
-          src={item.image?.url || "/assets/Images/mumbai.png"}
+          src={item.image?.url || "/assets/Images/cities/mumbai.png"}
           alt={item.name}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"

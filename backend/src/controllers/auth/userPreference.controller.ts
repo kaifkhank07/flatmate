@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import path from 'path';
 
-import { UserPreference, PreferenceCategory, IPreferenceImage } from '../../models/auth/userPreference.model';
+import { UserPreference, IPreferenceImage } from '../../models/auth/userPreference.model';
 import { UserProfile } from '../../models/auth/userProfile.model';
 
 import { sendSuccess, sendError } from '../../utils/response.util'; 
@@ -67,11 +67,7 @@ const parseImageInput = async (
 export const createUserPreference = async (req: Request, res: Response): Promise<Response> => {
   let uploadedKey: string | undefined;
   try {
-    const { category, name, isActive } = req.body;
-
-    if (!category || !['food', 'pets', 'drink'].includes(category)) {
-      return sendError(res, 'Category must be one of: food, pets, drink', 400);
-    }
+    const { name, isActive } = req.body;
 
     if (!name || typeof name !== 'string' || name.trim() === '') {
       return sendError(res, 'Name is required', 400);
@@ -79,14 +75,13 @@ export const createUserPreference = async (req: Request, res: Response): Promise
 
     const trimmedName = name.trim();
 
-    // Check duplicate category + name combination
+    // Check duplicate name
     const existing = await UserPreference.findOne({
-      category,
       name: { $regex: new RegExp(`^${trimmedName}$`, 'i') },
     });
 
     if (existing) {
-      return sendError(res, `Preference '${trimmedName}' already exists for category '${category}'`, 409);
+      return sendError(res, `Preference '${trimmedName}' already exists`, 409);
     }
 
     const imageObj = await parseImageInput(req, 'users', 'preference');
@@ -95,7 +90,6 @@ export const createUserPreference = async (req: Request, res: Response): Promise
     }
 
     const preference = await UserPreference.create({
-      category,
       name: trimmedName,
       image: imageObj,
       isActive: isActive !== false && isActive !== 'false',
@@ -118,7 +112,7 @@ export const createUserPreference = async (req: Request, res: Response): Promise
 };
 
 /**
- * Get paginated list of master preference options with optional category & search filters (Public)
+ * Get paginated list of master preference options with optional search filters (Public)
  * GET /user-preferences
  */
 export const getUserPreferences = async (req: Request, res: Response): Promise<Response> => {
@@ -128,14 +122,6 @@ export const getUserPreferences = async (req: Request, res: Response): Promise<R
     const skip = (page - 1) * limit;
 
     const filter: any = {};
-
-    const categoryParam = req.query.category as string | undefined;
-    if (categoryParam && categoryParam !== 'all') {
-      const catStr = categoryParam.toLowerCase().trim();
-      if (['food', 'pets', 'drink'].includes(catStr)) {
-        filter.category = catStr;
-      }
-    }
 
     const statusParam = req.query.status as string | undefined;
     if (statusParam && statusParam !== 'all') {
@@ -155,7 +141,7 @@ export const getUserPreferences = async (req: Request, res: Response): Promise<R
 
     const [items, total] = await Promise.all([
       UserPreference.find(filter)
-        .sort({ category: 1, name: 1 })
+        .sort({ name: 1 })
         .skip(skip)
         .limit(limit)
         .lean(),
@@ -216,33 +202,24 @@ export const updateUserPreference = async (req: Request, res: Response): Promise
 
     const oldImageKey = preference.image?.key || extractKeyFromUrl(preference.image?.url);
 
-    const { category, name, isActive } = req.body;
+    const { name, isActive } = req.body;
 
-    const targetCategory = category || preference.category;
     const targetName = name !== undefined ? String(name).trim() : preference.name;
-
-    if (category) {
-      if (!['food', 'pets', 'drink'].includes(targetCategory)) {
-        return sendError(res, 'Category must be one of: food, pets, drink', 400);
-      }
-    }
 
     if (name !== undefined && targetName === '') {
       return sendError(res, 'Name cannot be empty', 400);
     }
 
-    // Check duplicate category + name combination on another record
+    // Check duplicate name on another record
     const duplicate = await UserPreference.findOne({
       _id: { $ne: id },
-      category: targetCategory,
       name: { $regex: new RegExp(`^${targetName}$`, 'i') },
     });
 
     if (duplicate) {
-      return sendError(res, `Preference '${targetName}' already exists for category '${targetCategory}'`, 409);
+      return sendError(res, `Preference '${targetName}' already exists`, 409);
     }
 
-    preference.category = targetCategory as PreferenceCategory;
     preference.name = targetName;
 
     if (isActive !== undefined) {
@@ -281,6 +258,7 @@ export const updateUserPreference = async (req: Request, res: Response): Promise
     return sendError(res, error.message || 'Failed to update preference', 500);
   }
 };
+
 
 /**
  * Delete a master preference option (Admin only)

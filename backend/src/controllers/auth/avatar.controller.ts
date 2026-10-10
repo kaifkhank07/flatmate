@@ -10,8 +10,8 @@ import path from 'path';
 /** Helper to parse image input from multipart file, JSON object, string, or undefined */
 const parseImageInput = async (
   req: Request,
-  defaultFolder: string = 'avatars',
-  defaultSubFolder: string = 'master'
+  defaultFolder: string = 'users',
+  defaultSubFolder: string = 'avatars'
 ): Promise<IAvatarImage | undefined> => {
   if (req.file) {
     const ext = path.extname(req.file.originalname) || '.jpg';
@@ -93,7 +93,7 @@ export const createAvatar = async (req: Request, res: Response): Promise<Respons
       return sendError(res, `Avatar '${trimmedName}' already exists`, 409);
     }
 
-    const imageObj = await parseImageInput(req, 'avatars', 'master');
+    const imageObj = await parseImageInput(req, 'users', 'avatars');
     if (!imageObj || !imageObj.url || !imageObj.key) {
       return sendError(res, 'Avatar image is required', 400);
     }
@@ -235,7 +235,7 @@ export const updateAvatar = async (req: Request, res: Response): Promise<Respons
       avatar.isActive = isActive === true || isActive === 'true';
     }
 
-    const imageObj = await parseImageInput(req, 'avatars', 'master');
+    const imageObj = await parseImageInput(req, 'users', 'avatars');
     if (imageObj !== undefined && imageObj.url && imageObj.key) {
       avatar.image = imageObj;
       uploadedKey = imageObj.key;

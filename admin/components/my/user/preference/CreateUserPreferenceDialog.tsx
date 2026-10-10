@@ -5,11 +5,8 @@ import { useToast } from "@/lib/toast";
 import { createUserPreference } from "@/lib/api";
 import { X } from "lucide-react";
 
-export type PreferenceCategory = "food" | "pets" | "drink";
-
 export type PreferenceFormData = {
   name: string;
-  category: PreferenceCategory;
   isActive: boolean;
 };
 
@@ -28,7 +25,6 @@ export default function CreateUserPreferenceDialog({
 
   const [formData, setFormData] = useState<PreferenceFormData>({
     name: "",
-    category: "food",
     isActive: true,
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -37,7 +33,7 @@ export default function CreateUserPreferenceDialog({
 
   useEffect(() => {
     if (open) {
-      setFormData({ name: "", category: "food", isActive: true });
+      setFormData({ name: "", isActive: true });
       setSelectedFile(null);
       setPreviewUrl(null);
       setSubmitting(false);
@@ -55,18 +51,16 @@ export default function CreateUserPreferenceDialog({
 
     setSubmitting(true);
 
-    let payload: FormData | { name: string; category: PreferenceCategory; isActive: boolean };
+    let payload: FormData | { name: string; isActive: boolean };
     if (selectedFile) {
       const body = new FormData();
       body.append("name", formData.name.trim());
-      body.append("category", formData.category);
       body.append("isActive", String(formData.isActive));
       body.append("file", selectedFile);
       payload = body;
     } else {
       payload = {
         name: formData.name.trim(),
-        category: formData.category,
         isActive: formData.isActive,
       };
     }
@@ -102,21 +96,6 @@ export default function CreateUserPreferenceDialog({
 
         {/* Modal Form */}
         <form onSubmit={handleCreateSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
-              Category *
-            </label>
-            <select
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value as PreferenceCategory })}
-            >
-              <option value="food" className="text-slate-900 bg-white">Food Preference</option>
-              <option value="pets" className="text-slate-900 bg-white">Pet Preference</option>
-              <option value="drink" className="text-slate-900 bg-white">Drink Preference</option>
-            </select>
-          </div>
-
           <div>
             <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
               Preference Name *
@@ -209,3 +188,4 @@ export default function CreateUserPreferenceDialog({
     </div>
   );
 }
+

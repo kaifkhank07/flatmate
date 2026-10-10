@@ -348,9 +348,9 @@ export default function FlatmateRequirementsManager({
                   <th>Location</th>
                   <th>Post Type</th>
                   <th>Sub Type</th>
-                  <th>Budget</th>
+                  <th>Rent</th>
                   <th>Occupation</th>
-                  <th>Move-in Date</th>
+                  <th>Available From</th>
                   <th>Status</th>
                   <th>Created Date</th>
                   <th>Actions</th>
@@ -446,7 +446,7 @@ export default function FlatmateRequirementsManager({
 
                         <td>
                           <div>
-                            <strong>₹{(typeof item.budget === "number" ? item.budget : 0).toLocaleString("en-IN")}</strong>
+                            <strong>₹{(typeof item.rent === "number" ? item.rent : (item as any).budget || 0).toLocaleString("en-IN")}</strong>
                           </div>
                         </td>
 
@@ -455,7 +455,7 @@ export default function FlatmateRequirementsManager({
                         </td>
 
                         <td style={{ fontSize: 13, color: "var(--ink-3)" }}>
-                          {item.moveInDate ? new Date(item.moveInDate).toLocaleDateString() : "N/A"}
+                          {item.availableFrom ? new Date(item.availableFrom).toLocaleDateString() : (item as any).moveInDate ? new Date((item as any).moveInDate).toLocaleDateString() : "N/A"}
                         </td>
 
                         <td>

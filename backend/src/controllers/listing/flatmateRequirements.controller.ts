@@ -16,7 +16,8 @@ const populateFlatmateRequirementFields = (query: any) => {
     .populate('location')
     .populate('images')
     .populate('videos')
-    .populate('lifestylePreferences', 'name category image isActive');
+    .populate('userPreferences', 'name category image isActive')
+    .populate('amenities', 'name category icon isActive');
 };
 
 /** Helper to generate a unique slug */
@@ -84,15 +85,22 @@ export const createFlatmateRequirement = async (req: Request, res: Response): Pr
       propertyType,
       partnerType,
       location,
+      area,
+      rent,
       budget,
-      occupationPreference,
-      genderPreference,
-      lifestylePreferences,
+      securityDeposit,
+      maintenanceCharges,
+      furnishing,
+      parking,
+      availableFrom,
       moveInDate,
-      peopleCount,
+      genderPreference,
+      occupationPreference,
+      userPreferences,
+      lifestylePreferences,
+      amenities,
       images,
       videos,
-      expiresAt,
       status,
     } = req.body;
 
@@ -144,6 +152,8 @@ export const createFlatmateRequirement = async (req: Request, res: Response): Pr
       return isNaN(d.getTime()) ? undefined : d;
     };
 
+    const finalRent = rent !== undefined && rent !== null ? Number(rent) : Number(budget || 0);
+
     // Construct creation payload ensuring mutually exclusive post type fields
     const postData: Partial<IFlatmateRequirement> = {
       userId,
@@ -154,15 +164,19 @@ export const createFlatmateRequirement = async (req: Request, res: Response): Pr
       propertyType: postType === 'property' ? propertyType : undefined,
       partnerType: postType === 'partner' ? partnerType : undefined,
       location: locationDoc._id,
-      budget: Number(budget),
-      occupationPreference: occupationPreference || 'any',
+      area: area ? Number(area) : 0,
+      rent: finalRent,
+      securityDeposit: securityDeposit ? Number(securityDeposit) : 0,
+      maintenanceCharges: maintenanceCharges || { amount: 0, frequency: 'yearly' },
+      furnishing: furnishing || 'semi_furnished',
+      parking: Boolean(parking),
+      availableFrom: parseValidDate(availableFrom || moveInDate) || new Date(),
       genderPreference: genderPreference || 'any',
-      lifestylePreferences: lifestylePreferences || [],
-      moveInDate: parseValidDate(moveInDate) || new Date(),
-      peopleCount,
+      occupationPreference: occupationPreference || 'any',
+      userPreferences: userPreferences || lifestylePreferences || [],
+      amenities: amenities || [],
       images: imageIds,
       videos: videoIds,
-      expiresAt: parseValidDate(expiresAt),
       status: status || 'pending',
     };
 
@@ -335,25 +349,38 @@ export const getPublicFlatmateRequirements = async (req: Request, res: Response)
       filter.genderPreference = { $in: [req.query.genderPreference, 'any'] };
     }
 
-    if (req.query.moveInDate) {
-      const parsedDate = new Date(req.query.moveInDate as string);
+    if (req.query.furnishing) {
+      filter.furnishing = req.query.furnishing;
+    }
+
+    const availableFromQuery = (req.query.availableFrom || req.query.moveInDate) as string;
+    if (availableFromQuery) {
+      const parsedDate = new Date(availableFromQuery);
       if (!isNaN(parsedDate.getTime())) {
-        filter.moveInDate = { $gte: parsedDate };
+        filter.availableFrom = { $gte: parsedDate };
       }
     }
 
-    const budgetVal = req.query.budget !== undefined ? parseFloat(req.query.budget as string) : undefined;
-    if (budgetVal !== undefined && !isNaN(budgetVal)) {
-      filter.budget = budgetVal;
+    const rentQuery = req.query.rent !== undefined ? req.query.rent : req.query.budget;
+    const rentVal = rentQuery !== undefined ? parseFloat(rentQuery as string) : undefined;
+    if (rentVal !== undefined && !isNaN(rentVal)) {
+      filter.rent = rentVal;
     }
 
-    if (req.query.lifestylePreferences) {
-      const prefs = Array.isArray(req.query.lifestylePreferences)
-        ? req.query.lifestylePreferences
-        : [req.query.lifestylePreferences];
+    const userPrefQuery = req.query.userPreferences || req.query.lifestylePreferences;
+    if (userPrefQuery) {
+      const prefs = Array.isArray(userPrefQuery) ? userPrefQuery : [userPrefQuery];
       const validPrefIds = prefs.filter((p: any) => Types.ObjectId.isValid(p));
       if (validPrefIds.length > 0) {
-        filter.lifestylePreferences = { $in: validPrefIds };
+        filter.userPreferences = { $in: validPrefIds };
+      }
+    }
+
+    if (req.query.amenities) {
+      const amens = Array.isArray(req.query.amenities) ? req.query.amenities : [req.query.amenities];
+      const validAmenIds = amens.filter((a: any) => Types.ObjectId.isValid(a));
+      if (validAmenIds.length > 0) {
+        filter.amenities = { $in: validAmenIds };
       }
     }
 
@@ -418,9 +445,23 @@ export const updateFlatmateRequirement = async (req: Request, res: Response): Pr
     }
 
     const updateData: any = { ...req.body };
-    if (updateData.budget !== undefined) {
-      updateData.budget = Number(updateData.budget);
+    if (updateData.rent !== undefined || updateData.budget !== undefined) {
+      updateData.rent = Number(updateData.rent ?? updateData.budget);
+      delete updateData.budget;
     }
+    if (updateData.area !== undefined) {
+      updateData.area = Number(updateData.area);
+    }
+    if (updateData.securityDeposit !== undefined) {
+      updateData.securityDeposit = Number(updateData.securityDeposit);
+    }
+    if (updateData.lifestylePreferences !== undefined && updateData.userPreferences === undefined) {
+      updateData.userPreferences = updateData.lifestylePreferences;
+      delete updateData.lifestylePreferences;
+    }
+    delete updateData.peopleCount;
+    delete updateData.expiresAt;
+
     const oldLocationId = existingRequirement.location ? existingRequirement.location.toString() : null;
     let locationChanged = false;
 
@@ -497,21 +538,15 @@ export const updateFlatmateRequirement = async (req: Request, res: Response): Pr
       return isNaN(d.getTime()) ? undefined : d;
     };
 
-    if (updateData.moveInDate !== undefined) {
-      const parsed = parseValidDate(updateData.moveInDate);
+    const availVal = updateData.availableFrom ?? updateData.moveInDate;
+    if (availVal !== undefined) {
+      const parsed = parseValidDate(availVal);
       if (parsed) {
-        updateData.moveInDate = parsed;
+        updateData.availableFrom = parsed;
       } else {
-        delete updateData.moveInDate;
+        delete updateData.availableFrom;
       }
-    }
-    if (updateData.expiresAt !== undefined) {
-      const parsed = parseValidDate(updateData.expiresAt);
-      if (parsed) {
-        updateData.expiresAt = parsed;
-      } else {
-        delete updateData.expiresAt;
-      }
+      delete updateData.moveInDate;
     }
 
     const mongoUpdate: any = { $set: updateData };

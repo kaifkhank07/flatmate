@@ -1,6 +1,6 @@
 import React from "react";
-import ProfileManager from "@/components/dashboard/ProfileManager";
 import { Metadata } from "next";
+import MyProfile from "@/components/dashboard/profile/MyProfile";
 import Faq from "@/components/ui/Faq";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function MyProfilePage() {
   return (
     <main className="w-full min-h-screen pt-20">
-      <ProfileManager />
+      <MyProfile />
       <Faq />
     </main>
   );

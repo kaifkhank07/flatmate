@@ -23,16 +23,6 @@ import TogglePropertyAmenityDialog from "./TogglePropertyAmenityDialog";
 import { ListSortDescending, Plus, RotateCw } from "lucide-react";
 
 const LIMIT = 10;
-const AMENITY_CATEGORIES = [
-  { value: "all", label: "All Categories" },
-  { value: "basic", label: "Basic" },
-  { value: "security", label: "Security" },
-  { value: "parking", label: "Parking" },
-  { value: "fitness", label: "Fitness" },
-  { value: "recreation", label: "Recreation" },
-  { value: "utilities", label: "Utilities" },
-  { value: "other", label: "Other" },
-] as const;
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All Status" },
@@ -43,7 +33,7 @@ const STATUS_OPTIONS = [
 export default function PropertyAmenitiesManager({
   eyebrow = "Management Panel",
   title = "Property Amenities Options",
-  sub = "Configure master property amenity categories (Basic, Security, Parking, Fitness, etc.) and options for property listings.",
+  sub = "Configure master property amenity options for property listings.",
 }: {
   eyebrow?: string;
   title?: string;
@@ -61,16 +51,14 @@ export default function PropertyAmenitiesManager({
     totalPages: 1,
   });
 
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  const hasActiveFilters = Boolean(search.trim() || categoryFilter !== "all" || statusFilter !== "all");
+  const hasActiveFilters = Boolean(search.trim() || statusFilter !== "all");
 
   const handleResetFilters = () => {
     setSearch("");
-    setCategoryFilter("all");
     setStatusFilter("all");
     setPage(1);
   };
@@ -85,7 +73,6 @@ export default function PropertyAmenitiesManager({
   const loadAmenities = useCallback(async () => {
     setLoading(true);
     const res = await fetchPropertyAmenities({
-      category: categoryFilter,
       page,
       limit: LIMIT,
       search,
@@ -111,7 +98,7 @@ export default function PropertyAmenitiesManager({
       toast(res.message || "Failed to load property amenities");
     }
     setLoading(false);
-  }, [categoryFilter, statusFilter, search, page, toast]);
+  }, [statusFilter, search, page, toast]);
 
   useEffect(() => {
     loadAmenities();
@@ -124,25 +111,6 @@ export default function PropertyAmenitiesManager({
       return (img as { url: string }).url;
     }
     return "";
-  };
-
-  const getCategoryTone = (cat: string) => {
-    switch (cat) {
-      case "basic":
-        return "sand";
-      case "security":
-        return "rose";
-      case "parking":
-        return "iris";
-      case "fitness":
-        return "mint";
-      case "recreation":
-        return "sand";
-      case "utilities":
-        return "mint";
-      default:
-        return "iris";
-    }
   };
 
   return (
@@ -176,18 +144,6 @@ export default function PropertyAmenitiesManager({
             />
 
             <SegmentedFilter
-              value={categoryFilter}
-              options={AMENITY_CATEGORIES.map((cat) => ({
-                value: cat.value,
-                label: cat.label,
-              }))}
-              onChange={(value) => {
-                setCategoryFilter(value);
-                setPage(1);
-              }}
-            />
-
-            <SegmentedFilter
               value={statusFilter}
               options={STATUS_OPTIONS.map((item) => ({
                 value: item.value,
@@ -210,7 +166,6 @@ export default function PropertyAmenitiesManager({
               <thead>
                 <tr>
                   <th>Amenity Name</th>
-                  <th>Category</th>
                   <th>Status</th>
                   <th>Created Date</th>
                   <th>Actions</th>
@@ -219,13 +174,13 @@ export default function PropertyAmenitiesManager({
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
+                    <td colSpan={4} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
                       Loading property amenities…
                     </td>
                   </tr>
                 ) : items.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
+                    <td colSpan={4} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
                       No property amenities found.
                     </td>
                   </tr>
@@ -265,11 +220,6 @@ export default function PropertyAmenitiesManager({
                           <strong>{item.name}</strong>
                           <span>ID: {item._id.slice(-6)}</span>
                         </div>
-                      </td>
-                      <td>
-                        <Chip tone={getCategoryTone(item.category)} dot>
-                          {item.category.toUpperCase()}
-                        </Chip>
                       </td>
                       <td>
                         <Chip tone={item.isActive !== false ? "mint" : "rose"} dot>
@@ -346,3 +296,4 @@ export default function PropertyAmenitiesManager({
     </>
   );
 }
+

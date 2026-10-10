@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/lib/toast";
 import {
   fetchUserDetails,
@@ -12,6 +12,7 @@ import { X } from "lucide-react";
 
 type UserDetailsDrawerProps = {
   selectedUserId: string | null;
+  refreshKey?: number;
   onClose: () => void;
   onOpenProfileEdit: (user: UserItem, profile: UserProfileItem | null) => void;
   onOpenStatusEdit: (user: UserItem) => void;
@@ -19,6 +20,7 @@ type UserDetailsDrawerProps = {
 
 export default function UserDetailsDrawer({
   selectedUserId,
+  refreshKey,
   onClose,
   onOpenProfileEdit,
   onOpenStatusEdit,
@@ -31,7 +33,7 @@ export default function UserDetailsDrawer({
   } | null>(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
 
-  useEffect(() => {
+  const loadUserDetails = useCallback(() => {
     if (selectedUserId) {
       setDrawerLoading(true);
       fetchUserDetails(selectedUserId).then((res) => {
@@ -46,6 +48,10 @@ export default function UserDetailsDrawer({
       setDrawerData(null);
     }
   }, [selectedUserId, toast]);
+
+  useEffect(() => {
+    loadUserDetails();
+  }, [loadUserDetails, refreshKey]);
 
   return (
     <>
@@ -202,7 +208,6 @@ export default function UserDetailsDrawer({
                     {drawerData.profile.preferences.map((p) =>
                       typeof p === "object" && p !== null ? (
                         <Chip key={p._id} tone="iris">
-                          {p.category ? `${p.category.toUpperCase()}: ` : ""}
                           {p.name}
                         </Chip>
                       ) : (

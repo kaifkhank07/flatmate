@@ -1,6 +1,29 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api`;
+/**
+ * Clean & normalize base URL from environment variable.
+ * Fallbacks to http://localhost:5000 if NEXT_PUBLIC_API_URL is undefined.
+ */
+const getBaseServerUrl = (): string => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  return envUrl.replace(/\/+$/, '').replace(/\/api$/, '');
+};
+
+export const API_SERVER_URL = getBaseServerUrl();
+export const API_BASE_URL = `${API_SERVER_URL}/api`;
+
+export const getMediaUrl = (url?: string): string | undefined => {
+  if (!url) return undefined;
+  if (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('data:') ||
+    url.startsWith('blob:')
+  ) {
+    return url;
+  }
+  return `${API_SERVER_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+};
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

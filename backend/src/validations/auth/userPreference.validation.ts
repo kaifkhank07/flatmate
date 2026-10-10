@@ -16,9 +16,6 @@ export const createUserPreferenceSchema = z.object({
       .string({ required_error: 'Preference name is required' })
       .trim()
       .min(1, 'Preference name is required'),
-    category: z.enum(['food', 'pets', 'drink'], {
-      required_error: 'Preference category is required',
-    }),
     image: imageSchema,
     isActive: booleanField,
   }),
@@ -27,8 +24,8 @@ export const createUserPreferenceSchema = z.object({
 export const updateUserPreferenceSchema = z.object({
   body: z.object({
     name: z.string().trim().min(1, 'Preference name cannot be empty').optional(),
-    category: z.enum(['food', 'pets', 'drink']).optional(),
     image: imageSchema,
     isActive: booleanField,
   }),
 });
+

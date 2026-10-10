@@ -22,38 +22,47 @@ export interface SendSMSResult {
  * - +917028469345  -> +917028469345
  * - 917028469345   -> +917028469345
  */
+// export const normalizePhoneNumber = (phone: string): string => {
+//   const trimmed = phone.trim();
+//   if (!trimmed) {
+//     throw new Error('Phone number cannot be empty');
+//   }
+
+//   // If already starts with '+', sanitize any redundant formatting
+//   if (trimmed.startsWith('+')) {
+//     const cleaned = '+' + trimmed.slice(1).replace(/[^\d]/g, '');
+//     if (!/^\+[1-9]\d{1,14}$/.test(cleaned)) {
+//       throw new Error(`Invalid international phone number format: ${phone}`);
+//     }
+//     return cleaned;
+//   }
+
+//   // Strip non-digit characters
+//   const digitsOnly = trimmed.replace(/[^\d]/g, '');
+
+//   let normalized: string;
+//   if (digitsOnly.length === 10) {
+//     normalized = `+91${digitsOnly}`;
+//   } else if (digitsOnly.length === 12 && digitsOnly.startsWith('91')) {
+//     normalized = `+${digitsOnly}`;
+//   } else {
+//     normalized = `+${digitsOnly}`;
+//   }
+
+//   if (!/^\+[1-9]\d{1,14}$/.test(normalized)) {
+//     throw new Error(`Invalid phone number format: ${phone}`);
+//   }
+
+//   return normalized;
+// };
 export const normalizePhoneNumber = (phone: string): string => {
   const trimmed = phone.trim();
-  if (!trimmed) {
-    throw new Error('Phone number cannot be empty');
+
+  if (!/^\d{10}$/.test(trimmed)) {
+    throw new Error("Phone number must be exactly 10 digits");
   }
 
-  // If already starts with '+', sanitize any redundant formatting
-  if (trimmed.startsWith('+')) {
-    const cleaned = '+' + trimmed.slice(1).replace(/[^\d]/g, '');
-    if (!/^\+[1-9]\d{1,14}$/.test(cleaned)) {
-      throw new Error(`Invalid international phone number format: ${phone}`);
-    }
-    return cleaned;
-  }
-
-  // Strip non-digit characters
-  const digitsOnly = trimmed.replace(/[^\d]/g, '');
-
-  let normalized: string;
-  if (digitsOnly.length === 10) {
-    normalized = `+91${digitsOnly}`;
-  } else if (digitsOnly.length === 12 && digitsOnly.startsWith('91')) {
-    normalized = `+${digitsOnly}`;
-  } else {
-    normalized = `+${digitsOnly}`;
-  }
-
-  if (!/^\+[1-9]\d{1,14}$/.test(normalized)) {
-    throw new Error(`Invalid phone number format: ${phone}`);
-  }
-
-  return normalized;
+  return trimmed;
 };
 
 /**

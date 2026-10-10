@@ -333,7 +333,7 @@ export default function EditUserProfileDialog({
 
           <div className="pt-2 border-t border-slate-100">
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
-              Select User Preferences (Grouped by Category)
+              Select User Preferences
             </label>
 
             {loadingMasterPrefs ? (
@@ -341,40 +341,27 @@ export default function EditUserProfileDialog({
             ) : masterPreferences.length === 0 ? (
               <div className="text-xs text-slate-500 py-3 text-center">No active preference options available.</div>
             ) : (
-              <div className="space-y-3">
-                {(["food", "pets", "drink"] as const).map((cat) => {
-                  const catPrefs = masterPreferences.filter((p) => p.category === cat);
-                  if (catPrefs.length === 0) return null;
+              <div className="flex flex-wrap gap-2">
+                {masterPreferences.map((pref) => {
+                  const isChecked = profileForm.selectedPreferences.includes(pref._id);
                   return (
-                    <div key={cat} className="space-y-1.5">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600">
-                        {cat} Preferences
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        {catPrefs.map((pref) => {
-                          const isChecked = profileForm.selectedPreferences.includes(pref._id);
-                          return (
-                            <button
-                              key={pref._id}
-                              type="button"
-                              onClick={() => handleTogglePref(pref._id)}
-                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${isChecked
-                                ? "bg-amber-500 border-amber-500 text-white shadow-sm"
-                                : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-                                }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => { }}
-                                className="w-3.5 h-3.5 accent-amber-600 rounded cursor-pointer pointer-events-none"
-                              />
-                              <span>{pref.name}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                    <button
+                      key={pref._id}
+                      type="button"
+                      onClick={() => handleTogglePref(pref._id)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${isChecked
+                        ? "bg-amber-500 border-amber-500 text-white shadow-sm"
+                        : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => { }}
+                        className="w-3.5 h-3.5 accent-amber-600 rounded cursor-pointer pointer-events-none"
+                      />
+                      <span>{pref.name}</span>
+                    </button>
                   );
                 })}
               </div>

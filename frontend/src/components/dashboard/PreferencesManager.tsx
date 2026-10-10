@@ -9,12 +9,11 @@ import {
   AlertCircle,
   Loader2,
   Sparkles,
-  Utensils,
-  PawPrint,
-  Wine,
   RefreshCw,
 } from "lucide-react";
 import SectionHeading from "../utils/SectionHeading";
+import LoadingState from "../utils/LoadingState";
+import EmptyState from "../utils/EmptyState";
 
 export default function PreferencesManager() {
   const router = useRouter();
@@ -131,26 +130,11 @@ export default function PreferencesManager() {
       );
     }
 
-    // Category-based fallback if no image uploaded on preference record
-    if (pref.category === "food") {
-      return <Utensils className="w-10 h-10 text-emerald-500" />;
-    }
-    if (pref.category === "pets") {
-      return <PawPrint className="w-10 h-10 text-amber-500" />;
-    }
-    if (pref.category === "drink") {
-      return <Wine className="w-10 h-10 text-blue-500" />;
-    }
     return <Sparkles className="w-10 h-10 text-[#0066F9]" />;
   };
 
   if (!isInitialized || (isProfileLoading && !profile)) {
-    return (
-      <div className="w-full max-w-4xl mx-auto py-20 px-4 flex flex-col items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-9 h-9 text-[#0066F9] animate-spin mb-3" />
-        <p className="text-gray-500 text-base font-medium">Loading preferences from database...</p>
-      </div>
-    );
+    return <LoadingState message="Loading preferences from database..." fullPage />;
   }
 
   return (
@@ -182,26 +166,16 @@ export default function PreferencesManager() {
 
         {/* Database Preferences Loading & Grid Display */}
         {isPreferencesLoading && masterPreferences.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 text-[#0066F9] animate-spin mb-3" />
-            <p className="text-sm text-gray-500">Fetching preferences from database...</p>
-          </div>
+          <LoadingState message="Fetching preferences from database..." className="py-16" />
         ) : masterPreferences.length === 0 ? (
-          <div className="text-center py-16 bg-[#F8FBFE] rounded-3xl border border-[#E2EFF8] p-8 max-w-md mx-auto">
-            <Sparkles className="w-8 h-8 text-[#0066F9] mx-auto mb-3" />
-            <p className="text-base font-medium text-gray-800 mb-2">No preferences found in database</p>
-            <p className="text-xs text-gray-500 mb-4">
-              Please add user preferences from Admin or seed them to display them here.
-            </p>
-            <button
-              type="button"
-              onClick={() => fetchMasterPreferences()}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0066F9] text-white text-xs font-medium hover:bg-[#0052c7] transition"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Reload Preferences
-            </button>
-          </div>
+          <EmptyState
+            title="No preferences found in database"
+            message="Please add user preferences from Admin or seed them to display them here."
+            actionLabel="Reload Preferences"
+            actionIcon={<RefreshCw className="w-3.5 h-3.5" />}
+            onAction={() => fetchMasterPreferences()}
+            boxed
+          />
         ) : (
           <form onSubmit={handleUpdatePreferences}>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10 justify-items-center">

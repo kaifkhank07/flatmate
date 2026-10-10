@@ -96,19 +96,19 @@ function mapUnifiedToExploreCard(
         : "Contact Owner";
 
     const detailParts: string[] = [];
+    const pType = property.propertyType || property.listingType;
 
-    if (property.bedrooms && property.bedrooms > 0) {
-      detailParts.push(`${property.bedrooms} BHK`);
-    } else if (property.listingType) {
+    if (pType) {
       detailParts.push(
-        property.listingType
+        pType
           .replace(/_/g, " ")
           .replace(/\b\w/g, (char) => char.toUpperCase())
       );
     }
 
-    if (property.bathrooms && property.bathrooms > 0) {
-      detailParts.push(`${property.bathrooms} Bath`);
+    if (property.area) {
+      const areaVal = typeof property.area === "object" ? (property.area as any).value : property.area;
+      if (areaVal) detailParts.push(`${areaVal} sqft`);
     }
 
     if (property.furnishing) {
@@ -124,10 +124,10 @@ function mapUnifiedToExploreCard(
         ? detailParts.join(" | ")
         : "Property Listing";
 
-    const isVerified = Boolean(property.ownerId?.profileVerified);
+    const isVerified = Boolean((property.userId || property.ownerId)?.profileVerified);
 
     const parkingAvailable = Boolean(
-      property.parking?.available
+      typeof property.parking === "boolean" ? property.parking : property.parking?.available
     );
 
     return {
@@ -149,10 +149,10 @@ function mapUnifiedToExploreCard(
 
   const requirement = item as FlatmateRequirementItem;
 
+  const reqRent = requirement.rent ?? (requirement as any).budget;
   const price =
-    typeof requirement.budget === "number" &&
-      requirement.budget > 0
-      ? `₹ ${requirement.budget.toLocaleString("en-IN")} / month`
+    typeof reqRent === "number" && reqRent > 0
+      ? `₹ ${reqRent.toLocaleString("en-IN")} / month`
       : "Flexible";
 
   const detailParts: string[] = [];
@@ -213,8 +213,9 @@ function mapUnifiedToExploreCard(
   );
 
   const parkingAvailable = Boolean(
-    requirement.lifestylePreferences &&
-    requirement.lifestylePreferences.length > 0
+    requirement.parking ??
+    ((requirement.userPreferences && requirement.userPreferences.length > 0) ||
+      ((requirement as any).lifestylePreferences && (requirement as any).lifestylePreferences.length > 0))
   );
 
   return {

@@ -5,11 +5,8 @@ import { useToast } from "@/lib/toast";
 import { createPropertyAmenityApi } from "@/lib/api";
 import { X } from "lucide-react";
 
-export type AmenityCategory = "basic" | "security" | "parking" | "fitness" | "recreation" | "utilities" | "other";
-
 export type AmenityFormData = {
   name: string;
-  category: AmenityCategory;
   isActive: boolean;
 };
 
@@ -28,7 +25,6 @@ export default function CreatePropertyAmenityDialog({
 
   const [formData, setFormData] = useState<AmenityFormData>({
     name: "",
-    category: "basic",
     isActive: true,
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -37,7 +33,7 @@ export default function CreatePropertyAmenityDialog({
 
   useEffect(() => {
     if (open) {
-      setFormData({ name: "", category: "basic", isActive: true });
+      setFormData({ name: "", isActive: true });
       setSelectedFile(null);
       setPreviewUrl(null);
       setSubmitting(false);
@@ -55,18 +51,16 @@ export default function CreatePropertyAmenityDialog({
 
     setSubmitting(true);
 
-    let payload: FormData | { name: string; category: AmenityCategory; isActive: boolean };
+    let payload: FormData | { name: string; isActive: boolean };
     if (selectedFile) {
       const body = new FormData();
       body.append("name", formData.name.trim());
-      body.append("category", formData.category);
       body.append("isActive", String(formData.isActive));
       body.append("file", selectedFile);
       payload = body;
     } else {
       payload = {
         name: formData.name.trim(),
-        category: formData.category,
         isActive: formData.isActive,
       };
     }
@@ -102,25 +96,6 @@ export default function CreatePropertyAmenityDialog({
 
         {/* Modal Form */}
         <form onSubmit={handleCreateSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
-              Category *
-            </label>
-            <select
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value as AmenityCategory })}
-            >
-              <option value="basic" className="text-slate-900 bg-white">Basic (WiFi, AC, TV, Lift)</option>
-              <option value="security" className="text-slate-900 bg-white">Security (CCTV, Gated, Guard)</option>
-              <option value="parking" className="text-slate-900 bg-white">Parking (Car, Bike)</option>
-              <option value="fitness" className="text-slate-900 bg-white">Fitness (Gym, Swimming Pool)</option>
-              <option value="recreation" className="text-slate-900 bg-white">Recreation (Clubhouse, Garden)</option>
-              <option value="utilities" className="text-slate-900 bg-white">Utilities (Power Backup, Water Supply)</option>
-              <option value="other" className="text-slate-900 bg-white">Other</option>
-            </select>
-          </div>
-
           <div>
             <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
               Amenity Name *
@@ -213,3 +188,4 @@ export default function CreatePropertyAmenityDialog({
     </div>
   );
 }
+

@@ -23,12 +23,6 @@ import ToggleUserPreferenceDialog from "./ToggleUserPreferenceDialog";
 import { ListSortDescending, Plus, RotateCw } from "lucide-react";
 
 const LIMIT = 10;
-const PREFERENCE_CATEGORIES = [
-  { value: "all", label: "All Categories" },
-  { value: "food", label: "Food" },
-  { value: "pets", label: "Pets" },
-  { value: "drink", label: "Drink" },
-] as const;
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All Status" },
@@ -39,7 +33,7 @@ const STATUS_OPTIONS = [
 export default function UserPreferencesManager({
   eyebrow = "Management Panel",
   title = "User Preference Master Data",
-  sub = "Configure master preferences (Food, Pets, Drink) with image uploads and active status control.",
+  sub = "Configure master preferences with image uploads and active status control.",
 }: {
   eyebrow?: string;
   title?: string;
@@ -57,16 +51,14 @@ export default function UserPreferencesManager({
     totalPages: 1,
   });
 
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  const hasActiveFilters = Boolean(search.trim() || categoryFilter !== "all" || statusFilter !== "all");
+  const hasActiveFilters = Boolean(search.trim() || statusFilter !== "all");
 
   const handleResetFilters = () => {
     setSearch("");
-    setCategoryFilter("all");
     setStatusFilter("all");
     setPage(1);
   };
@@ -81,7 +73,6 @@ export default function UserPreferencesManager({
   const loadPreferences = useCallback(async () => {
     setLoading(true);
     const res = await fetchUserPreferences({
-      category: categoryFilter,
       status: statusFilter,
       search: search,
       page,
@@ -101,7 +92,7 @@ export default function UserPreferencesManager({
       toast(res.message || "Failed to load user preferences");
     }
     setLoading(false);
-  }, [categoryFilter, statusFilter, search, page, toast]);
+  }, [statusFilter, search, page, toast]);
 
   useEffect(() => {
     loadPreferences();
@@ -115,19 +106,6 @@ export default function UserPreferencesManager({
       return (img as { url: string }).url;
     }
     return "";
-  };
-
-  const getCategoryTone = (cat: string) => {
-    switch (cat) {
-      case "food":
-        return "sand";
-      case "pets":
-        return "mint";
-      case "drink":
-        return "iris";
-      default:
-        return "iris";
-    }
   };
 
   return (
@@ -161,18 +139,6 @@ export default function UserPreferencesManager({
             />
 
             <SegmentedFilter
-              value={categoryFilter}
-              options={PREFERENCE_CATEGORIES.map((category) => ({
-                value: category.value,
-                label: category.label,
-              }))}
-              onChange={(value) => {
-                setCategoryFilter(value);
-                setPage(1);
-              }}
-            />
-
-            <SegmentedFilter
               value={statusFilter}
               options={STATUS_OPTIONS.map((item) => ({
                 value: item.value,
@@ -195,7 +161,6 @@ export default function UserPreferencesManager({
               <thead>
                 <tr>
                   <th>Preference Name</th>
-                  <th>Category</th>
                   <th>Status</th>
                   <th>Created Date</th>
                   <th>Actions</th>
@@ -204,13 +169,13 @@ export default function UserPreferencesManager({
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
+                    <td colSpan={4} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
                       Loading user preferences…
                     </td>
                   </tr>
                 ) : items.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
+                    <td colSpan={4} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
                       No user preferences found.
                     </td>
                   </tr>
@@ -249,11 +214,6 @@ export default function UserPreferencesManager({
                           <strong>{item.name}</strong>
                           <span>ID: {item._id.slice(-6)}</span>
                         </div>
-                      </td>
-                      <td>
-                        <Chip tone={getCategoryTone(item.category)} dot>
-                          {item.category.toUpperCase()}
-                        </Chip>
                       </td>
                       <td>
                         <Chip tone={item.isActive !== false ? "mint" : "rose"} dot>
@@ -330,3 +290,4 @@ export default function UserPreferencesManager({
     </>
   );
 }
+

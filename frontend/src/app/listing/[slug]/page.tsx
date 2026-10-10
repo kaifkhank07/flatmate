@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
-import ListingBreadcrum from "@/components/listing/ListingBreadcrum";
-import ListingDetails from "@/components/listing/ListingDetails";
+import ListingBreadcrum from "@/components/listing/public/ListingBreadcrum";
+import ListingDetails from "@/components/listing/public/ListingDetails";
 import Faq from "@/components/ui/Faq";
 
 export default function ListingPage() {

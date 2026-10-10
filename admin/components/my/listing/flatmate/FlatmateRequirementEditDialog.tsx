@@ -11,9 +11,11 @@ import {
   deleteImageApi,
   deleteVideoApi,
   fetchUserPreferences,
+  fetchPropertyAmenities,
   FlatmateRequirementItem,
   PropertyMediaItem,
   UserPreferenceItem,
+  PropertyAmenityItem,
   AutocompleteSuggestion,
   SavePlacePayload,
   ListingStatus,
@@ -54,17 +56,22 @@ export default function FlatmateRequirementEditDialog({
   const [description, setDescription] = useState("");
   const [postType, setPostType] = useState<"property" | "partner">("property");
   const [propertyType, setPropertyType] = useState<"room" | "flat" | "pg" | "shared_apartment">("flat");
-  const [partnerType, setPartnerType] = useState<"roommate" | "flatmate">("roommate");
-  const [budget, setBudget] = useState(0);
+  const [partnerType, setPartnerType] = useState<"roommate" | "flatmate">("flatmate");
+  const [area, setArea] = useState(0);
+  const [rent, setRent] = useState(0);
+  const [securityDeposit, setSecurityDeposit] = useState(0);
+  const [maintenanceAmount, setMaintenanceAmount] = useState(0);
+  const [maintenanceFrequency, setMaintenanceFrequency] = useState<"monthly" | "yearly" | "included" | "one_time">("yearly");
+  const [furnishing, setFurnishing] = useState<"fully_furnished" | "semi_furnished" | "unfurnished">("semi_furnished");
+  const [parking, setParking] = useState(false);
+  const [availableFrom, setAvailableFrom] = useState("");
   const [occupationPreference, setOccupationPreference] = useState<any>("any");
   const [genderPreference, setGenderPreference] = useState<any>("any");
-  const [lifestylePreferences, setLifestylePreferences] = useState<string[]>([]);
-  const [moveInDate, setMoveInDate] = useState("");
-  const [peopleCount, setPeopleCount] = useState(1);
+  const [userPreferences, setUserPreferences] = useState<string[]>([]);
+  const [amenities, setAmenities] = useState<string[]>([]);
   const [status, setStatus] = useState<ListingStatus>("pending");
-  const [expiresAt, setExpiresAt] = useState("");
 
-  // Existing & New Location State
+  // Location State
   const [existingLocation, setExistingLocation] = useState<any>(null);
   const [isChangingLocation, setIsChangingLocation] = useState(false);
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<SavePlacePayload | null>(null);
@@ -75,19 +82,24 @@ export default function FlatmateRequirementEditDialog({
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
   const locationDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Master Lifestyle Preferences Options
+  // Master Options
   const [preferenceOptions, setPreferenceOptions] = useState<UserPreferenceItem[]>([]);
+  const [amenityOptions, setAmenityOptions] = useState<PropertyAmenityItem[]>([]);
 
   // Media Items State
   const [imageItems, setImageItems] = useState<MediaItemState[]>([]);
   const [videoItems, setVideoItems] = useState<MediaItemState[]>([]);
 
-  // Load master preferences
   useEffect(() => {
     if (!isOpen) return;
     fetchUserPreferences({ limit: 100 }).then((res) => {
       if (res.success && res.data) {
         setPreferenceOptions(res.data.items || []);
+      }
+    });
+    fetchPropertyAmenities({ limit: 100 }).then((res) => {
+      if (res.success && res.data) {
+        setAmenityOptions(res.data.items || []);
       }
     });
   }, [isOpen]);
@@ -104,30 +116,36 @@ export default function FlatmateRequirementEditDialog({
       setDescription(item.description || "");
       setPostType(item.postType || "property");
       setPropertyType(item.propertyType || "flat");
-      setPartnerType(item.partnerType || "roommate");
-      setBudget(typeof item.budget === "number" ? item.budget : ((item.budget as any)?.max ?? (item.budget as any)?.min ?? 0));
+      setPartnerType(item.partnerType || "flatmate");
+      setArea(item.area || 0);
+      setRent(typeof item.rent === "number" ? item.rent : (item as any).budget || 0);
+      setSecurityDeposit(item.securityDeposit || 0);
+      setMaintenanceAmount(item.maintenanceCharges?.amount || 0);
+      setMaintenanceFrequency((item.maintenanceCharges?.frequency as any) || "yearly");
+      setFurnishing(item.furnishing || "semi_furnished");
+      setParking(Boolean(item.parking));
       setOccupationPreference(item.occupationPreference || "any");
       setGenderPreference(item.genderPreference || "any");
 
-      const prefIds: string[] = (item.lifestylePreferences || []).map((p: any) =>
-        typeof p === "object" && p !== null ? p._id || "" : String(p)
-      ).filter(Boolean);
-      setLifestylePreferences(prefIds);
+      const prefSource = item.userPreferences || (item as any).lifestylePreferences || [];
+      const prefIds: string[] = prefSource
+        .map((p: any) => (typeof p === "object" && p !== null ? p._id || "" : String(p)))
+        .filter(Boolean);
+      setUserPreferences(prefIds);
 
-      if (item.moveInDate) {
-        setMoveInDate(new Date(item.moveInDate).toISOString().split("T")[0]);
+      const amenIds: string[] = (item.amenities || [])
+        .map((a: any) => (typeof a === "object" && a !== null ? a._id || "" : String(a)))
+        .filter(Boolean);
+      setAmenities(amenIds);
+
+      const dateStr = item.availableFrom || (item as any).moveInDate;
+      if (dateStr) {
+        setAvailableFrom(new Date(dateStr).toISOString().split("T")[0]);
       } else {
-        setMoveInDate("");
+        setAvailableFrom("");
       }
 
-      setPeopleCount(item.peopleCount || 1);
       setStatus((item.status as ListingStatus) || "pending");
-
-      if (item.expiresAt) {
-        setExpiresAt(new Date(item.expiresAt).toISOString().split("T")[0]);
-      } else {
-        setExpiresAt("");
-      }
 
       setExistingLocation(item.location);
       setSelectedGooglePlace(null);
@@ -207,7 +225,6 @@ export default function FlatmateRequirementEditDialog({
       setIsLocationDropdownOpen(false);
       const placeDetails = await getFrontendPlaceDetails(suggestion.placeId);
       setSelectedGooglePlace(placeDetails);
-      setIsChangingLocation(false);
       setLocationSearchTerm("");
       setLocationSuggestions([]);
     } catch (err: any) {
@@ -232,10 +249,11 @@ export default function FlatmateRequirementEditDialog({
     e.target.value = "";
   };
 
-  const handleRemoveImageItem = (item: MediaItemState) => {
+  const handleRemoveImageItem = (id: string) => {
     setImageItems((prev) => {
-      if (item.previewUrl.startsWith("blob:")) URL.revokeObjectURL(item.previewUrl);
-      return prev.filter((i) => i.id !== item.id);
+      const item = prev.find((i) => i.id === id);
+      if (item && item.previewUrl.startsWith("blob:")) URL.revokeObjectURL(item.previewUrl);
+      return prev.filter((i) => i.id !== id);
     });
   };
 
@@ -254,21 +272,29 @@ export default function FlatmateRequirementEditDialog({
     e.target.value = "";
   };
 
-  const handleRemoveVideoItem = (item: MediaItemState) => {
+  const handleRemoveVideoItem = (id: string) => {
     setVideoItems((prev) => {
-      if (item.previewUrl.startsWith("blob:")) URL.revokeObjectURL(item.previewUrl);
-      return prev.filter((i) => i.id !== item.id);
+      const item = prev.find((i) => i.id === id);
+      if (item && item.previewUrl.startsWith("blob:")) URL.revokeObjectURL(item.previewUrl);
+      return prev.filter((i) => i.id !== id);
     });
   };
 
-  const togglePreference = (prefId: string) => {
-    setLifestylePreferences((prev) =>
+  const toggleUserPreference = (prefId: string) => {
+    setUserPreferences((prev) =>
       prev.includes(prefId) ? prev.filter((id) => id !== prefId) : [...prev, prefId]
+    );
+  };
+
+  const toggleAmenity = (amenityId: string) => {
+    setAmenities((prev) =>
+      prev.includes(amenityId) ? prev.filter((id) => id !== amenityId) : [...prev, amenityId]
     );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!requirementId) return;
 
     if (!title.trim()) {
@@ -276,128 +302,125 @@ export default function FlatmateRequirementEditDialog({
       return;
     }
 
-    if (budget < 0) {
-      toast("Please enter a valid budget.");
+    if (rent < 0) {
+      toast("Please enter a valid rent amount.");
       return;
     }
 
-    if (!moveInDate) {
-      toast("Please select a move-in date.");
+    if (!availableFrom) {
+      toast("Please select an available from date.");
       return;
     }
 
     setSubmitting(true);
+
     const newlyUploadedImageIds: string[] = [];
     const newlyUploadedVideoIds: string[] = [];
 
-    const rollbackNewMedia = async () => {
-      for (const imgId of newlyUploadedImageIds) {
-        try {
-          await deleteImageApi(imgId);
-        } catch (_) { }
+    const cleanupNewlyUploadedMedia = async () => {
+      if (newlyUploadedImageIds.length > 0) {
+        await Promise.all(newlyUploadedImageIds.map((id) => deleteImageApi(id))).catch(() => {});
       }
-      for (const vidId of newlyUploadedVideoIds) {
-        try {
-          await deleteVideoApi(vidId);
-        } catch (_) { }
+      if (newlyUploadedVideoIds.length > 0) {
+        await Promise.all(newlyUploadedVideoIds.map((id) => deleteVideoApi(id))).catch(() => {});
       }
     };
 
     try {
       const finalImageIds: string[] = [];
       for (const item of imageItems) {
-        if (item.mediaObject?._id) {
-          finalImageIds.push(item.mediaObject._id);
-        } else if (item.file) {
-          const uploadRes = await uploadImageApi(item.file, "flatmate", "image");
-          if (!uploadRes.success || !uploadRes.data?._id) {
-            await rollbackNewMedia();
+        if (item.file) {
+          toast(`Uploading photo "${item.file.name}"…`);
+          const res = await uploadImageApi(item.file, "flatmate", "image");
+          if (!res.success || !res.data?._id) {
+            await cleanupNewlyUploadedMedia();
             setSubmitting(false);
-            toast(uploadRes.message || `Failed to upload image "${item.file.name}"`);
+            toast(`Failed to upload photo "${item.file.name}": ${res.message || "Upload error"}`);
             return;
           }
-          finalImageIds.push(uploadRes.data._id);
-          newlyUploadedImageIds.push(uploadRes.data._id);
+          newlyUploadedImageIds.push(res.data._id);
+          finalImageIds.push(res.data._id);
+        } else if (item.mediaObject?._id) {
+          finalImageIds.push(item.mediaObject._id);
         }
       }
 
       const finalVideoIds: string[] = [];
       for (const item of videoItems) {
-        if (item.mediaObject?._id) {
-          finalVideoIds.push(item.mediaObject._id);
-        } else if (item.file) {
-          const uploadRes = await uploadVideoApi(item.file, "flatmate", "video");
-          if (!uploadRes.success || !uploadRes.data?._id) {
-            await rollbackNewMedia();
+        if (item.file) {
+          toast(`Uploading video "${item.file.name}"…`);
+          const res = await uploadVideoApi(item.file, "flatmate", "video");
+          if (!res.success || !res.data?._id) {
+            await cleanupNewlyUploadedMedia();
             setSubmitting(false);
-            toast(uploadRes.message || `Failed to upload video "${item.file.name}"`);
+            toast(`Failed to upload video "${item.file.name}": ${res.message || "Upload error"}`);
             return;
           }
-          finalVideoIds.push(uploadRes.data._id);
-          newlyUploadedVideoIds.push(uploadRes.data._id);
+          newlyUploadedVideoIds.push(res.data._id);
+          finalVideoIds.push(res.data._id);
+        } else if (item.mediaObject?._id) {
+          finalVideoIds.push(item.mediaObject._id);
         }
       }
 
-      let locationId = "";
-      if (selectedGooglePlace) {
+      let locationId = typeof existingLocation === "object" && existingLocation !== null ? existingLocation._id : existingLocation;
+
+      if (isChangingLocation && selectedGooglePlace) {
+        toast("Saving new location…");
         const locRes = await savePlaceLocationApi(selectedGooglePlace);
         if (!locRes.success || !locRes.data?._id) {
-          await rollbackNewMedia();
+          await cleanupNewlyUploadedMedia();
           setSubmitting(false);
           toast(locRes.message || "Failed to save selected Google location");
           return;
         }
         locationId = locRes.data._id;
-      } else if (existingLocation) {
-        locationId = typeof existingLocation === "object" && existingLocation !== null
-          ? String(existingLocation._id || existingLocation.id || existingLocation)
-          : String(existingLocation);
       }
 
-      if (!locationId) {
-        await rollbackNewMedia();
-        setSubmitting(false);
-        toast("Please select a location for the requirement.");
-        return;
-      }
-
+      toast("Updating flatmate requirement…");
       const payload: any = {
         title: title.trim(),
         description: description.trim() || undefined,
         postType,
+        propertyType: postType === "property" ? propertyType : undefined,
+        partnerType: postType === "partner" ? partnerType : undefined,
         location: locationId,
-        budget: Number(budget),
+        area: Number(area),
+        rent: Number(rent),
+        securityDeposit: Number(securityDeposit),
+        maintenanceCharges: {
+          amount: Number(maintenanceAmount),
+          frequency: maintenanceFrequency,
+        },
+        furnishing,
+        parking,
+        availableFrom,
         occupationPreference,
         genderPreference,
-        lifestylePreferences,
-        moveInDate: moveInDate || new Date().toISOString().split("T")[0],
-        peopleCount: peopleCount && Number(peopleCount) > 0 ? Number(peopleCount) : undefined,
-        status,
-        expiresAt: expiresAt || undefined,
+        userPreferences,
+        amenities,
         images: finalImageIds,
         videos: finalVideoIds,
+        status,
       };
 
-      if (postType === "property") {
-        payload.propertyType = propertyType;
-      } else if (postType === "partner") {
-        payload.partnerType = partnerType;
-      }
-
       const res = await updateFlatmateRequirementApi(requirementId, payload);
-      setSubmitting(false);
 
-      if (res.success) {
-        toast("Flatmate Requirement updated successfully!");
-        onSuccess();
-      } else {
-        await rollbackNewMedia();
+      if (!res.success || !res.data) {
+        await cleanupNewlyUploadedMedia();
+        setSubmitting(false);
         toast(res.message || "Failed to update requirement");
+        return;
       }
-    } catch (err: any) {
-      await rollbackNewMedia();
+
       setSubmitting(false);
-      toast(err.message || "An unexpected error occurred while updating the requirement.");
+      toast("Flatmate requirement updated successfully!");
+      onClose();
+      onSuccess();
+    } catch (err: any) {
+      await cleanupNewlyUploadedMedia();
+      setSubmitting(false);
+      toast(err.message || "An unexpected error occurred during update.");
     }
   };
 
@@ -406,11 +429,10 @@ export default function FlatmateRequirementEditDialog({
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity">
       <div className="w-full max-w-3xl bg-white border border-slate-200 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden text-slate-900">
-        {/* Sticky Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white shrink-0">
           <div>
             <h3 className="text-lg font-bold text-slate-900">Edit Flatmate Requirement</h3>
-            <p className="text-xs text-slate-500">Update details, location, preferences, and media assets.</p>
+            <p className="text-xs text-slate-500">Update requirement details, pricing, location, and media assets.</p>
           </div>
           <button
             type="button"
@@ -422,19 +444,148 @@ export default function FlatmateRequirementEditDialog({
           </button>
         </div>
 
-        {/* Form Content */}
         {loading ? (
-          <div className="p-12 text-center text-slate-500 text-sm flex flex-col items-center justify-center gap-2">
-            <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-            <span>Fetching requirement details…</span>
-          </div>
-        ) : requirement ? (
+          <div className="p-12 text-center text-sm text-slate-500">Loading requirement details…</div>
+        ) : (
           <form id="edit-requirement-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Section 1: Overview */}
-            <div className="space-y-4">
-              <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-                1. Requirement Overview
-              </h4>
+            {/* Location Section */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">1. Location</h4>
+              {!isChangingLocation ? (
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <div className="p-2 bg-amber-100 text-amber-600 rounded-lg shrink-0 mt-0.5">
+                      <Icon name="home" size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <strong className="block text-xs font-bold text-slate-900 truncate">
+                        📍 {typeof existingLocation === "object" && existingLocation?.name ? existingLocation.name : "Current Location"}
+                      </strong>
+                      <span className="block text-[11px] text-slate-600 truncate">
+                        {typeof existingLocation === "object" && existingLocation?.formattedAddress
+                          ? existingLocation.formattedAddress
+                          : "Location ID: " + String(existingLocation)}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-semibold transition-colors shrink-0 shadow-sm"
+                    onClick={() => setIsChangingLocation(true)}
+                  >
+                    Change Location
+                  </button>
+                </div>
+              ) : selectedGooglePlace ? (
+                <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between gap-3">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <div className="p-2 bg-amber-100 rounded-lg text-amber-600 shrink-0 mt-0.5">
+                      <Icon name="home" size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <strong className="block text-xs font-bold text-slate-900 truncate">
+                        📍 {selectedGooglePlace.name}
+                      </strong>
+                      <span className="block text-[11px] text-slate-600 font-medium truncate">
+                        {selectedGooglePlace.formattedAddress}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 rounded-lg text-xs font-semibold transition-colors shrink-0 shadow-sm"
+                    onClick={() => {
+                      setSelectedGooglePlace(null);
+                      setLocationSearchTerm("");
+                    }}
+                  >
+                    Reselect Location
+                  </button>
+                </div>
+              ) : (
+                <div className="relative" ref={locationDropdownRef}>
+                  <div className="relative flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                        placeholder="Search city, area, building or landmark..."
+                        value={locationSearchTerm}
+                        onChange={(e) => {
+                          setLocationSearchTerm(e.target.value);
+                          if (!e.target.value.trim()) {
+                            setLocationSuggestions([]);
+                            setIsLocationDropdownOpen(false);
+                          }
+                        }}
+                        onFocus={() => {
+                          if (locationSearchTerm.trim()) setIsLocationDropdownOpen(true);
+                        }}
+                      />
+                      <div className="absolute left-3 top-2.5 text-amber-500 pointer-events-none">
+                        <Icon name="search" size={15} />
+                      </div>
+                      {locationSearchTerm && (
+                        <button
+                          type="button"
+                          className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 transition-colors"
+                          onClick={() => {
+                            setLocationSearchTerm("");
+                            setLocationSuggestions([]);
+                            setIsLocationDropdownOpen(false);
+                          }}
+                        >
+                          <Icon name="x" size={14} />
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors shrink-0"
+                      onClick={() => {
+                        setIsChangingLocation(false);
+                        setSelectedGooglePlace(null);
+                      }}
+                    >
+                      Keep Current
+                    </button>
+                  </div>
+
+                  {isLocationDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-[1100] max-h-56 overflow-y-auto">
+                      {loadingLocationSuggestions ? (
+                        <div className="p-3 text-xs text-slate-500 text-center">Searching Google Places…</div>
+                      ) : locationSearchError ? (
+                        <div className="p-3 text-xs text-rose-500 text-center">{locationSearchError}</div>
+                      ) : locationSuggestions.length > 0 ? (
+                        locationSuggestions.map((s) => (
+                          <button
+                            key={s.placeId}
+                            type="button"
+                            className="w-full text-left px-3 py-2.5 hover:bg-amber-50 border-b border-slate-100 last:border-0 transition-colors flex items-start gap-2.5"
+                            onClick={() => handleSelectPlaceSuggestion(s)}
+                          >
+                            <div className="mt-0.5 text-amber-500 shrink-0">
+                              <Icon name="home" size={14} />
+                            </div>
+                            <div>
+                              <strong className="block text-xs font-semibold text-slate-900">📍 {s.mainText}</strong>
+                              <span className="block text-[11px] text-slate-500">{s.secondaryText || s.description}</span>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="p-3 text-xs text-slate-500 text-center">No matching Google Place suggestions found</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Overview */}
+            <div className="space-y-4 pt-3 border-t border-slate-100">
+              <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">2. Requirement Overview</h4>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
@@ -442,7 +593,7 @@ export default function FlatmateRequirementEditDialog({
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
@@ -454,7 +605,7 @@ export default function FlatmateRequirementEditDialog({
                   Description
                 </label>
                 <textarea
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -469,7 +620,7 @@ export default function FlatmateRequirementEditDialog({
                   <select
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                     value={postType}
-                    onChange={(e) => setPostType(e.target.value as "property" | "partner")}
+                    onChange={(e) => setPostType(e.target.value as any)}
                   >
                     <option value="property">Property</option>
                     <option value="partner">Partner</option>
@@ -510,173 +661,126 @@ export default function FlatmateRequirementEditDialog({
               </div>
             </div>
 
-            {/* Section 2: Location / Area (Frontend Google Places API) */}
-            <div className="space-y-2 pt-3 border-t border-slate-100">
-              <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-                2. Location / Area (Frontend Google Places API) <span className="text-rose-500">*</span>
-              </h4>
-
-              {!isChangingLocation && (selectedGooglePlace || existingLocation) ? (
-                <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between gap-3">
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <div className="p-2 bg-amber-100 rounded-lg text-amber-600 shrink-0 mt-0.5">
-                      <Icon name="home" size={16} />
-                    </div>
-                    <div className="min-w-0">
-                      <strong className="block text-xs font-bold text-slate-900 truncate">
-                        📍 {selectedGooglePlace ? selectedGooglePlace.name : (existingLocation?.name || "Current Location")}
-                      </strong>
-                      <span className="block text-[11px] text-slate-600 font-medium truncate">
-                        {selectedGooglePlace
-                          ? selectedGooglePlace.formattedAddress
-                          : (existingLocation?.formattedAddress || existingLocation?.city || "Requirement Location")}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="px-3 py-1.5 bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 rounded-lg text-xs font-semibold transition-colors shrink-0 shadow-sm"
-                    onClick={() => {
-                      setIsChangingLocation(true);
-                      setLocationSearchTerm("");
-                    }}
-                  >
-                    Change Location
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {existingLocation && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-medium text-slate-500">Search new Google location</span>
-                      <button
-                        type="button"
-                        className="text-[11px] text-amber-600 hover:underline font-semibold"
-                        onClick={() => {
-                          setIsChangingLocation(false);
-                          setSelectedGooglePlace(null);
-                        }}
-                      >
-                        Cancel / Keep Current Location
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="relative" ref={locationDropdownRef}>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                        placeholder="Search city, area, building or landmark..."
-                        value={locationSearchTerm}
-                        onChange={(e) => {
-                          setLocationSearchTerm(e.target.value);
-                          if (!e.target.value.trim()) {
-                            setLocationSuggestions([]);
-                            setIsLocationDropdownOpen(false);
-                          }
-                        }}
-                        onFocus={() => {
-                          if (locationSearchTerm.trim()) setIsLocationDropdownOpen(true);
-                        }}
-                      />
-                      <div className="absolute left-3 top-2.5 text-amber-500 pointer-events-none">
-                        <Icon name="search" size={15} />
-                      </div>
-                      {locationSearchTerm && (
-                        <button
-                          type="button"
-                          className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 transition-colors"
-                          onClick={() => {
-                            setLocationSearchTerm("");
-                            setLocationSuggestions([]);
-                            setIsLocationDropdownOpen(false);
-                          }}
-                        >
-                          <Icon name="x" size={14} />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Location Autocomplete Dropdown */}
-                    {isLocationDropdownOpen && (
-                      <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-[1100] max-h-56 overflow-y-auto">
-                        {loadingLocationSuggestions ? (
-                          <div className="p-3 text-xs text-slate-500 text-center">Searching Google Places…</div>
-                        ) : locationSearchError ? (
-                          <div className="p-3 text-xs text-rose-500 text-center">{locationSearchError}</div>
-                        ) : locationSuggestions.length > 0 ? (
-                          locationSuggestions.map((s) => (
-                            <button
-                              key={s.placeId}
-                              type="button"
-                              className="w-full text-left px-3 py-2.5 hover:bg-amber-50 border-b border-slate-100 last:border-0 transition-colors flex items-start gap-2.5"
-                              onClick={() => handleSelectPlaceSuggestion(s)}
-                            >
-                              <div className="mt-0.5 text-amber-500 shrink-0">
-                                <Icon name="home" size={14} />
-                              </div>
-                              <div>
-                                <strong className="block text-xs font-semibold text-slate-900">📍 {s.mainText}</strong>
-                                <span className="block text-[11px] text-slate-500">{s.secondaryText || s.description}</span>
-                              </div>
-                            </button>
-                          ))
-                        ) : (
-                          <div className="p-3 text-xs text-slate-500 text-center">No matching Google Place suggestions found</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Section 3: Budget & Parameters */}
+            {/* Pricing & Specifications */}
             <div className="space-y-4 pt-3 border-t border-slate-100">
               <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-                3. Budget & Parameters
+                3. Pricing & Specifications
               </h4>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Budget (₹) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  value={budget}
-                  onChange={(e) => setBudget(Number(e.target.value))}
-                  min={0}
-                  required
-                />
-              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Move-in Date <span className="text-rose-500">*</span>
+                    Rent Amount (₹) <span className="text-rose-500">*</span>
                   </label>
                   <input
-                    type="date"
+                    type="number"
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                    value={moveInDate}
-                    onChange={(e) => setMoveInDate(e.target.value)}
+                    value={rent}
+                    onChange={(e) => setRent(Number(e.target.value))}
+                    min={0}
                     required
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    People Count
+                    Security Deposit (₹)
                   </label>
                   <input
                     type="number"
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                    value={peopleCount}
-                    onChange={(e) => setPeopleCount(Number(e.target.value))}
-                    min={1}
+                    value={securityDeposit}
+                    onChange={(e) => setSecurityDeposit(Number(e.target.value))}
+                    min={0}
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Area (sq.ft)
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    value={area}
+                    onChange={(e) => setArea(Number(e.target.value))}
+                    min={0}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Maintenance Amount (₹)
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    value={maintenanceAmount}
+                    onChange={(e) => setMaintenanceAmount(Number(e.target.value))}
+                    min={0}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Maintenance Frequency
+                  </label>
+                  <select
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    value={maintenanceFrequency}
+                    onChange={(e) => setMaintenanceFrequency(e.target.value as any)}
+                  >
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                    <option value="included">Included</option>
+                    <option value="one_time">One Time</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Furnishing
+                  </label>
+                  <select
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    value={furnishing}
+                    onChange={(e) => setFurnishing(e.target.value as any)}
+                  >
+                    <option value="fully_furnished">Fully Furnished</option>
+                    <option value="semi_furnished">Semi Furnished</option>
+                    <option value="unfurnished">Unfurnished</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Available From <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    value={availableFrom}
+                    onChange={(e) => setAvailableFrom(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Parking
+                  </label>
+                  <select
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    value={parking ? "true" : "false"}
+                    onChange={(e) => setParking(e.target.value === "true")}
+                  >
+                    <option value="false">No Parking</option>
+                    <option value="true">Parking Available</option>
+                  </select>
                 </div>
 
                 <div>
@@ -686,7 +790,7 @@ export default function FlatmateRequirementEditDialog({
                   <select
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                     value={status}
-                    onChange={(e) => setStatus(e.target.value as ListingStatus)}
+                    onChange={(e) => setStatus(e.target.value as any)}
                   >
                     <option value="approved">Approved</option>
                     <option value="pending">Pending</option>
@@ -700,10 +804,10 @@ export default function FlatmateRequirementEditDialog({
               </div>
             </div>
 
-            {/* Section 4: Preferences & Lifestyle */}
+            {/* Preferences & Amenities */}
             <div className="space-y-4 pt-3 border-t border-slate-100">
               <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-                4. Preferences & Lifestyle
+                4. Preferences & Amenities
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -714,7 +818,7 @@ export default function FlatmateRequirementEditDialog({
                   <select
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                     value={occupationPreference}
-                    onChange={(e) => setOccupationPreference(e.target.value)}
+                    onChange={(e) => setOccupationPreference(e.target.value as any)}
                   >
                     <option value="any">Any</option>
                     <option value="student">Student</option>
@@ -722,6 +826,7 @@ export default function FlatmateRequirementEditDialog({
                     <option value="self_employed">Self Employed</option>
                     <option value="business_owner">Business Owner</option>
                     <option value="freelancer">Freelancer</option>
+                    <option value="other">Other</option>
                   </select>
                 </div>
 
@@ -732,11 +837,12 @@ export default function FlatmateRequirementEditDialog({
                   <select
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                     value={genderPreference}
-                    onChange={(e) => setGenderPreference(e.target.value)}
+                    onChange={(e) => setGenderPreference(e.target.value as any)}
                   >
                     <option value="any">Any</option>
                     <option value="male">Male Only</option>
                     <option value="female">Female Only</option>
+                    <option value="other">Other</option>
                   </select>
                 </div>
               </div>
@@ -744,22 +850,50 @@ export default function FlatmateRequirementEditDialog({
               {preferenceOptions.length > 0 && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Lifestyle Preferences
+                    User / Lifestyle Preferences
                   </label>
                   <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
                     {preferenceOptions.map((pref) => {
-                      const selected = lifestylePreferences.includes(pref._id);
+                      const selected = userPreferences.includes(pref._id);
                       return (
                         <button
                           type="button"
                           key={pref._id}
-                          onClick={() => togglePreference(pref._id)}
-                          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${selected
+                          onClick={() => toggleUserPreference(pref._id)}
+                          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                            selected
                               ? "bg-amber-500 text-white shadow-sm"
                               : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                            }`}
+                          }`}
                         >
-                          {pref.name} ({pref.category})
+                          {pref.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {amenityOptions.length > 0 && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Property Amenities
+                  </label>
+                  <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                    {amenityOptions.map((amenity) => {
+                      const selected = amenities.includes(amenity._id);
+                      return (
+                        <button
+                          type="button"
+                          key={amenity._id}
+                          onClick={() => toggleAmenity(amenity._id)}
+                          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                            selected
+                              ? "bg-amber-600 text-white shadow-sm"
+                              : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          {amenity.name}
                         </button>
                       );
                     })}
@@ -768,11 +902,11 @@ export default function FlatmateRequirementEditDialog({
               )}
             </div>
 
-            {/* Section 5: Media Assets Management */}
+            {/* Media Assets */}
             <div className="space-y-4 pt-3 border-t border-slate-100">
               <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">5. Media Assets Management</h4>
 
-              {/* Images Section */}
+              {/* Images */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
@@ -780,7 +914,7 @@ export default function FlatmateRequirementEditDialog({
                   </label>
                   <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-600 text-white cursor-pointer transition-all shadow-sm">
                     <Icon name="refresh" size={12} />
-                    <span>+ Add Photos</span>
+                    <span>+ Select Photos</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -801,9 +935,10 @@ export default function FlatmateRequirementEditDialog({
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={item.previewUrl}
-                          alt="Requirement Image"
-                          className={`w-full h-full object-cover transition-opacity ${item.uploading ? "opacity-40" : "opacity-100"
-                            }`}
+                          alt="Image Preview"
+                          className={`w-full h-full object-cover transition-opacity ${
+                            item.uploading ? "opacity-40" : "opacity-100"
+                          }`}
                         />
                         {item.uploading && (
                           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white text-[10px] font-bold">
@@ -811,15 +946,10 @@ export default function FlatmateRequirementEditDialog({
                             <span>Uploading…</span>
                           </div>
                         )}
-                        {item.error && (
-                          <div className="absolute inset-0 flex items-center justify-center p-1 bg-rose-900/80 text-white text-[9px] text-center font-semibold">
-                            Upload Failed
-                          </div>
-                        )}
                         <button
                           type="button"
                           className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white rounded-full p-1 transition-colors z-10"
-                          onClick={() => handleRemoveImageItem(item)}
+                          onClick={() => handleRemoveImageItem(item.id)}
                           title="Remove Image"
                         >
                           <Icon name="x" size={12} />
@@ -829,12 +959,12 @@ export default function FlatmateRequirementEditDialog({
                   </div>
                 ) : (
                   <div className="p-3 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-xs text-slate-400">
-                    No requirement photos attached yet. Click &quot;+ Add Photos&quot; to upload images.
+                    No photos attached. Click &quot;+ Select Photos&quot; to upload high-res images.
                   </div>
                 )}
               </div>
 
-              {/* Videos Section */}
+              {/* Videos */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
@@ -842,7 +972,7 @@ export default function FlatmateRequirementEditDialog({
                   </label>
                   <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-900 text-white cursor-pointer transition-all shadow-sm">
                     <Icon name="refresh" size={12} />
-                    <span>+ Add Video</span>
+                    <span>+ Select Video</span>
                     <input
                       type="file"
                       accept="video/*"
@@ -873,7 +1003,7 @@ export default function FlatmateRequirementEditDialog({
                             <button
                               type="button"
                               className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                              onClick={() => handleRemoveVideoItem(item)}
+                              onClick={() => handleRemoveVideoItem(item.id)}
                               title="Remove Video"
                             >
                               <Icon name="x" size={14} />
@@ -881,7 +1011,6 @@ export default function FlatmateRequirementEditDialog({
                           </div>
                         </div>
 
-                        {/* HTML5 Video Player Preview */}
                         <div className="aspect-video w-full max-w-sm mx-auto bg-black rounded-lg overflow-hidden border border-slate-300">
                           <video
                             src={item.mediaObject?.url || item.previewUrl}
@@ -894,17 +1023,14 @@ export default function FlatmateRequirementEditDialog({
                   </div>
                 ) : (
                   <div className="p-3 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-xs text-slate-400">
-                    No requirement videos attached yet. Click &quot;+ Add Video&quot; to upload walkthrough clips.
+                    No videos attached. Click &quot;+ Select Video&quot; to upload walkthrough clips.
                   </div>
                 )}
               </div>
             </div>
           </form>
-        ) : (
-          <div className="p-8 text-center text-xs text-slate-500">Requirement not found.</div>
         )}
 
-        {/* Sticky Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-white shrink-0">
           <button
             type="button"

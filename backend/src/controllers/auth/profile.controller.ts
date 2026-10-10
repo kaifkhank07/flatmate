@@ -98,7 +98,6 @@ export const calculateProfileCompletion = (profile: Partial<IUserProfile>): numb
     'languagesKnown',
     'aboutMe',
     'image',
-    'preferences',
   ];
 
   let completedFields = 0;
@@ -494,5 +493,32 @@ export const markProfileAsCompleted = async (req: Request, res: Response): Promi
   } catch (error) {
     logger.error('[ProfileController] Failed to mark profile as completed:', error);
     return sendError(res, 'Failed to mark profile as completed', 500);
+  }
+};
+
+/**
+ * Check if the current authenticated user has added at least 5 preferences
+ * GET /api/profile/check-preferences or GET /api/profile/preferences-status
+ */
+export const checkUserPreferencesStatus = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    if (!req.user) {
+      return sendError(res, 'Authentication required', 401);
+    }
+
+    const profile = await UserProfile.findOne({ userId: req.user._id }).select('preferences').lean();
+
+    const preferencesCount = Array.isArray(profile?.preferences) ? profile.preferences.length : 0;
+    const requiredCount = 5;
+    const hasFivePreferences = preferencesCount >= requiredCount;
+
+    return sendSuccess(res, 'User preferences status checked successfully', {
+      hasFivePreferences,
+      preferencesCount,
+      requiredCount,
+    });
+  } catch (error) {
+    logger.error('[ProfileController] Failed to check user preferences status:', error);
+    return sendError(res, 'Failed to check preferences status', 500);
   }
 };

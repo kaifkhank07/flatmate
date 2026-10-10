@@ -5,6 +5,7 @@ import { useToast } from "@/lib/toast";
 import {
   fetchUsers,
   fetchUserPreferences,
+  fetchPropertyAmenities,
   savePlaceLocationApi,
   uploadImageApi,
   uploadVideoApi,
@@ -13,6 +14,7 @@ import {
   createFlatmateRequirementApi,
   UserItem,
   UserPreferenceItem,
+  PropertyAmenityItem,
   PropertyMediaItem,
   AutocompleteSuggestion,
   SavePlacePayload,
@@ -43,14 +45,28 @@ interface FormDataState {
   postType: "property" | "partner";
   propertyType: "room" | "flat" | "pg" | "shared_apartment";
   partnerType: "roommate" | "flatmate";
-  budget: number;
-  occupationPreference: "student" | "working_professional" | "self_employed" | "business_owner" | "freelancer" | "any";
-  genderPreference: "male" | "female" | "any";
-  lifestylePreferences: string[];
-  moveInDate: string;
-  peopleCount: number;
+  area: number;
+  rent: number;
+  securityDeposit: number;
+  maintenanceCharges: {
+    amount: number;
+    frequency: "monthly" | "yearly" | "included" | "one_time";
+  };
+  furnishing: "fully_furnished" | "semi_furnished" | "unfurnished";
+  parking: boolean;
+  availableFrom: string;
+  genderPreference: "male" | "female" | "other" | "any";
+  occupationPreference:
+    | "student"
+    | "working_professional"
+    | "self_employed"
+    | "business_owner"
+    | "freelancer"
+    | "other"
+    | "any";
+  userPreferences: string[];
+  amenities: string[];
   status: ListingStatus;
-  expiresAt: string;
 }
 
 const DEFAULT_FORM: FormDataState = {
@@ -59,15 +75,22 @@ const DEFAULT_FORM: FormDataState = {
   description: "",
   postType: "property",
   propertyType: "flat",
-  partnerType: "roommate",
-  budget: 0,
-  occupationPreference: "any",
+  partnerType: "flatmate",
+  area: 0,
+  rent: 0,
+  securityDeposit: 0,
+  maintenanceCharges: {
+    amount: 0,
+    frequency: "yearly",
+  },
+  furnishing: "semi_furnished",
+  parking: false,
+  availableFrom: "",
   genderPreference: "any",
-  lifestylePreferences: [],
-  moveInDate: "",
-  peopleCount: 0,
+  occupationPreference: "any",
+  userPreferences: [],
+  amenities: [],
   status: "approved",
-  expiresAt: "",
 };
 
 export default function FlatmateRequirementCreateDialog({
@@ -95,8 +118,9 @@ export default function FlatmateRequirementCreateDialog({
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<SavePlacePayload | null>(null);
   const locationDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Master Lifestyle Preferences Options
+  // Master Options
   const [preferenceOptions, setPreferenceOptions] = useState<UserPreferenceItem[]>([]);
+  const [amenityOptions, setAmenityOptions] = useState<PropertyAmenityItem[]>([]);
 
   // Media Items
   const [imageItems, setImageItems] = useState<MediaItemState[]>([]);
@@ -144,6 +168,11 @@ export default function FlatmateRequirementCreateDialog({
     fetchUserPreferences({ limit: 100 }).then((res) => {
       if (res.success && res.data) {
         setPreferenceOptions(res.data.items || []);
+      }
+    });
+    fetchPropertyAmenities({ limit: 100 }).then((res) => {
+      if (res.success && res.data) {
+        setAmenityOptions(res.data.items || []);
       }
     });
     searchUsers("");
@@ -213,7 +242,6 @@ export default function FlatmateRequirementCreateDialog({
     }
   };
 
-  // Image Selection Handler (Local state only - no S3 upload yet)
   const handleAddImageFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -237,7 +265,6 @@ export default function FlatmateRequirementCreateDialog({
     });
   };
 
-  // Video Selection Handler (Local state only - no S3 upload yet)
   const handleAddVideoFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -261,30 +288,42 @@ export default function FlatmateRequirementCreateDialog({
     });
   };
 
-  const togglePreference = (prefId: string) => {
+  const toggleUserPreference = (prefId: string) => {
     setFormData((prev) => {
-      const exists = prev.lifestylePreferences.includes(prefId);
+      const exists = prev.userPreferences.includes(prefId);
       return {
         ...prev,
-        lifestylePreferences: exists
-          ? prev.lifestylePreferences.filter((id) => id !== prefId)
-          : [...prev.lifestylePreferences, prefId],
+        userPreferences: exists
+          ? prev.userPreferences.filter((id) => id !== prefId)
+          : [...prev.userPreferences, prefId],
       };
     });
   };
 
-  // Submit Handler (Uploads media, saves location, and creates flatmate requirement upon submit)
+  const toggleAmenity = (amenityId: string) => {
+    setFormData((prev) => {
+      const exists = prev.amenities.includes(amenityId);
+      return {
+        ...prev,
+        amenities: exists
+          ? prev.amenities.filter((id) => id !== amenityId)
+          : [...prev.amenities, amenityId],
+      };
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     let resolvedUserId = formData.userId;
     if (!resolvedUserId && userSearchTerm.trim() && userOptions.length > 0) {
-      const match = userOptions.find(
-        (u) =>
-          u.email?.toLowerCase() === userSearchTerm.trim().toLowerCase() ||
-          u.mobile === userSearchTerm.trim() ||
-          u._id === userSearchTerm.trim()
-      ) || userOptions[0];
+      const match =
+        userOptions.find(
+          (u) =>
+            u.email?.toLowerCase() === userSearchTerm.trim().toLowerCase() ||
+            u.mobile === userSearchTerm.trim() ||
+            u._id === userSearchTerm.trim()
+        ) || userOptions[0];
       if (match) {
         resolvedUserId = match._id;
       }
@@ -305,13 +344,13 @@ export default function FlatmateRequirementCreateDialog({
       return;
     }
 
-    if (formData.budget < 0) {
-      toast("Please enter a valid budget.");
+    if (formData.rent < 0) {
+      toast("Please enter a valid rent amount.");
       return;
     }
 
-    if (!formData.moveInDate) {
-      toast("Please select a move-in date.");
+    if (!formData.availableFrom) {
+      toast("Please select an available from date.");
       return;
     }
 
@@ -319,7 +358,6 @@ export default function FlatmateRequirementCreateDialog({
     const createdImageIds: string[] = [];
     const createdVideoIds: string[] = [];
 
-    // Cleanup helper function if any submission step fails
     const cleanupUploadedMedia = async () => {
       if (createdImageIds.length > 0) {
         await Promise.all(createdImageIds.map((id) => deleteImageApi(id))).catch(() => {});
@@ -330,7 +368,6 @@ export default function FlatmateRequirementCreateDialog({
     };
 
     try {
-      // Step 1: Upload Image files to S3 & create Image documents
       if (imageItems.length > 0) {
         toast("Uploading requirement photos…");
         for (const imgItem of imageItems) {
@@ -349,7 +386,6 @@ export default function FlatmateRequirementCreateDialog({
         }
       }
 
-      // Step 2: Upload Video files to S3 & create Video documents
       if (videoItems.length > 0) {
         toast("Uploading walkthrough videos…");
         for (const vidItem of videoItems) {
@@ -368,7 +404,6 @@ export default function FlatmateRequirementCreateDialog({
         }
       }
 
-      // Step 3: Save place location
       toast("Saving location…");
       const locRes = await savePlaceLocationApi(selectedGooglePlace);
       if (!locRes.success || !locRes.data?._id) {
@@ -380,7 +415,6 @@ export default function FlatmateRequirementCreateDialog({
 
       const locationId = locRes.data._id;
 
-      // Step 4: Create Flatmate Requirement payload
       toast("Creating flatmate requirement…");
       const payload: any = {
         userId: resolvedUserId,
@@ -390,16 +424,20 @@ export default function FlatmateRequirementCreateDialog({
         propertyType: formData.postType === "property" ? formData.propertyType : undefined,
         partnerType: formData.postType === "partner" ? formData.partnerType : undefined,
         location: locationId,
-        budget: Number(formData.budget),
-        occupationPreference: formData.occupationPreference,
+        area: Number(formData.area),
+        rent: Number(formData.rent),
+        securityDeposit: Number(formData.securityDeposit),
+        maintenanceCharges: formData.maintenanceCharges,
+        furnishing: formData.furnishing,
+        parking: formData.parking,
+        availableFrom: formData.availableFrom || new Date().toISOString().split("T")[0],
         genderPreference: formData.genderPreference,
-        lifestylePreferences: formData.lifestylePreferences,
-        moveInDate: formData.moveInDate || new Date().toISOString().split("T")[0],
-        peopleCount: Number(formData.peopleCount),
+        occupationPreference: formData.occupationPreference,
+        userPreferences: formData.userPreferences,
+        amenities: formData.amenities,
         images: createdImageIds,
         videos: createdVideoIds,
         status: formData.status,
-        expiresAt: formData.expiresAt || undefined,
       };
 
       const res = await createFlatmateRequirementApi(payload);
@@ -445,7 +483,7 @@ export default function FlatmateRequirementCreateDialog({
 
         {/* Scrollable Form Content */}
         <form id="create-requirement-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Requirement Owner (User) & Location (Side by Side) */}
+          {/* Owner & Location */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Section 1: Requirement Owner (User) */}
             <div className="space-y-2">
@@ -724,48 +762,139 @@ export default function FlatmateRequirementCreateDialog({
           {/* Section 4: Budget & Move-in Parameters */}
           <div className="space-y-4 pt-3 border-t border-slate-100">
             <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-              4. Budget & Move-in Parameters
+              4. Pricing & Specifications
             </h4>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                Budget (₹) <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="number"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                value={formData.budget}
-                onChange={(e) => setFormData((prev) => ({ ...prev, budget: Number(e.target.value) }))}
-                min={0}
-                required
-              />
-            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Move-in Date <span className="text-rose-500">*</span>
+                  Rent Amount (₹) <span className="text-rose-500">*</span>
                 </label>
                 <input
-                  type="date"
+                  type="number"
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  value={formData.moveInDate}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, moveInDate: e.target.value }))}
+                  value={formData.rent}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, rent: Number(e.target.value) }))}
+                  min={0}
                   required
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  People Count
+                  Security Deposit (₹)
                 </label>
                 <input
                   type="number"
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  value={formData.peopleCount}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, peopleCount: Number(e.target.value) }))}
-                  min={1}
+                  value={formData.securityDeposit}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, securityDeposit: Number(e.target.value) }))}
+                  min={0}
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Area (sq.ft)
+                </label>
+                <input
+                  type="number"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                  value={formData.area}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, area: Number(e.target.value) }))}
+                  min={0}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Maintenance Amount (₹)
+                </label>
+                <input
+                  type="number"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                  value={formData.maintenanceCharges.amount}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      maintenanceCharges: {
+                        ...prev.maintenanceCharges,
+                        amount: Number(e.target.value),
+                      },
+                    }))
+                  }
+                  min={0}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Maintenance Frequency
+                </label>
+                <select
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                  value={formData.maintenanceCharges.frequency}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      maintenanceCharges: {
+                        ...prev.maintenanceCharges,
+                        frequency: e.target.value as any,
+                      },
+                    }))
+                  }
+                >
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                  <option value="included">Included</option>
+                  <option value="one_time">One Time</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Furnishing
+                </label>
+                <select
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                  value={formData.furnishing}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, furnishing: e.target.value as any }))}
+                >
+                  <option value="fully_furnished">Fully Furnished</option>
+                  <option value="semi_furnished">Semi Furnished</option>
+                  <option value="unfurnished">Unfurnished</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Available From <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                  value={formData.availableFrom}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, availableFrom: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Parking
+                </label>
+                <select
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                  value={formData.parking ? "true" : "false"}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, parking: e.target.value === "true" }))}
+                >
+                  <option value="false">No Parking</option>
+                  <option value="true">Parking Available</option>
+                </select>
               </div>
 
               <div>
@@ -792,7 +921,7 @@ export default function FlatmateRequirementCreateDialog({
           {/* Section 5: Preferences & Lifestyle */}
           <div className="space-y-4 pt-3 border-t border-slate-100">
             <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-              5. Preferences & Lifestyle
+              5. Preferences & Amenities
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -811,6 +940,7 @@ export default function FlatmateRequirementCreateDialog({
                   <option value="self_employed">Self Employed</option>
                   <option value="business_owner">Business Owner</option>
                   <option value="freelancer">Freelancer</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
 
@@ -826,6 +956,7 @@ export default function FlatmateRequirementCreateDialog({
                   <option value="any">Any</option>
                   <option value="male">Male Only</option>
                   <option value="female">Female Only</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
             </div>
@@ -833,23 +964,50 @@ export default function FlatmateRequirementCreateDialog({
             {preferenceOptions.length > 0 && (
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Lifestyle Preferences
+                  User / Lifestyle Preferences
                 </label>
                 <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
                   {preferenceOptions.map((pref) => {
-                    const selected = formData.lifestylePreferences.includes(pref._id);
+                    const selected = formData.userPreferences.includes(pref._id);
                     return (
                       <button
                         type="button"
                         key={pref._id}
-                        onClick={() => togglePreference(pref._id)}
+                        onClick={() => toggleUserPreference(pref._id)}
                         className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                           selected
                             ? "bg-amber-500 text-white shadow-sm"
                             : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
                         }`}
                       >
-                        {pref.name} ({pref.category})
+                        {pref.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {amenityOptions.length > 0 && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Property Amenities
+                </label>
+                <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                  {amenityOptions.map((amenity) => {
+                    const selected = formData.amenities.includes(amenity._id);
+                    return (
+                      <button
+                        type="button"
+                        key={amenity._id}
+                        onClick={() => toggleAmenity(amenity._id)}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                          selected
+                            ? "bg-amber-600 text-white shadow-sm"
+                            : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        {amenity.name}
                       </button>
                     );
                   })}
@@ -862,7 +1020,7 @@ export default function FlatmateRequirementCreateDialog({
           <div className="space-y-4 pt-3 border-t border-slate-100">
             <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">6. Media Assets Management</h4>
 
-            {/* Images Upload Section */}
+            {/* Images */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
@@ -925,7 +1083,7 @@ export default function FlatmateRequirementCreateDialog({
               )}
             </div>
 
-            {/* Videos Upload Section */}
+            {/* Videos */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">

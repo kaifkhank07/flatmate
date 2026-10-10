@@ -6,6 +6,7 @@ import {
   deleteProfileImage,
   getProfileCompletionStatus,
   markProfileAsCompleted,
+  checkUserPreferencesStatus,
 } from '../../controllers/auth/profile.controller';
 import { authenticateUser } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validate.middleware';
@@ -19,6 +20,7 @@ router.patch('/', authenticateUser, uploadSingleImage, validate(updateProfileSch
 
 router.get('/completion-status', authenticateUser, getProfileCompletionStatus);
 router.patch('/complete', authenticateUser, markProfileAsCompleted);
+router.get('/check-preferences', authenticateUser, checkUserPreferencesStatus);
 
 // Profile image management routes
 router.post('/image', authenticateUser, uploadSingleImage, uploadProfileImage);

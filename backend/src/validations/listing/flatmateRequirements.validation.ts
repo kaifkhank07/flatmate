@@ -28,9 +28,37 @@ export const createFlatmateRequirementSchema = z.object({
         .enum(['roommate', 'flatmate'])
         .optional(),
       location: objectIdString,
-      budget: z
-        .number({ required_error: 'Budget is required' })
-        .min(0, 'Budget cannot be negative'),
+      area: z.number().min(0, 'Area cannot be negative').optional().default(0),
+      rent: z
+        .number({ required_error: 'Rent is required' })
+        .min(0, 'Rent cannot be negative'),
+      securityDeposit: z
+        .number()
+        .min(0, 'Security deposit cannot be negative')
+        .optional()
+        .default(0),
+      maintenanceCharges: z
+        .object({
+          amount: z.number().min(0, 'Maintenance amount cannot be negative').default(0),
+          frequency: z
+            .enum(['monthly', 'yearly', 'included', 'one_time'])
+            .default('yearly'),
+        })
+        .optional()
+        .default({ amount: 0, frequency: 'yearly' }),
+      furnishing: z
+        .enum(['fully_furnished', 'semi_furnished', 'unfurnished'])
+        .optional()
+        .default('semi_furnished'),
+      parking: z.boolean().optional().default(false),
+      availableFrom: z.string().or(z.date()).refine(
+        (val) => !isNaN(Date.parse(val.toString())),
+        { message: 'Invalid availableFrom date' }
+      ),
+      genderPreference: z
+        .enum(['male', 'female', 'other', 'any'])
+        .optional()
+        .default('any'),
       occupationPreference: z
         .enum([
           'student',
@@ -38,24 +66,18 @@ export const createFlatmateRequirementSchema = z.object({
           'self_employed',
           'business_owner',
           'freelancer',
+          'other',
           'any',
         ])
         .optional()
         .default('any'),
-      genderPreference: z
-        .enum(['male', 'female', 'any'])
-        .optional()
-        .default('any'),
-      lifestylePreferences: z.array(objectIdString).optional(),
-      moveInDate: z.string().or(z.date()).refine(
-        (val) => !isNaN(Date.parse(val.toString())),
-        { message: 'Invalid moveInDate' }
-      ),
-      peopleCount: z.number().min(1, 'People count must be at least 1').optional(),
-      images: z.array(objectIdString).optional(),
-      videos: z.array(objectIdString).optional(),
-      expiresAt: z.string().or(z.date()).optional(),
-      status: z.enum(['draft', 'pending', 'approved', 'rejected', 'blocked', 'closed', 'expired']).optional(),
+      userPreferences: z.array(objectIdString).optional().default([]),
+      amenities: z.array(objectIdString).optional().default([]),
+      images: z.array(objectIdString).optional().default([]),
+      videos: z.array(objectIdString).optional().default([]),
+      status: z
+        .enum(['draft', 'pending', 'approved', 'rejected', 'blocked', 'closed', 'expired'])
+        .optional(),
     })
     .superRefine((data, ctx) => {
       // Conditional postType validations
@@ -115,7 +137,23 @@ export const updateFlatmateRequirementSchema = z.object({
         .enum(['roommate', 'flatmate'])
         .optional(),
       location: objectIdString.optional(),
-      budget: z.number().min(0, 'Budget cannot be negative').optional(),
+      area: z.number().min(0, 'Area cannot be negative').optional(),
+      rent: z.number().min(0, 'Rent cannot be negative').optional(),
+      securityDeposit: z.number().min(0, 'Security deposit cannot be negative').optional(),
+      maintenanceCharges: z
+        .object({
+          amount: z.number().min(0, 'Maintenance amount cannot be negative').optional(),
+          frequency: z
+            .enum(['monthly', 'yearly', 'included', 'one_time'])
+            .optional(),
+        })
+        .optional(),
+      furnishing: z
+        .enum(['fully_furnished', 'semi_furnished', 'unfurnished'])
+        .optional(),
+      parking: z.boolean().optional(),
+      availableFrom: z.string().or(z.date()).optional(),
+      genderPreference: z.enum(['male', 'female', 'other', 'any']).optional(),
       occupationPreference: z
         .enum([
           'student',
@@ -123,16 +161,14 @@ export const updateFlatmateRequirementSchema = z.object({
           'self_employed',
           'business_owner',
           'freelancer',
+          'other',
           'any',
         ])
         .optional(),
-      genderPreference: z.enum(['male', 'female', 'any']).optional(),
-      lifestylePreferences: z.array(objectIdString).optional(),
-      moveInDate: z.string().or(z.date()).optional(),
-      peopleCount: z.number().min(1, 'People count must be at least 1').optional(),
+      userPreferences: z.array(objectIdString).optional(),
+      amenities: z.array(objectIdString).optional(),
       images: z.array(objectIdString).optional(),
       videos: z.array(objectIdString).optional(),
-      expiresAt: z.string().or(z.date()).optional(),
       status: z
         .enum([
           'draft',
@@ -196,13 +232,19 @@ export const getPublicFlatmateRequirementsSchema = z.object({
         'self_employed',
         'business_owner',
         'freelancer',
+        'other',
         'any',
       ])
       .optional(),
-    genderPreference: z.enum(['male', 'female', 'any']).optional(),
+    genderPreference: z.enum(['male', 'female', 'other', 'any']).optional(),
+    furnishing: z.enum(['fully_furnished', 'semi_furnished', 'unfurnished']).optional(),
+    rent: z.string().or(z.number()).optional(),
     budget: z.string().or(z.number()).optional(),
+    availableFrom: z.string().optional(),
     moveInDate: z.string().optional(),
+    userPreferences: z.string().or(z.array(z.string())).optional(),
     lifestylePreferences: z.string().or(z.array(z.string())).optional(),
+    amenities: z.string().or(z.array(z.string())).optional(),
     page: z.string().or(z.number()).optional(),
     limit: z.string().or(z.number()).optional(),
     sortBy: z.string().optional(),

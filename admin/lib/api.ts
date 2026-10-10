@@ -3,7 +3,12 @@
  * Interacts with backend Express APIs
  */
 
-const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api`;
+const getBaseServerUrl = (): string => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  return envUrl.replace(/\/+$/, '').replace(/\/api$/, '');
+};
+
+const API_BASE_URL = `${getBaseServerUrl()}/api`;
 
 export interface UserItem {
   _id: string;
@@ -374,7 +379,6 @@ export interface UserPreferenceImage {
 
 export interface UserPreferenceItem {
   _id: string;
-  category: "food" | "pets" | "drink";
   name: string;
   image?: UserPreferenceImage | string;
   isActive: boolean;
@@ -382,9 +386,8 @@ export interface UserPreferenceItem {
   updatedAt: string;
 }
 
-export async function fetchUserPreferences(params?: { category?: string; status?: string; search?: string; page?: number; limit?: number }) {
+export async function fetchUserPreferences(params?: { status?: string; search?: string; page?: number; limit?: number }) {
   const query = new URLSearchParams();
-  if (params?.category && params.category !== "all") query.append("category", params.category);
   if (params?.status && params.status !== "all") query.append("status", params.status);
   if (params?.search) query.append("search", params.search);
   if (params?.page) query.append("page", params.page.toString());
@@ -396,14 +399,14 @@ export async function fetchUserPreferences(params?: { category?: string; status?
   return apiFetch<{ items: UserPreferenceItem[]; total: number; page: number; limit: number }>(endpoint);
 }
 
-export async function createUserPreference(payload: FormData | { category: "food" | "pets" | "drink"; name: string; image?: any; isActive?: boolean }) {
+export async function createUserPreference(payload: FormData | { name: string; image?: any; isActive?: boolean }) {
   return apiFetch<UserPreferenceItem>("/user-preferences", {
     method: "POST",
     body: payload instanceof FormData ? payload : JSON.stringify(payload),
   });
 }
 
-export async function updateUserPreference(id: string, payload: FormData | { category?: "food" | "pets" | "drink"; name?: string; image?: any; isActive?: boolean }) {
+export async function updateUserPreference(id: string, payload: FormData | { name?: string; image?: any; isActive?: boolean }) {
   return apiFetch<UserPreferenceItem>(`/user-preferences/${id}`, {
     method: "PUT",
     body: payload instanceof FormData ? payload : JSON.stringify(payload),
@@ -604,15 +607,13 @@ export interface PropertyAmenityItem {
   _id: string;
   name: string;
   image?: AmenityImage | string;
-  category: "basic" | "security" | "parking" | "fitness" | "recreation" | "utilities" | "other";
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-export async function fetchPropertyAmenities(params?: { category?: string; page?: number; limit?: number; search?: string }) {
+export async function fetchPropertyAmenities(params?: { page?: number; limit?: number; search?: string }) {
   const query = new URLSearchParams();
-  if (params?.category && params.category !== "all") query.append("category", params.category);
   if (params?.page) query.append("page", params.page.toString());
   if (params?.limit) query.append("limit", params.limit.toString());
   if (params?.search) query.append("search", params.search);
@@ -625,7 +626,6 @@ export async function fetchPropertyAmenities(params?: { category?: string; page?
 
 export async function createPropertyAmenityApi(payload: FormData | {
   name: string;
-  category: "basic" | "security" | "parking" | "fitness" | "recreation" | "utilities" | "other";
   image?: any;
   isActive?: boolean;
 }) {
@@ -639,7 +639,6 @@ export async function updatePropertyAmenityApi(
   id: string,
   payload: FormData | {
     name?: string;
-    category?: "basic" | "security" | "parking" | "fitness" | "recreation" | "utilities" | "other";
     image?: any;
     isActive?: boolean;
   }
@@ -672,54 +671,40 @@ export interface PropertyMediaItem {
   createdAt?: string;
 }
 
+export type PropertyType = "flat" | "room" | "pg" | "shared_apartment" | "entire_property";
+export type FurnishingType = "fully_furnished" | "semi_furnished" | "unfurnished";
+export type GenderPreference = "male" | "female" | "other" | "any";
+export type OccupationPreference = "student" | "working_professional" | "self_employed" | "business_owner" | "freelancer" | "other" | "any";
 export type ListingStatus = "draft" | "pending" | "approved" | "rejected" | "blocked" | "closed" | "expired";
 
 export interface PropertyItem {
   _id: string;
-  ownerId: any;
+  userId?: any;
+  ownerId?: any;
   title: string;
   slug: string;
   description: string;
-  listingType: any;
+  propertyType?: PropertyType;
+  listingType?: PropertyType;
   location?: any;
-  rent: {
-    amount: number;
-    currency: string;
-  };
+  rent: number;
   securityDeposit?: number;
   maintenanceCharges?: {
     amount: number;
     frequency: string;
   };
-  furnishing?: any;
+  furnishing?: FurnishingType;
+  parking?: boolean;
   availableFrom?: string;
-  availableUntil?: string;
-  genderPreference?: any;
-  occupationPreference?: any;
-  parking?: any;
-  bedrooms?: number;
-  bathrooms?: number;
-  balconies?: number;
-  floors?: number;
-  totalFloors?: number;
-  preferredTenants?: any;
-  propertyType?: any;
-  ageOfProperty?: any;
-  facing?: any;
-  totalArea?: number;
-  carpetArea?: number;
-  builtUpArea?: number;
-  area?: {
-    value: number;
-    unit: "sqft" | "sqm";
-  };
+  genderPreference?: GenderPreference;
+  occupationPreference?: OccupationPreference;
+  area?: number;
   amenities?: Array<string | { _id?: string; name?: string; category?: string; image?: any }>;
   images?: PropertyMediaItem[];
   videos?: PropertyMediaItem[];
   status: ListingStatus;
   rejectionReason?: string;
   favoriteCount?: number;
-  expiresAt?: string;
   approvedAt?: string;
   publishedAt?: string;
   createdAt: string;
@@ -728,9 +713,11 @@ export interface PropertyItem {
 
 export async function fetchProperties(params?: {
   status?: string;
+  propertyType?: string;
   listingType?: string;
   furnishing?: string;
   location?: string;
+  userId?: string;
   ownerId?: string;
   genderPreference?: string;
   occupationPreference?: string;
@@ -740,10 +727,12 @@ export async function fetchProperties(params?: {
 }) {
   const query = new URLSearchParams();
   if (params?.status && params.status !== "all") query.append("status", params.status);
-  if (params?.listingType && params.listingType !== "all") query.append("listingType", params.listingType);
+  const pType = params?.propertyType || params?.listingType;
+  if (pType && pType !== "all") query.append("propertyType", pType);
   if (params?.furnishing && params.furnishing !== "all") query.append("furnishing", params.furnishing);
   if (params?.location && params.location !== "all") query.append("location", params.location);
-  if (params?.ownerId && params.ownerId !== "all") query.append("ownerId", params.ownerId);
+  const uId = params?.userId || params?.ownerId;
+  if (uId && uId !== "all") query.append("userId", uId);
   if (params?.genderPreference && params.genderPreference !== "all") query.append("genderPreference", params.genderPreference);
   if (params?.occupationPreference && params.occupationPreference !== "all") query.append("occupationPreference", params.occupationPreference);
   if (params?.search) query.append("search", params.search);
@@ -859,31 +848,35 @@ export interface FlatmateRequirementItem {
   description?: string;
 
   postType: "property" | "partner";
-
   propertyType?: "room" | "flat" | "pg" | "shared_apartment";
-
   partnerType?: "roommate" | "flatmate";
 
   location?:
   | string
   | FlatmateRequirementLocation;
 
-  budget: {
-    min: number;
-    max: number;
+  area?: number;
+
+  rent: number;
+
+  securityDeposit?: number;
+
+  maintenanceCharges?: {
+    amount: number;
+    frequency: string;
   };
 
-  occupationPreference:
-  | "student"
-  | "working_professional"
-  | "self_employed"
-  | "business_owner"
-  | "freelancer"
-  | "any";
+  furnishing?: FurnishingType;
 
-  genderPreference: "male" | "female" | "any";
+  parking?: boolean;
 
-  lifestylePreferences?: Array<
+  availableFrom: string;
+
+  genderPreference?: GenderPreference;
+
+  occupationPreference?: OccupationPreference;
+
+  userPreferences?: Array<
     | string
     | {
       _id?: string;
@@ -893,18 +886,23 @@ export interface FlatmateRequirementItem {
     }
   >;
 
-  moveInDate: string;
-
-  peopleCount?: number;
+  amenities?: Array<
+    | string
+    | {
+      _id?: string;
+      name?: string;
+      category?: string;
+      image?: any;
+    }
+  >;
 
   images?: FlatmateRequirementMediaItem[];
 
   videos?: FlatmateRequirementMediaItem[];
 
-  expiresAt?: string;
-
   status: ListingStatus;
   rejectionReason?: string;
+  favoriteCount?: number;
 
   createdAt: string;
   updatedAt: string;

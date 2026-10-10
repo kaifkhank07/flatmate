@@ -65,6 +65,7 @@ export default function UsersManager({
 
   // Selected User Drawer / Details state
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [drawerRefreshKey, setDrawerRefreshKey] = useState(0);
 
   // Dialog Selection States
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -118,6 +119,11 @@ export default function UsersManager({
     }
     setLoading(false);
   }, [page, search, filter, showDeleted, toast]);
+
+  const handleUserUpdated = useCallback(() => {
+    loadUsers();
+    setDrawerRefreshKey((prev) => prev + 1);
+  }, [loadUsers]);
 
   useEffect(() => {
     loadUsers();
@@ -349,6 +355,7 @@ export default function UsersManager({
 
       <UserDetailsDrawer
         selectedUserId={selectedUserId}
+        refreshKey={drawerRefreshKey}
         onClose={() => setSelectedUserId(null)}
         onOpenProfileEdit={(user, profile) => handleOpenProfileEdit(user, profile)}
         onOpenStatusEdit={(user) => setEditUser(user)}
@@ -363,26 +370,26 @@ export default function UsersManager({
       <EditUserDialog
         user={editUser}
         onClose={() => setEditUser(null)}
-        onSuccess={loadUsers}
+        onSuccess={handleUserUpdated}
       />
 
       <DeleteUserDialog
         user={deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        onSuccess={loadUsers}
+        onSuccess={handleUserUpdated}
       />
 
       <ToggleUserStatusDialog
         user={statusTarget}
         onClose={() => setStatusTarget(null)}
-        onSuccess={loadUsers}
+        onSuccess={handleUserUpdated}
       />
 
       <EditUserProfileDialog
         user={editProfileUser}
         profile={editProfileData}
         onClose={() => setEditProfileUser(null)}
-        onSuccess={loadUsers}
+        onSuccess={handleUserUpdated}
       />
     </>
   );

@@ -68,7 +68,9 @@ export default function PropertyDetailsDialog({
         </div>
 
         {loading ? (
-          <div style={{ padding: 24, textAlign: "center" }}>Loading property details…</div>
+          <div style={{ padding: 24, textAlign: "center" }}>
+            Loading property details…
+          </div>
         ) : property ? (
           <>
             <div className="d-hero">
@@ -171,12 +173,7 @@ export default function PropertyDetailsDialog({
                   <b>₹{(property.securityDeposit || 0).toLocaleString("en-IN")}</b>
                 </div>
               )}
-              {Boolean(property.bedrooms && property.bedrooms > 0) && (
-                <div className="d-stat">
-                  <span>BEDROOMS</span>
-                  <b>{property.bedrooms} BHK</b>
-                </div>
-              )}
+
             </div>
 
             {property.rejectionReason && (
@@ -199,24 +196,28 @@ export default function PropertyDetailsDialog({
             <div className="card-title" style={{ margin: "16px 0 6px" }}>
               Property Specifications & Overview
             </div>
+
             {property.slug && (
               <div className="d-row">
                 <span>Slug</span>
                 <b style={{ fontSize: 12, fontFamily: "monospace" }}>{property.slug}</b>
               </div>
             )}
-            {property.listingType && (
+
+            {(property.propertyType || property.listingType) && (
               <div className="d-row">
-                <span>Listing Type</span>
-                <b>{property.listingType.replace(/_/g, " ").toUpperCase()}</b>
+                <span>Property Type</span>
+                <b>{(property.propertyType || property.listingType)?.replace(/_/g, " ").toUpperCase()}</b>
               </div>
             )}
+
             {property.furnishing && (
               <div className="d-row">
                 <span>Furnishing</span>
                 <b>{property.furnishing.replace(/_/g, " ").toUpperCase()}</b>
               </div>
             )}
+
             {Boolean(property.maintenanceCharges?.amount && property.maintenanceCharges.amount > 0) && (
               <div className="d-row">
                 <span>Maintenance</span>
@@ -226,71 +227,51 @@ export default function PropertyDetailsDialog({
                 </b>
               </div>
             )}
-            {property.parking?.available !== undefined && (
+
+            {property.parking !== undefined && (
               <div className="d-row">
                 <span>Parking</span>
-                <b>{property.parking.available ? "Available" : "Not Available"}</b>
+                <b>{property.parking ? "Available" : "Not Available"}</b>
               </div>
             )}
+
             {property.availableFrom && (
               <div className="d-row">
                 <span>Available From</span>
                 <b>{new Date(property.availableFrom).toLocaleDateString()}</b>
               </div>
             )}
-            {property.availableUntil && (
-              <div className="d-row">
-                <span>Available Until</span>
-                <b>{new Date(property.availableUntil).toLocaleDateString()}</b>
-              </div>
-            )}
-            {Boolean(
-              (property.bathrooms && property.bathrooms > 0) ||
-                (property.balconies && property.balconies > 0)
-            ) && (
-              <div className="d-row">
-                <span>Baths & Balconies</span>
-                <b>
-                  {property.bathrooms ? `${property.bathrooms} Bath(s)` : ""}
-                  {property.bathrooms && property.balconies ? " / " : ""}
-                  {property.balconies ? `${property.balconies} Balcony` : ""}
-                </b>
-              </div>
-            )}
-            {Boolean(property.floors && property.floors > 0) && (
-              <div className="d-row">
-                <span>Floors</span>
-                <b>{property.floors} Floor(s)</b>
-              </div>
-            )}
-            {Boolean(property.area?.value && property.area.value > 0) && (
+
+            {Boolean(property.area && property.area > 0) && (
               <div className="d-row">
                 <span>Area Size</span>
-                <b>
-                  {property.area!.value} {property.area?.unit || "sqft"}
-                </b>
+                <b>{property.area} sqft</b>
               </div>
             )}
 
             <div className="card-title" style={{ margin: "16px 0 6px" }}>
               Preferences & Owner
             </div>
+
             {property.genderPreference && (
               <div className="d-row">
                 <span>Gender Preference</span>
                 <b>{property.genderPreference.toUpperCase()}</b>
               </div>
             )}
+
             {property.occupationPreference && (
               <div className="d-row">
                 <span>Occupation Preference</span>
                 <b>{property.occupationPreference.replace(/_/g, " ").toUpperCase()}</b>
               </div>
             )}
+
             <div className="d-row">
-              <span>Owner Contact / Email</span>
-              <b>{getOwnerLabel(property.ownerId)}</b>
+              <span>Owner / User</span>
+              <b>{getOwnerLabel(property.userId || property.ownerId)}</b>
             </div>
+
             {Array.isArray((property as any).houseRules) &&
               (property as any).houseRules.length > 0 && (
                 <div className="d-row">

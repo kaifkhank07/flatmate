@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PropertyAmenity, AmenityCategory, IAmenityImage } from '../../models/listing/propertyAmenity.model';
+import { PropertyAmenity, IAmenityImage } from '../../models/listing/propertyAmenity.model';
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
 import { uploadToS3, deleteFile, extractKeyFromUrl } from '../../services/aws/s3.service';
@@ -63,7 +63,7 @@ const parseImageInput = async (
 export const createPropertyAmenity = async (req: Request, res: Response): Promise<Response> => {
   let uploadedKey: string | undefined;
   try {
-    const { name, category, isActive } = req.body;
+    const { name, isActive } = req.body;
 
     if (!name || typeof name !== 'string' || name.trim() === '') {
       return sendError(res, 'Amenity name is required', 400);
@@ -88,7 +88,6 @@ export const createPropertyAmenity = async (req: Request, res: Response): Promis
 
     const amenity = await PropertyAmenity.create({
       name: trimmedName,
-      category: category || 'basic',
       image: imageObj,
       isActive: isActive !== false && isActive !== 'false',
     });
@@ -121,13 +120,6 @@ export const getPropertyAmenities = async (req: Request, res: Response): Promise
 
     const filter: any = {};
 
-    if (req.query.category) {
-      const categoryStr = (req.query.category as string).toLowerCase().trim();
-      if (['basic', 'security', 'parking', 'fitness', 'recreation', 'utilities', 'other'].includes(categoryStr)) {
-        filter.category = categoryStr;
-      }
-    }
-
     if (req.query.isActive !== undefined) {
       filter.isActive = req.query.isActive === 'true';
     }
@@ -139,7 +131,7 @@ export const getPropertyAmenities = async (req: Request, res: Response): Promise
 
     const [items, total] = await Promise.all([
       PropertyAmenity.find(filter)
-        .sort({ category: 1, name: 1 })
+        .sort({ name: 1 })
         .skip(skip)
         .limit(limit)
         .lean(),
@@ -202,21 +194,13 @@ export const updatePropertyAmenity = async (req: Request, res: Response): Promis
     }
 
     const oldImageKey = amenity.image?.key || extractKeyFromUrl(amenity.image?.url);
-    const { name, category, isActive } = req.body;
+    const { name, isActive } = req.body;
 
     if (name !== undefined) {
       if (typeof name !== 'string' || name.trim() === '') {
         return sendError(res, 'Amenity name cannot be empty', 400);
       }
       amenity.name = name.trim();
-    }
-
-    if (category !== undefined) {
-      const categoryStr = String(category).toLowerCase().trim();
-      if (!['basic', 'security', 'parking', 'fitness', 'recreation', 'utilities', 'other'].includes(categoryStr)) {
-        return sendError(res, 'Invalid category', 400);
-      }
-      amenity.category = categoryStr as AmenityCategory;
     }
 
     if (isActive !== undefined) {
@@ -259,6 +243,7 @@ export const updatePropertyAmenity = async (req: Request, res: Response): Promis
         logger.error(`[PropertyAmenityController] Rollback S3 image failed ${uploadedKey}:`, err)
       );
     }
+
     if (error.code === 11000) {
       return sendError(res, 'Duplicate property amenity record', 409);
     }

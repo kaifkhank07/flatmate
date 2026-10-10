@@ -16,7 +16,6 @@ import {
 export interface UserPreferenceItem {
   _id: string;
   name: string;
-  category: 'food' | 'pets' | 'drink';
   image?: { url?: string; key?: string };
   isActive: boolean;
 }
@@ -69,6 +68,7 @@ interface AuthState {
   // Preference Operations
   fetchMasterPreferences: () => Promise<UserPreferenceItem[]>;
   updateUserPreferences: (preferenceIds: string[]) => Promise<boolean>;
+  checkPreferencesStatus: () => Promise<{ hasFivePreferences: boolean; preferencesCount: number }>;
 
   logout: () => Promise<void>;
   initializeAuth: () => Promise<void>;
@@ -526,6 +526,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         preferencesError: errorMessage,
       });
       return false;
+    }
+  },
+
+  /**
+   * Check if user has added at least 5 preferences
+   * GET /api/profile/check-preferences
+   */
+  checkPreferencesStatus: async () => {
+    try {
+      const response = await apiClient.get<
+        AuthApiResponse<{
+          hasFivePreferences: boolean;
+          preferencesCount: number;
+          requiredCount: number;
+        }>
+      >('/profile/check-preferences');
+
+      if (response.data?.success && response.data?.data) {
+        return {
+          hasFivePreferences: response.data.data.hasFivePreferences === true,
+          preferencesCount: response.data.data.preferencesCount || 0,
+        };
+      }
+      return { hasFivePreferences: false, preferencesCount: 0 };
+    } catch {
+      return { hasFivePreferences: false, preferencesCount: 0 };
     }
   },
 

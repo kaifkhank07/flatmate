@@ -104,6 +104,7 @@ export default function PropertyManager({
     setLoading(true);
     const res = await fetchProperties({
       status: selectedStatusFilter,
+      propertyType: selectedListingTypeFilter,
       listingType: selectedListingTypeFilter,
       furnishing: selectedFurnishingFilter,
       location: selectedLocationFilter,
@@ -323,7 +324,7 @@ export default function PropertyManager({
                   <th>Property</th>
                   <th>Owner</th>
                   <th>Location</th>
-                  <th>Listing Type</th>
+                  <th>Type</th>
                   <th>Rent & Deposit</th>
                   <th>Furnishing</th>
                   <th>Available From</th>
@@ -394,14 +395,14 @@ export default function PropertyManager({
                             >
                               {item.title}
                             </strong>
-                            <span style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                              ID: {item._id.slice(-6)}
+                            <span style={{ fontSize: 11, color: "var(--ink-3)", whiteSpace: "nowrap", }}>
+                              {item.slug}
                             </span>
                           </div>
                         </td>
 
                         <td style={{ fontSize: 13, color: "var(--ink-2)" }}>
-                          {getOwnerLabel(item.ownerId)}
+                          {getOwnerLabel(item.userId || item.ownerId)}
                         </td>
 
                         <td style={{ fontSize: 13, color: "var(--ink-2)" }}>
@@ -410,7 +411,7 @@ export default function PropertyManager({
 
                         <td>
                           <Chip tone="iris">
-                            {(item.listingType || "flat").replace(/_/g, " ").toUpperCase()}
+                            {(item.propertyType || item.listingType || "flat").replace(/_/g, " ").toUpperCase()}
                           </Chip>
                         </td>
 

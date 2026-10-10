@@ -55,7 +55,7 @@ export default function DeletePropertyAmenityDialog({
         {/* Modal Body */}
         <div className="space-y-2 text-sm text-slate-700">
           <p>
-            Are you sure you want to delete <strong className="text-slate-900 font-semibold">&quot;{amenity.name}&quot;</strong> ({amenity.category})?
+            Are you sure you want to delete <strong className="text-slate-900 font-semibold">&quot;{amenity.name}&quot;</strong>?
           </p>
           <p className="text-xs text-slate-500">
             This action cannot be undone.
