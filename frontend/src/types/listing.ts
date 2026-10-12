@@ -310,6 +310,7 @@ export interface FlatmateListingItem {
   category: "Flat" | "Flatmate" | "Property";
   avatarBg: string;
   avatarType: "male1" | "female1" | "female2" | "female3" | "male2" | "female4";
+  status?: string;
 }
 
 export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListingItem {
@@ -359,8 +360,8 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
     const lookingForGender = property.genderPreference === "male"
       ? "Male"
       : property.genderPreference === "female"
-      ? "Female"
-      : "Any";
+        ? "Female"
+        : "Any";
 
     const pType = property.propertyType || property.listingType;
     const lookingForType = pType
@@ -373,6 +374,8 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       gender === "Male" ? "male1" : "female1";
 
     const displayImage = getFirstMediaUrl(property.images) || getUserAvatarUrl(userObj);
+
+    const status = property.status || "status";
 
     return {
       id: property.slug || property._id,
@@ -390,6 +393,7 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       category,
       avatarBg: "bg-[#EBF5FF]",
       avatarType,
+      status
     };
   } else {
     const flatmate = item as FlatmateRequirementItem;
@@ -412,16 +416,16 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
     const gender: "Male" | "Female" = flatmate.userId?.gender === "female"
       ? "Female"
       : flatmate.userId?.gender === "male"
-      ? "Male"
-      : flatmate.genderPreference === "female"
-      ? "Female"
-      : "Male";
+        ? "Male"
+        : flatmate.genderPreference === "female"
+          ? "Female"
+          : "Male";
 
     const lookingForGender = flatmate.genderPreference === "male"
       ? "Male"
       : flatmate.genderPreference === "female"
-      ? "Female"
-      : "Any";
+        ? "Female"
+        : "Any";
 
     let lookingForType = "FLATMATE";
     if (isPropertyPost) {
@@ -443,6 +447,8 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       ? getFirstMediaUrl(flatmate.images) || getUserAvatarUrl(flatmate.userId)
       : getUserAvatarUrl(flatmate.userId) || getFirstMediaUrl(flatmate.images);
 
+    const status = flatmate.status || "status";
+
     return {
       id: flatmate.slug || flatmate._id,
       sourceType: "flatmate_requirement",
@@ -460,6 +466,7 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       category,
       avatarBg: isPropertyPost ? "bg-[#FFF5EB]" : "bg-[#F0FDF4]",
       avatarType,
+      status
     };
   }
 }

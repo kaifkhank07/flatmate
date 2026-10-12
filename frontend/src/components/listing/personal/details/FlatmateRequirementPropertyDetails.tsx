@@ -217,14 +217,17 @@ export default function FlatmateRequirementPropertyDetails({
 
               {/* Edit & Delete Buttons */}
               <div className="flex items-center gap-2 shrink-0 pt-1">
-                <Link
-                  href={`/my-listings/edit/${listing._id}`}
-                  className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer shadow-sm"
-                  title="Edit Listing"
-                >
-                  <Pencil className="w-4 h-4" />
-                  <span className="hidden sm:inline">Edit</span>
-                </Link>
+                {(listing?.status === "pending" || listing?.status === "rejected") && (
+                  <Link
+                    href={`/my-listings/edit/${listing._id}`}
+                    className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer shadow-sm"
+                    title="Edit Listing"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    <span className="hidden sm:inline">Edit</span>
+                  </Link>
+                )}
+
                 <button
                   type="button"
                   onClick={() => setShowDeleteModal(true)}

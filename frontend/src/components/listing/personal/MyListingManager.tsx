@@ -198,6 +198,27 @@ export default function MyListingManager() {
     { label: "Rejected", value: "rejected" },
   ];
 
+  const getPropertyStatusStyles = (status?: string): string => {
+    switch (status) {
+      case "draft":
+        return "bg-gray-100 text-gray-700 border-gray-200";
+      case "pending":
+        return "bg-amber-100 text-amber-700 border-amber-200";
+      case "approved":
+        return "bg-green-100 text-green-700 border-green-200";
+      case "rejected":
+        return "bg-red-100 text-red-700 border-red-200";
+      case "blocked":
+        return "bg-rose-100 text-rose-700 border-rose-200";
+      case "closed":
+        return "bg-slate-100 text-slate-700 border-slate-200";
+      case "expired":
+        return "bg-orange-100 text-orange-700 border-orange-200";
+      default:
+        return "bg-gray-100 text-gray-700 border-gray-200";
+    }
+  };
+
   return (
     <section className="w-full min-h-[100vh] py-16 md:py-20 overflow-hidden">
       <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto px-4 sm:px-6 lg:px-16 space-y-6 sm:space-y-10 md:space-y-12">
@@ -325,16 +346,31 @@ export default function MyListingManager() {
                   <div key={item.id} className="relative group w-full">
                     <ListingCard item={item.cardData} isMylisting={true} />
 
-                    {/* Actions Overlay Row (Edit & Delete buttons) */}
-                    <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2">
-                      <Link
-                        href={`/my-listings/edit/${item.id}`}
-                        className="p-2 sm:p-2.5 bg-white/90 hover:bg-blue-50 text-blue-600 hover:text-blue-700 rounded-full shadow-md border border-gray-100 transition-all duration-200 cursor-pointer hover:scale-110"
+                    {/* Status Overlay Row */}
+                    <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+                      <div
+                        className={`px-2 py-1 rounded-full text-xs font-medium capitalize transition-all duration-200 ${getPropertyStatusStyles(
+                          item.cardData?.status
+                        )}`}
                         title="Edit listing"
                         aria-label="Edit listing"
                       >
-                        <Edit className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                      </Link>
+                        {item.cardData?.status}
+                      </div>
+                    </div>
+
+                    {/* Actions Overlay Row (Edit & Delete buttons) */}
+                    <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2">
+                      {(item.cardData?.status === "pending" || item.cardData?.status === "rejected") && (
+                        <Link
+                          href={`/my-listings/edit/${item.id}`}
+                          className="p-2 sm:p-2.5 bg-white/90 hover:bg-blue-50 text-blue-600 hover:text-blue-700 rounded-full shadow-md border border-gray-100 transition-all duration-200 cursor-pointer hover:scale-110"
+                          title="Edit listing"
+                          aria-label="Edit listing"
+                        >
+                          <Edit className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                        </Link>
+                      )}
 
                       <button
                         type="button"
