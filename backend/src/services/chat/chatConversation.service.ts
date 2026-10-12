@@ -3,6 +3,7 @@ import { ChatConversation, IChatConversation } from '../../models/chats/ChatConv
 import { User } from '../../models/auth/user.model';
 import { UserProfile } from '../../models/auth/userProfile.model';
 import { checkBlockStatus } from './chatBlock.service';
+import { isUserOnline } from '../../socket/chat.socket';
 
 /**
  * Normalizes participant IDs by sorting them deterministically to match unique index
@@ -30,7 +31,16 @@ export const getParticipantSummary = async (userId: Types.ObjectId | string) => 
   const user = await User.findById(userObj).select('email mobile role accountStatus profileVerified verificationStatus');
   if (!user) return null;
 
-  const profile = await UserProfile.findOne({ userId: userObj }).select('firstName lastName image gender');
+  const profile = await UserProfile.findOne({ userId: userObj })
+    .select('firstName lastName image avatar gender')
+    .populate({
+      path: 'avatar',
+      select: 'image name',
+    });
+
+  const customImageUrl = profile?.image?.url || '';
+  const avatarImageUrl = (profile?.avatar as any)?.image?.url || '';
+  const finalImageUrl = customImageUrl || avatarImageUrl || '';
 
   return {
     _id: user._id,
@@ -41,7 +51,8 @@ export const getParticipantSummary = async (userId: Types.ObjectId | string) => 
     verificationStatus: user.verificationStatus,
     firstName: profile?.firstName || '',
     lastName: profile?.lastName || '',
-    image: profile?.image?.url || '',
+    image: finalImageUrl,
+    avatar: avatarImageUrl,
     gender: profile?.gender,
   };
 };
@@ -175,6 +186,19 @@ export const getUserConversations = async (
         };
       }
 
+      const blockStatus = otherParticipant
+        ? await checkBlockStatus(userObj, otherParticipant._id)
+        : { isBlocked: false };
+
+      const isBlockedByMe = Boolean(
+        blockStatus.isBlocked && blockStatus.blockerId?.toString() === userObj.toString()
+      );
+      const isBlockedByOther = Boolean(
+        blockStatus.isBlocked && blockStatus.blockerId?.toString() !== userObj.toString()
+      );
+
+      const isOnline = otherParticipant ? isUserOnline(otherParticipant._id) : false;
+
       return {
         _id: conv._id,
         participants: participantSummaries,
@@ -183,6 +207,11 @@ export const getUserConversations = async (
         lastMessageAt: conv.lastMessageAt || conv.createdAt,
         unreadCount,
         isActive: conv.isActive,
+        isOnline: isBlockedByOther ? false : isOnline,
+        isBlocked: blockStatus.isBlocked,
+        isBlockedByMe,
+        isBlockedByOther,
+        blockedBy: blockStatus.blockerId ? blockStatus.blockerId.toString() : null,
         createdAt: conv.createdAt,
         updatedAt: conv.updatedAt,
       };
@@ -254,6 +283,19 @@ export const getConversationById = async (
       ? conversation.unreadCounts.get(userObj.toString()) || 0
       : (conversation.unreadCounts as any)?.[userObj.toString()] || 0;
 
+  const blockStatus = otherParticipant
+    ? await checkBlockStatus(userObj, otherParticipant._id)
+    : { isBlocked: false };
+
+  const isBlockedByMe = Boolean(
+    blockStatus.isBlocked && blockStatus.blockerId?.toString() === userObj.toString()
+  );
+  const isBlockedByOther = Boolean(
+    blockStatus.isBlocked && blockStatus.blockerId?.toString() !== userObj.toString()
+  );
+
+  const isOnline = otherParticipant ? isUserOnline(otherParticipant._id) : false;
+
   return {
     _id: conversation._id,
     participants: participantSummaries,
@@ -262,6 +304,11 @@ export const getConversationById = async (
     lastMessageAt: conversation.lastMessageAt || conversation.createdAt,
     unreadCount,
     isActive: conversation.isActive,
+    isOnline: isBlockedByOther ? false : isOnline,
+    isBlocked: blockStatus.isBlocked,
+    isBlockedByMe,
+    isBlockedByOther,
+    blockedBy: blockStatus.blockerId ? blockStatus.blockerId.toString() : null,
     createdAt: conversation.createdAt,
     updatedAt: conversation.updatedAt,
   };

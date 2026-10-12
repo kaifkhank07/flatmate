@@ -4,6 +4,7 @@ import {
     createBlogCategory,
     getBlogCategories,
     getBlogCategoryById,
+    getPublicBlogCategories,
     updateBlogCategory,
     deleteBlogCategory,
     toggleBlogCategoryStatus,
@@ -19,6 +20,9 @@ import {
 } from '../../validations/contents/blogCategory.validation';
 
 const router = Router();
+
+// Public read-only route
+router.get('/public', getPublicBlogCategories);
 
 router.get(
     '/',

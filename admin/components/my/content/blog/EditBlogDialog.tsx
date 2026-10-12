@@ -11,6 +11,7 @@ import {
     uploadImageApi,
 } from "@/lib/api";
 import { X } from "lucide-react";
+import RichTextEditor, { isBlogContentEmpty } from "./RichTextEditor";
 
 export interface EditBlogDialogProps {
     blog: BlogItem | null;
@@ -89,7 +90,7 @@ export default function EditBlogDialog({
         const trimmedTitle = title.trim();
         const trimmedContent = content.trim();
 
-        if (!trimmedTitle || !trimmedContent || !categoryId) {
+        if (!trimmedTitle || isBlogContentEmpty(content) || !categoryId) {
             toast("Title, content and category are required");
             return;
         }
@@ -165,7 +166,7 @@ export default function EditBlogDialog({
                 }
             }}
         >
-            <div className="w-full max-w-[600px] max-h-[90vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl space-y-4 text-slate-900">
+            <div className="w-full max-w-[720px] max-h-[90vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl space-y-4 text-slate-900">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-4">
                     <div>
                         <h2 className="text-lg font-semibold">
@@ -305,20 +306,15 @@ export default function EditBlogDialog({
 
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                            Content
+                            Content <span className="text-rose-500">*</span>
                         </label>
 
-                        <textarea
+                        <RichTextEditor
                             value={content}
-                            onChange={(e) =>
-                                setContent(
-                                    e.target.value
-                                )
-                            }
-                            placeholder="Write blog content..."
-                            rows={10}
+                            onChange={setContent}
+                            placeholder="Write rich blog content..."
                             disabled={submitting}
-                            className="w-full px-3.5 py-3 rounded-xl border border-slate-200 bg-white text-sm outline-none transition resize-y focus:border-amber-400 focus:ring-2 focus:ring-amber-100 disabled:bg-slate-50"
+                            minHeight={240}
                         />
                     </div>
 

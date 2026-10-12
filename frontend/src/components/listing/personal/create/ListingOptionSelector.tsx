@@ -6,6 +6,7 @@ import { Info, ChevronRight } from "lucide-react";
 import SectionHeading from "@/components/utils/SectionHeading";
 import { useAssets } from "@/data/assets";
 import Image from "next/image";
+import { ViewReveal } from "@/components/animation";
 
 interface ListingOptionSelectorProps {
   onSelectOption: (
@@ -259,22 +260,26 @@ export default function ListingOptionSelector({
     <section className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
       <div className="w-full max-w-7xl mx-auto space-y-6 sm:space-y-10 md:space-y-12">
         {/* Top Header Section */}
-        <SectionHeading
-          title="Post Your Requirement"
-          description="Find Your Perfect Roommate Or Room Effortlessly. Just Post Your Requirement And Let The Matching Begin!"
-          align="center"
-        />
+        <ViewReveal duration={800}>
+          <SectionHeading
+            title="Post Your Requirement"
+            description="Find Your Perfect Roommate Or Room Effortlessly. Just Post Your Requirement And Let The Matching Begin!"
+            align="center"
+          />
+        </ViewReveal>
 
         {/* Listing Options */}
-        <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-          {selectOptions.map((item, index) => (
-            <ListingOptionCard
-              key={index}
-              item={item}
-              onSelectOption={onSelectOption}
-            />
-          ))}
-        </div>
+        <ViewReveal duration={900} startDelay={150}>
+          <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            {selectOptions.map((item, index) => (
+              <ListingOptionCard
+                key={index}
+                item={item}
+                onSelectOption={onSelectOption}
+              />
+            ))}
+          </div>
+        </ViewReveal>
 
         {/* Bottom Safety / Warning Badge */}
         <div className="flex justify-center items-center pt-2">

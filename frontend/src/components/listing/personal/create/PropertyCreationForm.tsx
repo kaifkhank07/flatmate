@@ -33,6 +33,7 @@ import {
   SavePlacePayload,
   PropertyAmenityItem,
 } from "@/lib/apiServices";
+import { ViewReveal } from "@/components/animation";
 
 interface PropertyCreationFormProps {
   onBack: () => void;
@@ -401,11 +402,14 @@ export default function PropertyCreationForm({
         {/* Main Card Wrapper */}
         <div className="bg-white border border-gray-100 rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 md:p-12 space-y-6 sm:space-y-10 md:space-y-12">
           {/* Header Title & Description */}
-          <SectionHeading
-            title="Add New Property Listing"
-            description="Fill In Details Resolve Location And Upload Media Assets"
-            align="center"
-          />
+          <ViewReveal duration={800}>
+            <SectionHeading
+              title="Add New Property Listing"
+              description="Fill In Details Resolve Location And Upload Media Assets"
+              align="center"
+            />
+          </ViewReveal>
+
 
           <form onSubmit={handlePublish} className="space-y-8">
             {/* Location Autocomplete Field */}

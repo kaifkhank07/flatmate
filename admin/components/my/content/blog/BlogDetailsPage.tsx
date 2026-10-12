@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import DOMPurify from "dompurify";
 import { usePathname, useRouter } from "next/navigation";
 import { useToast } from "@/lib/toast";
 import { usePageMotion } from "@/lib/motion";
@@ -77,6 +78,14 @@ export default function BlogDetailsPage({
     }
     return "Uncategorized";
   };
+
+  const sanitizedContent = useMemo(() => {
+    if (!blog?.content) return "";
+    if (typeof window !== "undefined") {
+      return DOMPurify.sanitize(blog.content);
+    }
+    return blog.content;
+  }, [blog?.content]);
 
   if (loading) {
     return (
@@ -205,9 +214,11 @@ export default function BlogDetailsPage({
                 <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                   <FileText size={14} /> Blog Content
                 </h3>
-                <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap p-4 bg-slate-50 rounded-xl border border-slate-100 min-h-[150px]">
-                  {blog.content}
-                </div>
+                <div
+                  className="ql-editor blog-content-rendered text-sm text-slate-800 leading-relaxed p-5 bg-slate-50 rounded-xl border border-slate-100 min-h-[150px]"
+                  style={{ whiteSpace: "normal" }}
+                  dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+                />
               </div>
             </div>
           </Card>

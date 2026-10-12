@@ -34,15 +34,15 @@ export default function JoinCommunityBanner() {
 
         <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 pt-2 sm:pt-4">
           <ArrowLink
-            text="Find a Home"
-            href="/listing"
+            text="Find a Flat"
+            href="/listing?category=Flat"
             lineClassName="bg-black"
             className="bg-white text-black font-medium text-xs sm:text-sm px-6 sm:px-8 py-2.5 sm:py-3 rounded-full hover:bg-gray-100 shadow-md"
           />
 
           <ArrowLink
             text="Find a Flatmate"
-            href="/community"
+            href="/listing?category=Flatmate"
             lineClassName="bg-white"
             className="bg-transparent text-white font-medium text-xs sm:text-sm px-6 sm:px-8 py-2.5 sm:py-3 rounded-full border border-white hover:bg-white/10"
           />

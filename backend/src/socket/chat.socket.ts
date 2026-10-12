@@ -17,6 +17,7 @@ import {
   markMessagesRead,
   deleteMessage,
   markMessageDelivered,
+  markAllPendingMessagesDelivered,
 } from '../services/chat/chatMessage.service';
 import {
   verifyConversationParticipant,
@@ -41,6 +42,18 @@ export const emitToConversationRoom = (conversationId: string, event: string, da
   }
 };
 
+export const emitToUser = (userId: string | Types.ObjectId, event: string, data: any) => {
+  if (globalIo) {
+    const userIdStr = userId.toString();
+    const socketSet = onlineUserSockets.get(userIdStr);
+    if (socketSet) {
+      socketSet.forEach((sockId) => {
+        globalIo!.to(sockId).emit(event, data);
+      });
+    }
+  }
+};
+
 /**
  * Socket Authentication Middleware
  */
@@ -48,17 +61,21 @@ export const registerSocketAuthMiddleware = (io: Server) => {
   io.use(async (socket: Socket, next) => {
     try {
       const authSocket = socket as AuthenticatedSocket;
-      const tokenHeader =
+      let token =
         socket.handshake.auth?.token ||
         socket.handshake.headers?.authorization;
 
-      if (!tokenHeader) {
-        return next(new Error('Authentication token missing'));
+      if (token && typeof token === 'string' && token.startsWith('Bearer ')) {
+        token = token.split(' ')[1];
       }
 
-      const token = tokenHeader.startsWith('Bearer ')
-        ? tokenHeader.split(' ')[1]
-        : tokenHeader;
+      if (!token) {
+        const rawCookies = socket.handshake.headers?.cookie || '';
+        const match = rawCookies.match(/accessToken=([^;]+)/);
+        if (match) {
+          token = match[1];
+        }
+      }
 
       if (!token) {
         return next(new Error('Authentication token missing'));
@@ -115,7 +132,25 @@ export const setupChatSocketEvents = (io: Server) => {
     // Notify online status if first socket
     if (onlineUserSockets.get(userIdStr)!.size === 1) {
       io.emit('user_online', { userId: userIdStr });
+
+      // Mark all pending sent messages for this user as delivered
+      markAllPendingMessagesDelivered(userIdStr)
+        .then((deliveredMsgs) => {
+          deliveredMsgs.forEach((msg) => {
+            emitToConversationRoom(msg.conversationId.toString(), 'message_delivery_updated', msg);
+          });
+        })
+        .catch(() => {});
     }
+
+    // Send currently online user IDs to the connected client
+    const onlineList = Array.from(onlineUserSockets.keys());
+    socket.emit('online_users_list', { userIds: onlineList });
+
+    socket.on('get_online_users', () => {
+      const currentList = Array.from(onlineUserSockets.keys());
+      socket.emit('online_users_list', { userIds: currentList });
+    });
 
     // ----------------------------------------------------
     // Event: join_conversation
@@ -167,7 +202,7 @@ export const setupChatSocketEvents = (io: Server) => {
           return;
         }
 
-        const message = await sendMessage(authSocket.userId!, payload.conversationId, {
+        let message = await sendMessage(authSocket.userId!, payload.conversationId, {
           type: payload.type,
           text: payload.text,
           attachment: payload.attachment,
@@ -175,21 +210,27 @@ export const setupChatSocketEvents = (io: Server) => {
           flatmate: payload.flatmate,
         });
 
+        const receiverIdStr = message.receiverId.toString();
+        const receiverOnline = isUserOnline(receiverIdStr);
+
+        logger.info(`[Socket SendMessage] Sender: ${userIdStr}, Receiver: ${receiverIdStr}, ReceiverOnline: ${receiverOnline}`);
+
+        if (receiverOnline) {
+          try {
+            message = await markMessageDelivered(message._id, message.receiverId);
+            logger.info(`[Socket SendMessage] Auto-marked message ${message._id} as DELIVERED (Receiver ${receiverIdStr} is online)`);
+          } catch (e: any) {
+            logger.warn(`[Socket SendMessage] Failed to auto-mark message ${message._id} delivered: ${e.message}`);
+          }
+        } else {
+          logger.info(`[Socket SendMessage] Receiver ${receiverIdStr} is OFFLINE. Message ${message._id} status remains '${message.status}'`);
+        }
+
         const roomName = `conversation:${payload.conversationId}`;
 
-        // Broadcast new message to conversation room
+        // Broadcast new message to conversation room with status ('delivered' if receiver is online)
         io.to(roomName).emit('new_message', message);
-
-        // Check if receiver is online, auto mark delivered if receiver is online
-        const receiverIdStr = message.receiverId.toString();
-        if (isUserOnline(receiverIdStr)) {
-          try {
-            const deliveredMsg = await markMessageDelivered(message._id, message.receiverId);
-            io.to(roomName).emit('message_delivery_updated', deliveredMsg);
-          } catch (e) {
-            // Ignore delivery update error
-          }
-        }
+        logger.info(`[Socket SendMessage] Broadcasted new_message (ID: ${message._id}, Status: ${message.status}) to room ${roomName}`);
 
         if (ack) ack({ success: true, message: 'Message sent successfully', data: message });
       } catch (error: any) {

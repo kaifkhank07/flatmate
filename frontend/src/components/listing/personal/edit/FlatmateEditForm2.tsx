@@ -32,6 +32,7 @@ import {
   UserPreferenceItem,
   PropertyAmenityItem,
 } from "@/lib/apiServices";
+import { ViewReveal } from "@/components/animation";
 
 interface FlatmateEditForm2Props {
   initialData: any;
@@ -73,12 +74,12 @@ export default function FlatmateEditForm2({
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<SavePlacePayload | null>(
     initialLocObj
       ? {
-          placeId: initialLocObj.placeId || "",
-          name: initialLocObj.name || "",
-          formattedAddress: initialLocObj.formattedAddress || "",
-          latitude: initialLocObj.latitude || 0,
-          longitude: initialLocObj.longitude || 0,
-        }
+        placeId: initialLocObj.placeId || "",
+        name: initialLocObj.name || "",
+        formattedAddress: initialLocObj.formattedAddress || "",
+        latitude: initialLocObj.latitude || 0,
+        longitude: initialLocObj.longitude || 0,
+      }
       : null
   );
   const locationDropdownRef = useRef<HTMLDivElement>(null);
@@ -102,8 +103,8 @@ export default function FlatmateEditForm2({
     initialData?.availableFrom
       ? new Date(initialData.availableFrom).toISOString().split("T")[0]
       : initialData?.moveInDate
-      ? new Date(initialData.moveInDate).toISOString().split("T")[0]
-      : ""
+        ? new Date(initialData.moveInDate).toISOString().split("T")[0]
+        : ""
   );
   const [furnishing, setFurnishing] = useState<"fully_furnished" | "semi_furnished" | "unfurnished">(
     initialData?.furnishing || "semi_furnished"
@@ -130,8 +131,8 @@ export default function FlatmateEditForm2({
     Array.isArray(initialData?.userPreferences) && initialData.userPreferences.length > 0
       ? initialData.userPreferences.map((p: any) => (typeof p === "object" ? p._id : p)).filter(Boolean)
       : Array.isArray(initialData?.lifestylePreferences)
-      ? initialData.lifestylePreferences.map((p: any) => (typeof p === "object" ? p._id : p)).filter(Boolean)
-      : []
+        ? initialData.lifestylePreferences.map((p: any) => (typeof p === "object" ? p._id : p)).filter(Boolean)
+        : []
   );
 
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>(
@@ -144,10 +145,10 @@ export default function FlatmateEditForm2({
   const [photoItems, setPhotoItems] = useState<PhotoStateItem[]>(
     Array.isArray(initialData?.images)
       ? initialData.images.map((img: any) => ({
-          id: img._id || img.url || `existing-img-${Math.random()}`,
-          previewUrl: img.url || (typeof img === "string" ? img : ""),
-          imageId: img._id,
-        }))
+        id: img._id || img.url || `existing-img-${Math.random()}`,
+        previewUrl: img.url || (typeof img === "string" ? img : ""),
+        imageId: img._id,
+      }))
       : []
   );
 
@@ -445,11 +446,13 @@ export default function FlatmateEditForm2({
 
         {/* Main Card Wrapper */}
         <div className="bg-white border border-gray-100 rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 md:p-12 space-y-8 sm:space-y-10 md:space-y-12">
-          <SectionHeading
-            title="Edit Flatmate Partner Requirement"
-            description="Update requirement details, location, preferences, amenities, and media assets"
-            align="center"
-          />
+          <ViewReveal duration={800}>
+            <SectionHeading
+              title="Edit Flatmate Partner Requirement"
+              description="Update requirement details, location, preferences, amenities, and media assets"
+              align="center"
+            />
+          </ViewReveal>
 
           <form onSubmit={handlePublish} className="space-y-8">
             {/* Location Autocomplete Field */}
@@ -794,11 +797,10 @@ export default function FlatmateEditForm2({
                             onClick={() => togglePreference(pref._id)}
                             aria-label={`Select ${pref.name}`}
                             title={pref.name}
-                            className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${
-                              isSelected
-                                ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
-                                : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
-                            }`}
+                            className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${isSelected
+                              ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
+                              : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
+                              }`}
                           >
                             {renderPreferenceImage(pref)}
                           </button>
@@ -838,11 +840,10 @@ export default function FlatmateEditForm2({
                             onClick={() => toggleAmenity(amenity._id)}
                             aria-label={`Select ${amenity.name}`}
                             title={amenity.name}
-                            className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${
-                              isSelected
-                                ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
-                                : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
-                            }`}
+                            className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${isSelected
+                              ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
+                              : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
+                              }`}
                           >
                             {renderAmenityImage(amenity)}
                           </button>

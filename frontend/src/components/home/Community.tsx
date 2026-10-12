@@ -14,7 +14,7 @@ export default function Community() {
       <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-0">
         {/* Left Column: Lifestyle Community Image */}
         <div className="relative w-full lg:pr-12">
-          <div className="relative w-full rounded-2xl sm:rounded-3xl lg:rounded-4xl overflow-hidden shadow-lg aspect-[4/3] sm:aspect-[1.15/1]">
+          <div className="relative w-full rounded-2xl sm:rounded-3xl lg:rounded-4xl overflow-hidden aspect-[4/3] sm:aspect-[1.15/1]">
             <AnimatedImage
               src={assets.community}
               alt="Community That Grows Together"

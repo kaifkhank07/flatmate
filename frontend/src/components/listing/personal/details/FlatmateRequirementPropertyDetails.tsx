@@ -37,8 +37,8 @@ import { useAssets } from "@/data/assets";
 import { useListingStore } from "@/store/useListingStore";
 import { getMediaUrl } from "@/lib/api";
 import { deleteFlatmateRequirementApi } from "@/lib/apiServices";
-import ListingModals from "@/components/listing/shared/ListingModals";
-import DeleteConfirmModal from "@/components/listing/shared/DeleteConfirmModal";
+import { ImageGalleryModal } from "@/components/listing/shared/modals";
+import DeleteConfirmModal from "@/components/listing/shared/modals/DeleteConfirmModal";
 
 const getAmenityIcon = (name: string) => {
   const lower = name.toLowerCase();
@@ -85,8 +85,8 @@ export default function FlatmateRequirementPropertyDetails({
 
   const [showCallModal, setShowCallModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const userObj = listing.userId;
   const name = listingData?.name || userObj?.name || "Requirement Creator";
@@ -157,24 +157,6 @@ export default function FlatmateRequirementPropertyDetails({
 
   const description = listing.description || "Looking for a flatmate to share this property.";
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  const handleConfirmDelete = async () => {
-    setDeleting(true);
-    try {
-      const res = await deleteFlatmateRequirementApi(listing._id);
-      if (res.success) {
-        setShowDeleteModal(false);
-        router.push("/my-listings");
-      } else {
-        alert(res.message || "Failed to delete listing.");
-      }
-    } catch (err: any) {
-      alert(err.message || "Failed to delete listing.");
-    } finally {
-      setDeleting(false);
-    }
-  };
 
   return (
     <section className="w-full py-6 md:py-8 lg:py-12 px-4 sm:px-6 lg:px-16 overflow-hidden">
@@ -246,16 +228,11 @@ export default function FlatmateRequirementPropertyDetails({
                 <button
                   type="button"
                   onClick={() => setShowDeleteModal(true)}
-                  disabled={deleting}
-                  className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer shadow-sm disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer shadow-sm"
                   title="Delete Listing"
                 >
-                  {deleting ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-red-600" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                  <span className="hidden sm:inline">{deleting ? "Deleting..." : "Delete"}</span>
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Delete</span>
                 </button>
               </div>
             </div>
@@ -370,30 +347,21 @@ export default function FlatmateRequirementPropertyDetails({
         </div>
       </div>
 
-      <ListingModals
-        name={name}
-        userMobile={userMobile}
-        userImage={userImage}
-        showCallModal={showCallModal}
-        setShowCallModal={setShowCallModal}
-        showChatModal={showChatModal}
-        setShowChatModal={setShowChatModal}
-        showReportModal={false}
-        setShowReportModal={() => {}}
-        targetType="flatmaterequirement"
-        targetId={listing._id}
+      <ImageGalleryModal
+        isOpen={selectedImageIndex !== null && selectedImageIndex !== undefined && imageList.length > 0}
+        onClose={() => setSelectedImageIndex(null)}
         images={imageList}
-        selectedImageIndex={selectedImageIndex}
-        setSelectedImageIndex={setSelectedImageIndex}
+        selectedIndex={selectedImageIndex ?? 0}
+        onSelectIndex={(idx) => setSelectedImageIndex(idx)}
         title={postTitle}
       />
 
       <DeleteConfirmModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        onConfirm={handleConfirmDelete}
+        targetType="flatmaterequirement"
+        targetId={listing._id}
         itemTitle={postTitle}
-        loading={deleting}
       />
     </section>
   );

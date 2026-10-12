@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function MyPreferencesPage() {
   return (
-    <main className="w-full min-h-screen pt-20">
+    <main className="w-full min-h-screen pt-8 sm:pt-20">
       <PreferencesManager />
       <Faq />
     </main>

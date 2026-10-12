@@ -209,6 +209,42 @@ export const markMessageDelivered = async (
 };
 
 /**
+ * Bulk mark all pending 'sent' messages for a receiver as delivered when receiver comes online
+ */
+export const markAllPendingMessagesDelivered = async (
+  receiverId: Types.ObjectId | string
+): Promise<IChatMessage[]> => {
+  const receiverObj = new Types.ObjectId(receiverId.toString());
+
+  const pendingMessages = await ChatMessage.find({
+    receiverId: receiverObj,
+    status: 'sent',
+  });
+
+  if (pendingMessages.length === 0) return [];
+
+  const deliveredAt = new Date();
+  await ChatMessage.updateMany(
+    {
+      receiverId: receiverObj,
+      status: 'sent',
+    },
+    {
+      $set: {
+        status: 'delivered',
+        deliveredAt,
+      },
+    }
+  );
+
+  return pendingMessages.map((m) => {
+    m.status = 'delivered';
+    m.deliveredAt = deliveredAt;
+    return m;
+  });
+};
+
+/**
  * Bulk mark messages in a conversation as read and reset user unread count (Receiver only)
  */
 export const markMessagesRead = async (

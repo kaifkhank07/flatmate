@@ -35,7 +35,7 @@ import { useListingStore } from "@/store/useListingStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getMediaUrl } from "@/lib/api";
 import { toggleWishlistApi, checkWishlistStatusApi, addRecentlyViewedApi } from "@/lib/apiServices";
-import ListingModals from "@/components/listing/shared/ListingModals";
+import { CallModal, ChatModal, ReportModal, ImageGalleryModal } from "@/components/listing/shared/modals";
 
 const getPreferenceVisual = (name: string) => {
   const lower = name.toLowerCase();
@@ -250,7 +250,7 @@ export default function FlatmateRequirementPartnerDetails({
 
   return (
     <section className="w-full py-6 md:py-8 lg:py-12 px-4 sm:px-6 lg:px-16 overflow-hidden">
-      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 drop-shadow-md p-6 sm:p-10 md:p-14 transition-all bg-white">
+      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 p-6 sm:p-10 md:p-14 transition-all bg-white">
         <div className="flex flex-col lg:flex-row items-center md:items-start gap-8 md:gap-14 lg:gap-16">
 
           {/* LEFT SIDE: Partner Seeker Avatar & Action Buttons */}
@@ -315,8 +315,8 @@ export default function FlatmateRequirementPartnerDetails({
                   onClick={handleToggleWishlist}
                   disabled={wishlistLoading}
                   className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer ${isWishlisted
-                      ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100"
-                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-rose-600"
+                    ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100"
+                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-rose-600"
                     }`}
                   title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
                 >
@@ -521,21 +521,37 @@ export default function FlatmateRequirementPartnerDetails({
         </div>
       </div>
 
-      <ListingModals
+      {/* Modals */}
+      <CallModal
+        isOpen={showCallModal}
+        onClose={() => setShowCallModal(false)}
         name={name}
         userMobile={userMobile}
+      />
+
+      <ChatModal
+        isOpen={showChatModal}
+        onClose={() => setShowChatModal(false)}
+        name={name}
         userImage={userImage}
-        showCallModal={showCallModal}
-        setShowCallModal={setShowCallModal}
-        showChatModal={showChatModal}
-        setShowChatModal={setShowChatModal}
-        showReportModal={showReportModal}
-        setShowReportModal={setShowReportModal}
+        receiverId={typeof userObj === "object" ? userObj?._id : userObj}
         targetType="flatmaterequirement"
         targetId={listing._id}
+      />
+
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetType="flatmaterequirement"
+        targetId={listing._id}
+      />
+
+      <ImageGalleryModal
+        isOpen={selectedImageIndex !== null && selectedImageIndex !== undefined && imageList.length > 0}
+        onClose={() => setSelectedImageIndex(null)}
         images={imageList}
-        selectedImageIndex={selectedImageIndex}
-        setSelectedImageIndex={setSelectedImageIndex}
+        selectedIndex={selectedImageIndex ?? 0}
+        onSelectIndex={(idx) => setSelectedImageIndex(idx)}
         title={postTitle}
       />
     </section>

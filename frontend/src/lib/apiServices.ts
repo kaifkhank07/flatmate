@@ -327,6 +327,174 @@ export async function getMyListingsApi(params?: GetMyListingsParams) {
 }
 
 
+/**
+ * Create or retrieve an existing chat conversation with a receiver
+ * POST /api/chat-conversations
+ */
+export async function createConversationApi(receiverId: string) {
+  const res = await apiClient.post<ApiResponse<any>>(
+    "/chat-conversations",
+    { receiverId }
+  );
+  return res.data;
+}
 
+/**
+ * Fetch paginated user conversations
+ * GET /api/chat-conversations
+ */
+export async function getConversationsApi(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}) {
+  const res = await apiClient.get<ApiResponse<any>>("/chat-conversations", {
+    params,
+  });
+  return res.data;
+}
 
+/**
+ * Fetch details for a specific conversation
+ * GET /api/chat-conversations/:conversationId
+ */
+export async function getConversationByIdApi(conversationId: string) {
+  const res = await apiClient.get<ApiResponse<any>>(
+    `/chat-conversations/${conversationId}`
+  );
+  return res.data;
+}
+
+/**
+ * Fetch paginated message history for a conversation
+ * GET /api/chat-messages/conversations/:conversationId/messages
+ */
+export async function getMessagesApi(
+  conversationId: string,
+  params?: { page?: number; limit?: number; before?: string }
+) {
+  const res = await apiClient.get<ApiResponse<any>>(
+    `/chat-messages/conversations/${conversationId}/messages`,
+    { params }
+  );
+  return res.data;
+}
+
+/**
+ * Send a message in a conversation
+ * POST /api/chat-messages/conversations/:conversationId/messages
+ */
+export async function sendChatMessageApi(
+  conversationId: string,
+  payload: {
+    text: string;
+    type?: "text" | "image" | "property" | "flatmate-post" | string;
+    attachment?: any;
+    property?: any;
+    flatmate?: any;
+  }
+) {
+  const res = await apiClient.post<ApiResponse<any>>(
+    `/chat-messages/conversations/${conversationId}/messages`,
+    {
+      type: "text",
+      ...payload,
+    }
+  );
+  return res.data;
+}
+
+/**
+ * Mark messages in a conversation as read
+ * PATCH /api/chat-messages/conversations/:conversationId/read
+ */
+export async function markMessagesReadApi(conversationId: string) {
+  const res = await apiClient.patch<ApiResponse<any>>(
+    `/chat-messages/conversations/${conversationId}/read`
+  );
+  return res.data;
+}
+
+/**
+ * Mark a message as delivered
+ * PATCH /api/chat-messages/messages/:messageId/delivered
+ */
+export async function markMessageDeliveredApi(messageId: string) {
+  const res = await apiClient.patch<ApiResponse<any>>(
+    `/chat-messages/messages/${messageId}/delivered`
+  );
+  return res.data;
+}
+
+/**
+ * Delete a chat message
+ * DELETE /api/chat-messages/messages/:messageId
+ */
+export async function deleteChatMessageApi(messageId: string) {
+  const res = await apiClient.delete<ApiResponse<any>>(
+    `/chat-messages/messages/${messageId}`
+  );
+  return res.data;
+}
+
+/**
+ * Block a user
+ * POST /api/chat-blocks/blocks
+ */
+export async function blockUserApi(blockedUserId: string, reason?: string) {
+  const res = await apiClient.post<ApiResponse<any>>("/chat-blocks/blocks", {
+    blockedUserId,
+    reason,
+  });
+  return res.data;
+}
+
+/**
+ * Unblock a user
+ * DELETE /api/chat-blocks/blocks/:userId
+ */
+export async function unblockUserApi(userId: string) {
+  const res = await apiClient.delete<ApiResponse<any>>(
+    `/chat-blocks/blocks/${userId}`
+  );
+  return res.data;
+}
+
+/**
+ * Get list of blocked users
+ * GET /api/chat-blocks/blocks
+ */
+export async function getBlockedUsersApi(params?: {
+  page?: number;
+  limit?: number;
+}) {
+  const res = await apiClient.get<ApiResponse<any>>("/chat-blocks/blocks", {
+    params,
+  });
+  return res.data;
+}
+
+export type ChatReportReason =
+  | 'spam'
+  | 'harassment'
+  | 'inappropriate_content'
+  | 'fraud'
+  | 'fake_profile'
+  | 'scam'
+  | 'other';
+
+export interface CreateChatReportPayload {
+  reportedUserId: string;
+  reason: ChatReportReason;
+  description?: string;
+}
+
+/**
+ * Report a chat user/conversation
+ * POST /api/chat-reports
+ */
+export async function reportChatUserApi(payload: CreateChatReportPayload) {
+  const res = await apiClient.post<ApiResponse<any>>("/chat-reports", payload);
+  return res.data;
+}
 

@@ -41,7 +41,7 @@ export default function Navbar({ activeItem }: NavbarProps) {
     { label: "Home", href: "/" },
     { label: "Listings", href: "/listing" },
     { label: "About Us", href: "/about" },
-    { label: "Contact Us", href: "/contact" },
+    // { label: "Contact Us", href: "/contact" },
     { label: "Blogs", href: "/blog" },
   ];
 

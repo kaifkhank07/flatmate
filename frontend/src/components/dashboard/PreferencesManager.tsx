@@ -14,6 +14,7 @@ import {
 import SectionHeading from "../utils/SectionHeading";
 import LoadingState from "../utils/LoadingState";
 import EmptyState from "../utils/EmptyState";
+import { ViewReveal } from "../animation";
 
 export default function PreferencesManager() {
   const router = useRouter();
@@ -141,11 +142,13 @@ export default function PreferencesManager() {
     <section className="w-full py-16 md:py-20 overflow-hidden">
       <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-16 space-y-6 sm:space-y-10 md:space-y-12">
         {/* Header matching design */}
-        <SectionHeading
-          title="Your Preferences"
-          description="It Will Show Others What Kind Of Flatmate You Prefer. Please Select At Least 5 Preferences To Update."
-          align="center"
-        />
+        <ViewReveal duration={800}>
+          <SectionHeading
+            title="Your Preferences"
+            description="It Will Show Others What Kind Of Flatmate You Prefer. Please Select At Least 5 Preferences To Update."
+            align="center"
+          />
+        </ViewReveal>
 
         {/* Notification Banner */}
         {statusMessage && (
@@ -165,69 +168,71 @@ export default function PreferencesManager() {
         )}
 
         {/* Database Preferences Loading & Grid Display */}
-        {isPreferencesLoading && masterPreferences.length === 0 ? (
-          <LoadingState message="Fetching preferences from database..." className="py-16" />
-        ) : masterPreferences.length === 0 ? (
-          <EmptyState
-            title="No preferences found in database"
-            message="Please add user preferences from Admin or seed them to display them here."
-            actionLabel="Reload Preferences"
-            actionIcon={<RefreshCw className="w-3.5 h-3.5" />}
-            onAction={() => fetchMasterPreferences()}
-            boxed
-          />
-        ) : (
-          <form onSubmit={handleUpdatePreferences}>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10 justify-items-center">
-              {masterPreferences.map((pref) => {
-                const isSelected = selectedPreferenceIds.includes(pref._id);
+        <ViewReveal duration={900} startDelay={150}>
+          {isPreferencesLoading && masterPreferences.length === 0 ? (
+            <LoadingState message="Fetching preferences from database..." className="py-16" />
+          ) : masterPreferences.length === 0 ? (
+            <EmptyState
+              title="No preferences found in database"
+              message="Please add user preferences from Admin or seed them to display them here."
+              actionLabel="Reload Preferences"
+              actionIcon={<RefreshCw className="w-3.5 h-3.5" />}
+              onAction={() => fetchMasterPreferences()}
+              boxed
+            />
+          ) : (
+            <form onSubmit={handleUpdatePreferences}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10 justify-items-center">
+                {masterPreferences.map((pref) => {
+                  const isSelected = selectedPreferenceIds.includes(pref._id);
 
-                return (
-                  <div key={pref._id} className="flex flex-col items-center">
-                    <button
-                      type="button"
-                      onClick={() => handleTogglePreference(pref._id)}
-                      aria-label={`Select ${pref.name}`}
-                      className={`w-28 h-28 sm:w-32 sm:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${isSelected
-                        ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
-                        : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
-                        }`}
-                    >
-                      {renderPreferenceImage(pref)}
-                    </button>
+                  return (
+                    <div key={pref._id} className="flex flex-col items-center">
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePreference(pref._id)}
+                        aria-label={`Select ${pref.name}`}
+                        className={`w-28 h-28 sm:w-32 sm:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${isSelected
+                          ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
+                          : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
+                          }`}
+                      >
+                        {renderPreferenceImage(pref)}
+                      </button>
 
-                    <span className="text-gray-800 text-sm sm:text-base md:text-lg font-regular mt-3 text-center tracking-tight">
-                      {pref.name}
+                      <span className="text-gray-800 text-sm sm:text-base md:text-lg font-regular mt-3 text-center tracking-tight">
+                        {pref.name}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Bottom Update Preferences Button */}
+              <div className="mt-12 sm:mt-16 text-center flex flex-col items-center">
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-10 py-3 rounded-full bg-[#0066F9] hover:bg-[#0055D4] text-white text-sm font-medium shadow-sm transition-all active:scale-95 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Updating...
                     </span>
-                  </div>
-                );
-              })}
-            </div>
+                  ) : (
+                    "Update Preferences"
+                  )}
+                </button>
 
-            {/* Bottom Update Preferences Button */}
-            <div className="mt-12 sm:mt-16 text-center flex flex-col items-center">
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="px-10 py-3 rounded-full bg-[#0066F9] hover:bg-[#0055D4] text-white text-sm font-medium shadow-sm transition-all active:scale-95 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isSaving ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Updating...
-                  </span>
-                ) : (
-                  "Update Preferences"
-                )}
-              </button>
-
-              {/* Selection Counter Note */}
-              <span className="text-xs text-gray-400 mt-3">
-                {selectedPreferenceIds.length}/5 minimum selected
-              </span>
-            </div>
-          </form>
-        )}
+                {/* Selection Counter Note */}
+                <span className="text-xs text-gray-400 mt-3">
+                  {selectedPreferenceIds.length}/5 minimum selected
+                </span>
+              </div>
+            </form>
+          )}
+        </ViewReveal>
       </div>
     </section>
   );

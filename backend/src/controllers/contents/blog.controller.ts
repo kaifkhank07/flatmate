@@ -522,6 +522,150 @@ export const getBlogById = async (req: Request, res: Response): Promise<Response
 };
 
 /**
+ * Get public active blogs
+ *
+ * GET /blogs/public
+ */
+export const getPublicBlogs = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 12));
+    const skip = (page - 1) * limit;
+
+    const filter: any = { isActive: true };
+
+    /**
+     * Search title / slug / content
+     */
+    const searchStr = (req.query.search || req.query.q) as string;
+    if (searchStr && searchStr.trim()) {
+      const search = searchStr.trim();
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { slug: { $regex: search, $options: 'i' } },
+        { content: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    /**
+     * Category filter by ID or slug/name
+     */
+    if (req.query.categoryId) {
+      const categoryId = req.query.categoryId as string;
+      if (Types.ObjectId.isValid(categoryId)) {
+        filter.categoryId = new Types.ObjectId(categoryId);
+      }
+    } else if (req.query.category) {
+      const categoryStr = (req.query.category as string).trim();
+      const catDoc = await BlogCategory.findOne({
+        $or: [
+          { slug: categoryStr.toLowerCase() },
+          { name: { $regex: `^${categoryStr}$`, $options: 'i' } },
+        ],
+        isActive: true,
+      });
+      if (catDoc) {
+        filter.categoryId = catDoc._id;
+      }
+    }
+
+    const [items, total] = await Promise.all([
+      Blog.find(filter)
+        .populate('categoryId', 'name slug')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Blog.countDocuments(filter),
+    ]);
+
+    return sendSuccess(res, 'Public blogs fetched successfully', {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    });
+  } catch (error: any) {
+    logger.error('[BlogController] getPublicBlogs error:', error);
+    return sendError(res, 'Failed to fetch public blogs', 500);
+  }
+};
+
+/**
+ * Get public blog by slug (or ID)
+ *
+ * GET /blogs/public/:slug
+ */
+export const getPublicBlogBySlug = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const slugParam = (req.params.slug || req.params.blogId || '').trim();
+
+    if (!slugParam) {
+      return sendError(res, 'Blog slug is required', 400);
+    }
+
+    // Try finding by slug or fallback to _id if valid ObjectId
+    const query: any = {
+      $or: [
+        { slug: slugParam.toLowerCase() },
+        ...(Types.ObjectId.isValid(slugParam) ? [{ _id: new Types.ObjectId(slugParam) }] : []),
+      ],
+      isActive: true,
+    };
+
+    const blog = await Blog.findOne(query)
+      .populate('categoryId', 'name slug')
+      .lean();
+
+    if (!blog) {
+      return sendError(res, 'Blog not found', 404);
+    }
+
+    // Fetch related articles (same category if available, excluding current blog)
+    const relatedFilter: any = {
+      _id: { $ne: blog._id },
+      isActive: true,
+    };
+    if (blog.categoryId) {
+      const catId = typeof blog.categoryId === 'object' ? (blog.categoryId as any)._id : blog.categoryId;
+      if (catId) {
+        relatedFilter.categoryId = catId;
+      }
+    }
+
+    let relatedBlogs = await Blog.find(relatedFilter)
+      .populate('categoryId', 'name slug')
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .lean();
+
+    // If fewer than 3 related by category, backfill with other active blogs
+    if (relatedBlogs.length < 3) {
+      const excludedIds = [blog._id, ...relatedBlogs.map((b) => b._id)];
+      const backfill = await Blog.find({
+        _id: { $nin: excludedIds },
+        isActive: true,
+      })
+        .populate('categoryId', 'name slug')
+        .sort({ createdAt: -1 })
+        .limit(3 - relatedBlogs.length)
+        .lean();
+
+      relatedBlogs = [...relatedBlogs, ...backfill];
+    }
+
+    return sendSuccess(res, 'Blog fetched successfully', {
+      ...blog,
+      relatedBlogs,
+    });
+  } catch (error: any) {
+    logger.error('[BlogController] getPublicBlogBySlug error:', error);
+    return sendError(res, 'Failed to fetch blog details', 500);
+  }
+};
+
+/**
  * Update blog
  *
  * PUT /blogs/:blogId

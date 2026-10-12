@@ -20,6 +20,7 @@ import reportRoutes from './listing/report.routes';
 import chatConversationRoutes from './chats/chatConversation.routes';
 import chatMessageRoutes from './chats/chatMessage.routes';
 import chatBlockRoutes from './chats/chatBlock.routes';
+import chatReportRoutes from './chats/chatReport.routes';
 import adminChatRoutes from './chats/adminChat.routes';
 
 import notificationRoutes from './notification/notification.routes';
@@ -65,6 +66,7 @@ router.use('/reviews', reviewRoutes);
 router.use('/chat-conversations', chatConversationRoutes);
 router.use('/chat-messages', chatMessageRoutes);
 router.use('/chat-blocks', chatBlockRoutes);
+router.use('/chat-reports', chatReportRoutes);
 router.use('/admin-chats', adminChatRoutes);
 router.use('/notifications', notificationRoutes);
 

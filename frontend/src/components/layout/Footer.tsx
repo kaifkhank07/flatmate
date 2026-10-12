@@ -13,8 +13,9 @@ export default function Footer() {
     { title: "Home", href: "/" },
     { title: "Listings", href: "/listing" },
     { title: "About Us", href: "/about" },
-    { title: "Contact Us", href: "/contact" },
+    // { title: "Contact Us", href: "/contact" },
     { title: "Blogs", href: "/blog" },
+    { title: "Cities", href: "/city" }
   ];
 
   const quickLinks2 = [
@@ -22,7 +23,7 @@ export default function Footer() {
     { title: "1234567890", href: "tel:+91-1234567890" },
     { title: "Terms & Conditions", href: "/terms-conditions" },
     { title: "Privacy Policy", href: "/privacy-policy" },
-    { title: "Cities", href: "/city" },
+    // { title: "Cities", href: "/city" },
   ];
 
   return (

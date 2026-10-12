@@ -21,6 +21,7 @@ import {
 import SectionHeading from "@/components/utils/SectionHeading";
 import LoadingState from "@/components/utils/LoadingState";
 import EmptyState from "@/components/utils/EmptyState";
+import { ViewReveal } from "@/components/animation";
 
 type GenderType = "male" | "female" | "other" | "any" | "";
 type OccupationType =
@@ -320,7 +321,9 @@ export default function ManageProfile() {
     <section className="w-full py-16 md:py-20 overflow-hidden">
       <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto px-4 sm:px-6 lg:px-16 space-y-6 sm:space-y-10 md:space-y-12">
         {/* Page Title & Profile Completion */}
-        <SectionHeading title="Your Profile" />
+        <ViewReveal duration={800}>
+          <SectionHeading title="Your Profile" />
+        </ViewReveal>
 
         {/* Notification Banner */}
         {statusMessage && (
@@ -340,57 +343,58 @@ export default function ManageProfile() {
         )}
 
         {/* Profile Avatar / Photo & Completion Card */}
-        <div className="bg-[#F8FBFE] border border-[#E2EFF8] rounded-2xl sm:rounded-3xl p-5 sm:p-7 md:p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-          {/* Left: Avatar & User Info */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left w-full sm:w-auto flex-1 min-w-0">
-            {/* Avatar Container */}
-            <div className="relative shrink-0 group">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-2 border-[#0066F9]/30 bg-white shadow-sm flex items-center justify-center relative">
-                {profile?.image?.url || (profile?.avatar && typeof profile.avatar === "object" && profile.avatar.image?.url) ? (
-                  <Image
-                    src={profile?.image?.url || (profile?.avatar && typeof profile.avatar === "object" ? profile.avatar.image?.url! : "")}
-                    alt="Profile Visual"
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <UserIcon className="w-10 h-10 sm:w-12 sm:h-12 text-[#0066F9]/50" />
-                )}
-                {isUploadingPhoto && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <Loader2 className="w-6 h-6 text-white animate-spin" />
-                  </div>
-                )}
+        <ViewReveal duration={900} startDelay={150}>
+          <div className="bg-[#F8FBFE] border border-[#E2EFF8] rounded-2xl sm:rounded-3xl p-5 sm:p-7 md:p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+            {/* Left: Avatar & User Info */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left w-full sm:w-auto flex-1 min-w-0">
+              {/* Avatar Container */}
+              <div className="relative shrink-0 group">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-2 border-[#0066F9]/30 bg-white shadow-sm flex items-center justify-center relative">
+                  {profile?.image?.url || (profile?.avatar && typeof profile.avatar === "object" && profile.avatar.image?.url) ? (
+                    <Image
+                      src={profile?.image?.url || (profile?.avatar && typeof profile.avatar === "object" ? profile.avatar.image?.url! : "")}
+                      alt="Profile Visual"
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <UserIcon className="w-10 h-10 sm:w-12 sm:h-12 text-[#0066F9]/50" />
+                  )}
+                  {isUploadingPhoto && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingPhoto}
+                  aria-label="Upload photo"
+                  className="absolute bottom-0 right-0 p-1.5 sm:p-2 rounded-full bg-[#0066F9] hover:bg-[#0052C7] text-white shadow-md transition-transform active:scale-90 cursor-pointer"
+                >
+                  <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                />
               </div>
 
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploadingPhoto}
-                aria-label="Upload photo"
-                className="absolute bottom-0 right-0 p-1.5 sm:p-2 rounded-full bg-[#0066F9] hover:bg-[#0052C7] text-white shadow-md transition-transform active:scale-90 cursor-pointer"
-              >
-                <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </button>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/jpg"
-                onChange={handlePhotoUpload}
-                className="hidden"
-              />
-            </div>
-
-            {/* User Info & Photo / Avatar Action Links */}
-            <div className="space-y-1 min-w-0">
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
-                {firstName ? `${firstName} ${lastName}`.trim() : "Your Name"}
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-500 max-w-md">
-                Upload a custom photo or choose a preset avatar to personalize your profile visual.
-              </p>
-              {/* <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1.5 sm:pt-2">
+              {/* User Info & Photo / Avatar Action Links */}
+              <div className="space-y-1 min-w-0">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
+                  {firstName ? `${firstName} ${lastName}`.trim() : "Your Name"}
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-500 max-w-md">
+                  Upload a custom photo or choose a preset avatar to personalize your profile visual.
+                </p>
+                {/* <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1.5 sm:pt-2">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -424,296 +428,302 @@ export default function ManageProfile() {
                   </>
                 )}
               </div> */}
+              </div>
             </div>
-          </div>
 
-          {/* Right: Profile Completion Badge */}
-          <div className="bg-white sm:bg-[#F3F9FD] border border-[#E2EFF8] rounded-2xl p-4 sm:px-6 sm:py-4 flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto shrink-0 shadow-xs">
-            <div className="flex flex-col">
-              <span className="text-[10px] sm:text-xs text-gray-500 font-medium uppercase tracking-wider">
-                Profile Completion
-              </span>
-              <span className="text-base sm:text-lg font-bold text-[#0066F9]">
-                {completionPercentage}% Complete
-              </span>
-            </div>
-            {/* <div className="w-24 sm:w-32 bg-gray-100 sm:bg-gray-200 h-2.5 rounded-full overflow-hidden shrink-0">
+            {/* Right: Profile Completion Badge */}
+            <div className="bg-white sm:bg-[#F3F9FD] border border-[#E2EFF8] rounded-2xl p-4 sm:px-6 sm:py-4 flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto shrink-0 shadow-xs">
+              <div className="flex flex-col">
+                <span className="text-[10px] sm:text-xs text-gray-500 font-medium uppercase tracking-wider">
+                  Profile Completion
+                </span>
+                <span className="text-base sm:text-lg font-bold text-[#0066F9]">
+                  {completionPercentage}% Complete
+                </span>
+              </div>
+              {/* <div className="w-24 sm:w-32 bg-gray-100 sm:bg-gray-200 h-2.5 rounded-full overflow-hidden shrink-0">
               <div
                 className="bg-[#0066F9] h-full rounded-full transition-all duration-500"
                 style={{ width: `${Math.max(5, completionPercentage)}%` }}
               />
             </div> */}
+            </div>
           </div>
-        </div>
+        </ViewReveal>
+
 
         {/* Profile Details Form */}
-        <form onSubmit={handleSaveChanges} className="space-y-10">
-          {/* SECTION 1: Personal Details */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-              <UserIcon className="w-5 h-5 text-[#0066F9]" />
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
-                Personal Details
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-              {/* First Name Field */}
-              <div>
-                <label
-                  htmlFor="firstName"
-                  className="block text-base sm:text-lg font-regular text-gray-800 mb-2"
-                >
-                  First Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="firstName"
-                  name="firstName"
-                  value={firstName}
-                  onChange={(e) => {
-                    setFirstName(e.target.value);
-                    if (statusMessage) setStatusMessage(null);
-                  }}
-                  placeholder="e.g. Neha"
-                  required
-                  className="w-full px-6 py-3.5 rounded-full bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9] placeholder:text-gray-400 transition-all"
-                />
-                <p className="text-sm text-gray-500 mt-2 font-normal">
-                  Note: Users With Real Names Get{" "}
-                  <span className="text-[#0066F9] font-medium">90% More Engagement.</span>
-                </p>
+        <ViewReveal duration={900} startDelay={150}>
+          <form onSubmit={handleSaveChanges} className="space-y-10">
+            {/* SECTION 1: Personal Details */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                <UserIcon className="w-5 h-5 text-[#0066F9]" />
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
+                  Personal Details
+                </h3>
               </div>
 
-              {/* Last Name Field */}
-              <div>
-                <label
-                  htmlFor="lastName"
-                  className="block text-base sm:text-lg font-regular text-gray-800 mb-2"
-                >
-                  Last Name
-                </label>
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  value={lastName}
-                  onChange={(e) => {
-                    setLastName(e.target.value);
-                    if (statusMessage) setStatusMessage(null);
-                  }}
-                  placeholder="e.g. Shah"
-                  className="w-full px-6 py-3.5 rounded-full bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9] placeholder:text-gray-400 transition-all"
-                />
-              </div>
-
-              {/* Contact Number Field */}
-              <div>
-                <label
-                  htmlFor="contactNumber"
-                  className="block text-base sm:text-lg font-regular text-gray-800 mb-2"
-                >
-                  Contact Number
-                </label>
-                <input
-                  type="text"
-                  id="contactNumber"
-                  name="contactNumber"
-                  value={contactNumber}
-                  readOnly
-                  placeholder="Contact number"
-                  className="w-full px-6 py-3.5 rounded-full bg-[#F3F9FD] border border-[#E2EFF8] text-gray-700 text-base focus:outline-none cursor-default select-none"
-                />
-              </div>
-
-              {/* Date of Birth Field */}
-              <div>
-                <label
-                  htmlFor="dateOfBirth"
-                  className="block text-base sm:text-lg font-regular text-gray-800 mb-2"
-                >
-                  Date of Birth
-                </label>
-                <div className="relative">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                {/* First Name Field */}
+                <div>
+                  <label
+                    htmlFor="firstName"
+                    className="block text-base sm:text-lg font-regular text-gray-800 mb-2"
+                  >
+                    First Name <span className="text-red-500">*</span>
+                  </label>
                   <input
-                    type="date"
-                    id="dateOfBirth"
-                    name="dateOfBirth"
-                    value={dateOfBirth}
+                    type="text"
+                    id="firstName"
+                    name="firstName"
+                    value={firstName}
                     onChange={(e) => {
-                      setDateOfBirth(e.target.value);
+                      setFirstName(e.target.value);
                       if (statusMessage) setStatusMessage(null);
                     }}
-                    max={new Date().toISOString().split("T")[0]}
-                    className="w-full px-6 py-3.5 rounded-full bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9] transition-all"
+                    placeholder="e.g. Neha"
+                    required
+                    className="w-full px-6 py-3.5 rounded-full bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9] placeholder:text-gray-400 transition-all"
+                  />
+                  <p className="text-sm text-gray-500 mt-2 font-normal">
+                    Note: Users With Real Names Get{" "}
+                    <span className="text-[#0066F9] font-medium">90% More Engagement.</span>
+                  </p>
+                </div>
+
+                {/* Last Name Field */}
+                <div>
+                  <label
+                    htmlFor="lastName"
+                    className="block text-base sm:text-lg font-regular text-gray-800 mb-2"
+                  >
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    id="lastName"
+                    name="lastName"
+                    value={lastName}
+                    onChange={(e) => {
+                      setLastName(e.target.value);
+                      if (statusMessage) setStatusMessage(null);
+                    }}
+                    placeholder="e.g. Shah"
+                    className="w-full px-6 py-3.5 rounded-full bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9] placeholder:text-gray-400 transition-all"
                   />
                 </div>
-              </div>
 
-              {/* Gender Field */}
-              <div className="md:col-span-2">
-                <label className="block text-base sm:text-lg font-regular text-gray-800 mb-2">
-                  Gender
-                </label>
-                <div className="flex flex-wrap items-center gap-3">
-                  {(["male", "female", "other"] as const).map((g) => (
-                    <button
-                      key={g}
-                      type="button"
-                      onClick={() => {
-                        setGender(gender === g ? "" : g);
+                {/* Contact Number Field */}
+                <div>
+                  <label
+                    htmlFor="contactNumber"
+                    className="block text-base sm:text-lg font-regular text-gray-800 mb-2"
+                  >
+                    Contact Number
+                  </label>
+                  <input
+                    type="text"
+                    id="contactNumber"
+                    name="contactNumber"
+                    value={contactNumber}
+                    readOnly
+                    placeholder="Contact number"
+                    className="w-full px-6 py-3.5 rounded-full bg-[#F3F9FD] border border-[#E2EFF8] text-gray-700 text-base focus:outline-none cursor-default select-none"
+                  />
+                </div>
+
+                {/* Date of Birth Field */}
+                <div>
+                  <label
+                    htmlFor="dateOfBirth"
+                    className="block text-base sm:text-lg font-regular text-gray-800 mb-2"
+                  >
+                    Date of Birth
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      id="dateOfBirth"
+                      name="dateOfBirth"
+                      value={dateOfBirth}
+                      onChange={(e) => {
+                        setDateOfBirth(e.target.value);
                         if (statusMessage) setStatusMessage(null);
                       }}
-                      className={`px-7 py-2.5 rounded-full text-base font-regular capitalize transition-all cursor-pointer ${gender === g
+                      max={new Date().toISOString().split("T")[0]}
+                      className="w-full px-6 py-3.5 rounded-full bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9] transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Gender Field */}
+                <div className="md:col-span-2">
+                  <label className="block text-base sm:text-lg font-regular text-gray-800 mb-2">
+                    Gender
+                  </label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {(["male", "female", "other"] as const).map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => {
+                          setGender(gender === g ? "" : g);
+                          if (statusMessage) setStatusMessage(null);
+                        }}
+                        className={`px-7 py-2.5 rounded-full text-base font-regular capitalize transition-all cursor-pointer ${gender === g
+                          ? "bg-accent text-white"
+                          : "bg-background text-gray-600 border border-[#E2EFF8] hover:bg-[#EAF4FC]"
+                          }`}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 2: Professional & Languages */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                <Briefcase className="w-5 h-5 text-[#0066F9]" />
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
+                  Profession & Languages
+                </h3>
+              </div>
+
+              {/* Occupation */}
+              <div>
+                <label className="block text-base sm:text-lg font-regular text-gray-800 mb-3">
+                  Occupation
+                </label>
+                <div className="flex flex-wrap gap-2.5">
+                  {OCCUPATION_OPTIONS.map((occ) => (
+                    <button
+                      key={occ.value}
+                      type="button"
+                      onClick={() => {
+                        setOccupation(occupation === occ.value ? "" : occ.value);
+                        if (statusMessage) setStatusMessage(null);
+                      }}
+                      className={`px-5 py-2.5 rounded-full text-base font-regular capitalize transition-all cursor-pointer ${occupation === occ.value
                         ? "bg-accent text-white"
                         : "bg-background text-gray-600 border border-[#E2EFF8] hover:bg-[#EAF4FC]"
                         }`}
                     >
-                      {g}
+                      {occ.label}
                     </button>
                   ))}
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* SECTION 2: Professional & Languages */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-              <Briefcase className="w-5 h-5 text-[#0066F9]" />
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
-                Profession & Languages
-              </h3>
-            </div>
-
-            {/* Occupation */}
-            <div>
-              <label className="block text-base sm:text-lg font-regular text-gray-800 mb-3">
-                Occupation
-              </label>
-              <div className="flex flex-wrap gap-2.5">
-                {OCCUPATION_OPTIONS.map((occ) => (
-                  <button
-                    key={occ.value}
-                    type="button"
-                    onClick={() => {
-                      setOccupation(occupation === occ.value ? "" : occ.value);
-                      if (statusMessage) setStatusMessage(null);
-                    }}
-                    className={`px-5 py-2.5 rounded-full text-base font-regular capitalize transition-all cursor-pointer ${occupation === occ.value
-                      ? "bg-accent text-white"
-                      : "bg-background text-gray-600 border border-[#E2EFF8] hover:bg-[#EAF4FC]"
-                      }`}
-                  >
-                    {occ.label}
-                  </button>
-                ))}
+              {/* Languages Known */}
+              <div>
+                <label className="block text-base sm:text-lg font-regular text-gray-800 mb-3">
+                  Languages You Speak
+                </label>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {COMMON_LANGUAGES.map((lang) => {
+                    const isSelected = languagesKnown.includes(lang);
+                    return (
+                      <button
+                        key={lang}
+                        type="button"
+                        onClick={() => handleLanguageToggle(lang)}
+                        className={`px-5 py-2.5 rounded-full text-base font-regular capitalize transition-all cursor-pointer ${isSelected
+                          ? "bg-accent text-white"
+                          : "bg-background text-gray-600 border border-[#E2EFF8] hover:bg-[#EAF4FC]"
+                          }`}
+                      >
+                        {lang}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Languages Known */}
-            <div>
-              <label className="block text-base sm:text-lg font-regular text-gray-800 mb-3">
-                Languages You Speak
-              </label>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {COMMON_LANGUAGES.map((lang) => {
-                  const isSelected = languagesKnown.includes(lang);
-                  return (
-                    <button
-                      key={lang}
-                      type="button"
-                      onClick={() => handleLanguageToggle(lang)}
-                      className={`px-5 py-2.5 rounded-full text-base font-regular capitalize transition-all cursor-pointer ${isSelected
-                        ? "bg-accent text-white"
-                        : "bg-background text-gray-600 border border-[#E2EFF8] hover:bg-[#EAF4FC]"
-                        }`}
-                    >
-                      {lang}
-                    </button>
-                  );
-                })}
+            {/* SECTION 3: About Me */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                <FileText className="w-5 h-5 text-[#0066F9]" />
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
+                  About Me / Bio
+                </h3>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="aboutMe"
+                  className="block text-base sm:text-lg font-regular text-gray-800 mb-2"
+                >
+                  Introduce Yourself to Flatmates
+                </label>
+                <textarea
+                  id="aboutMe"
+                  name="aboutMe"
+                  rows={4}
+                  maxLength={1000}
+                  value={aboutMe}
+                  onChange={(e) => {
+                    setAboutMe(e.target.value);
+                    if (statusMessage) setStatusMessage(null);
+                  }}
+                  placeholder="Tell potential flatmates about your daily routine, lifestyle, cleanliness habits, hobbies, and what you look for in a flatmate..."
+                  className="w-full px-6 py-4 rounded-3xl bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9] placeholder:text-gray-400 transition-all resize-none"
+                />
+                <div className="flex justify-end mt-1">
+                  <span className="text-xs text-gray-400">
+                    {aboutMe.length}/1000 characters
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* SECTION 3: About Me */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-              <FileText className="w-5 h-5 text-[#0066F9]" />
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
-                About Me / Bio
-              </h3>
-            </div>
-
-            <div>
-              <label
-                htmlFor="aboutMe"
-                className="block text-base sm:text-lg font-regular text-gray-800 mb-2"
+            {/* Save Changes Button */}
+            <div className="pt-4">
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="px-10 py-3.5 rounded-full bg-[#0066F9] hover:bg-[#0055D4] text-white text-base font-medium transition-all shadow-md active:scale-98 flex items-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Introduce Yourself to Flatmates
-              </label>
-              <textarea
-                id="aboutMe"
-                name="aboutMe"
-                rows={4}
-                maxLength={1000}
-                value={aboutMe}
-                onChange={(e) => {
-                  setAboutMe(e.target.value);
-                  if (statusMessage) setStatusMessage(null);
-                }}
-                placeholder="Tell potential flatmates about your daily routine, lifestyle, cleanliness habits, hobbies, and what you look for in a flatmate..."
-                className="w-full px-6 py-4 rounded-3xl bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9] placeholder:text-gray-400 transition-all resize-none"
-              />
-              <div className="flex justify-end mt-1">
-                <span className="text-xs text-gray-400">
-                  {aboutMe.length}/1000 characters
-                </span>
-              </div>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Saving changes...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Save changes</span>
+                    <ChevronRight className="w-5 h-5 ml-0.5" />
+                  </>
+                )}
+              </button>
             </div>
-          </div>
-
-          {/* Save Changes Button */}
-          <div className="pt-4">
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="px-10 py-3.5 rounded-full bg-[#0066F9] hover:bg-[#0055D4] text-white text-base font-medium transition-all shadow-md active:scale-98 flex items-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Saving changes...</span>
-                </>
-              ) : (
-                <>
-                  <span>Save changes</span>
-                  <ChevronRight className="w-5 h-5 ml-0.5" />
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+          </form>
+        </ViewReveal>
 
         {/* Divider */}
         <hr className="my-10 border-[#ECEFF3]" />
 
         {/* Delete Account Section */}
-        <div className="mt-14">
-          <p className="text-sm text-gray-500 font-regular mb-3">
-            If You Are No Longer Interested In Using Your Account Click The Button Below
-            To Delete Your Account.
-          </p>
-          <button
-            type="button"
-            onClick={() => setShowDeleteModal(true)}
-            className="px-6 py-3 rounded-full bg-[#FF0000] hover:bg-[#DE0000] text-white text-sm sm:text-base font-regular transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
-          >
-            <span>Delete account</span>
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+        <ViewReveal duration={900}>
+          <div className="mt-14">
+            <p className="text-sm text-gray-500 font-regular mb-3">
+              If You Are No Longer Interested In Using Your Account Click The Button Below
+              To Delete Your Account.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(true)}
+              className="px-6 py-3 rounded-full bg-[#FF0000] hover:bg-[#DE0000] text-white text-sm sm:text-base font-regular transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
+            >
+              <span>Delete account</span>
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </ViewReveal>
 
         {/* Delete Account Confirmation Modal */}
         {showDeleteModal && (

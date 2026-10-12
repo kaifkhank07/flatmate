@@ -237,6 +237,38 @@ export const getBlogCategoryById = async (
 };
 
 /**
+ * Get public active blog categories
+ * GET /api/blog-categories/public
+ */
+export const getPublicBlogCategories = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const categories = await BlogCategory.find({ isActive: true })
+      .sort({ name: 1 })
+      .lean();
+
+    return sendSuccess(
+      res,
+      'Public blog categories fetched successfully',
+      categories
+    );
+  } catch (error: any) {
+    logger.error(
+      '[BlogCategoryController] getPublicBlogCategories error:',
+      error
+    );
+
+    return sendError(
+      res,
+      'Failed to fetch blog categories',
+      500
+    );
+  }
+};
+
+/**
  * Update blog category
  * PATCH /api/blog-categories/:categoryId
  *

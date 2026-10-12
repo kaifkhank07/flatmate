@@ -13,6 +13,7 @@ import ListingFilterBar from "./ListingFilterBar";
 import ListingCard from "@/components/listing/shared/ListingCard";
 import { Loader2 } from "lucide-react";
 import { searchFrontendGooglePlaces, getFrontendPlaceDetails } from "@/lib/googlePlaces";
+import { ViewReveal } from "@/components/animation";
 
 export default function ListingManager() {
   const {
@@ -216,78 +217,80 @@ export default function ListingManager() {
       />
 
       {/* Listing Cards Grid */}
-      <div className="w-full py-6 md:py-8 lg:py-12 px-4 sm:px-6 lg:px-16">
-        <div className="w-full max-w-8xl mx-auto">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="w-10 h-10 text-[#0066FF] animate-spin mb-3" />
-              <p className="text-gray-500 font-medium text-sm">
-                Fetching listings...
-              </p>
-            </div>
-          ) : error ? (
-            <div className="text-center py-16 bg-white rounded-3xl border border-red-100 shadow-sm max-w-md mx-auto my-8 p-6">
-              <p className="text-red-500 font-medium text-base mb-3">
-                {error}
-              </p>
-              <button
-                type="button"
-                onClick={() => fetchListings()}
-                className="px-5 py-2 bg-[#0066FF] text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors cursor-pointer"
-              >
-                Try Again
-              </button>
-            </div>
-          ) : listings.length > 0 ? (
-            <div className="space-y-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {listings.map((item) => {
-                  const cardData = mapUnifiedListingToCard(item);
-                  return <ListingCard key={item._id} item={cardData} />;
-                })}
+      <ViewReveal duration={800}>
+        <div className="w-full py-6 md:py-8 lg:py-12 px-4 sm:px-6 lg:px-16">
+          <div className="w-full max-w-8xl mx-auto">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <Loader2 className="w-10 h-10 text-[#0066FF] animate-spin mb-3" />
+                <p className="text-gray-500 font-medium text-sm">
+                  Fetching listings...
+                </p>
               </div>
-
-              {/* Backend Pagination Bar */}
-              {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-center gap-3 pt-6">
-                  <button
-                    type="button"
-                    disabled={!pagination.hasPreviousPage}
-                    onClick={() => setFilters({ page: pagination.page - 1 })}
-                    className="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-full disabled:opacity-50 hover:bg-gray-50 transition-colors cursor-pointer"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-sm text-gray-600 font-medium px-2">
-                    Page {pagination.page} of {pagination.totalPages}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={!pagination.hasNextPage}
-                    onClick={() => setFilters({ page: pagination.page + 1 })}
-                    className="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-full disabled:opacity-50 hover:bg-gray-50 transition-colors cursor-pointer"
-                  >
-                    Next
-                  </button>
+            ) : error ? (
+              <div className="text-center py-16 bg-white rounded-3xl border border-red-100 shadow-sm max-w-md mx-auto my-8 p-6">
+                <p className="text-red-500 font-medium text-base mb-3">
+                  {error}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => fetchListings()}
+                  className="px-5 py-2 bg-[#0066FF] text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors cursor-pointer"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : listings.length > 0 ? (
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {listings.map((item) => {
+                    const cardData = mapUnifiedListingToCard(item);
+                    return <ListingCard key={item._id} item={cardData} />;
+                  })}
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-16 bg-white rounded-3xl border border-gray-100 shadow-sm max-w-md mx-auto my-8">
-              <p className="text-gray-500 font-medium text-base">
-                No listings found matching your filters.
-              </p>
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="mt-4 px-5 py-2 bg-[#0066FF] text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors cursor-pointer"
-              >
-                Reset Filters
-              </button>
-            </div>
-          )}
+
+                {/* Backend Pagination Bar */}
+                {pagination.totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-3 pt-6">
+                    <button
+                      type="button"
+                      disabled={!pagination.hasPreviousPage}
+                      onClick={() => setFilters({ page: pagination.page - 1 })}
+                      className="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-full disabled:opacity-50 hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-sm text-gray-600 font-medium px-2">
+                      Page {pagination.page} of {pagination.totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={!pagination.hasNextPage}
+                      onClick={() => setFilters({ page: pagination.page + 1 })}
+                      className="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-full disabled:opacity-50 hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-16 bg-white rounded-3xl border border-gray-100 shadow-sm max-w-md mx-auto my-8">
+                <p className="text-gray-500 font-medium text-base">
+                  No listings found matching your filters.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="mt-4 px-5 py-2 bg-[#0066FF] text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors cursor-pointer"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </ViewReveal>
     </section>
   );
 }

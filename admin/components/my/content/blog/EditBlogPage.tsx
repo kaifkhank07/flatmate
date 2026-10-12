@@ -18,6 +18,7 @@ import {
 } from "@/lib/api";
 
 import { Card, PageHead } from "@/components/ui";
+import RichTextEditor, { isBlogContentEmpty } from "./RichTextEditor";
 import {
   ArrowLeft,
   ChevronDown,
@@ -213,7 +214,7 @@ export default function EditBlogPage({
     const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
 
-    if (!trimmedTitle || !trimmedContent || !categoryId) {
+    if (!trimmedTitle || isBlogContentEmpty(content) || !categoryId) {
       toast("Title, content and category are required");
       return;
     }
@@ -432,14 +433,12 @@ export default function EditBlogPage({
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Content <span className="text-rose-500">*</span>
                 </label>
-                <textarea
+                <RichTextEditor
                   value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Write blog content..."
-                  rows={12}
+                  onChange={setContent}
+                  placeholder="Write rich blog content..."
                   disabled={submitting}
-                  className="w-full px-3.5 py-3 rounded-xl border border-slate-200 bg-white text-sm outline-none transition resize-y focus:border-amber-400 focus:ring-2 focus:ring-amber-100 disabled:bg-slate-50"
-                  required
+                  minHeight={320}
                 />
               </div>
 

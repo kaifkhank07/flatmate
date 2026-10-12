@@ -8,7 +8,7 @@ import {
   markMessagesRead,
   deleteMessage,
 } from '../../services/chat/chatMessage.service';
-import { emitToConversationRoom } from '../../socket/chat.socket';
+import { emitToConversationRoom, isUserOnline } from '../../socket/chat.socket';
 
 /**
  * Send a message within a conversation
@@ -23,7 +23,7 @@ export const sendMessageHandler = async (req: Request, res: Response): Promise<R
     const { conversationId } = req.params;
     const { type, text, attachment, property, flatmate } = req.body;
 
-    const message = await sendMessage(req.user._id, conversationId, {
+    let message = await sendMessage(req.user._id, conversationId, {
       type,
       text,
       attachment,
@@ -31,8 +31,26 @@ export const sendMessageHandler = async (req: Request, res: Response): Promise<R
       flatmate,
     });
 
-    // Emit Socket.io real-time event if server/socket is active
+    // Auto mark delivered if receiver socket is online
+    const receiverIdStr = message.receiverId.toString();
+    const receiverOnline = isUserOnline(receiverIdStr);
+
+    logger.info(`[REST SendMessage] Sender: ${req.user._id}, Receiver: ${receiverIdStr}, ReceiverOnline: ${receiverOnline}`);
+
+    if (receiverOnline) {
+      try {
+        message = await markMessageDelivered(message._id, message.receiverId);
+        logger.info(`[REST SendMessage] Auto-marked message ${message._id} as DELIVERED (Receiver ${receiverIdStr} is online)`);
+      } catch (e: any) {
+        logger.warn(`[REST SendMessage] Failed to auto-mark message ${message._id} delivered: ${e.message}`);
+      }
+    } else {
+      logger.info(`[REST SendMessage] Receiver ${receiverIdStr} is OFFLINE. Message ${message._id} status remains '${message.status}'`);
+    }
+
+    // Emit Socket.io real-time event with final status ('delivered' if receiver is online)
     emitToConversationRoom(conversationId, 'new_message', message);
+    logger.info(`[REST SendMessage] Broadcasted new_message (ID: ${message._id}, Status: ${message.status}) to room conversation:${conversationId}`);
 
     return sendSuccess(res, 'Message sent successfully', message, 201);
   } catch (error: any) {

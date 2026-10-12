@@ -16,6 +16,7 @@ import {
 } from "@/lib/api";
 
 import { Card, PageHead } from "@/components/ui";
+import RichTextEditor, { isBlogContentEmpty } from "./RichTextEditor";
 import {
   ArrowLeft,
   ChevronDown,
@@ -152,13 +153,78 @@ export default function CreateBlogPage({ eyebrow }: { eyebrow?: string }) {
     setFaqs(newFaqs);
   };
 
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+
+  //   const trimmedTitle = title.trim();
+  //   const trimmedContent = content.trim();
+
+  //   if (!trimmedTitle || isBlogContentEmpty(content) || !categoryId) {
+  //     toast("Title, content and category are required");
+  //     return;
+  //   }
+
+  //   const keywords = seoKeywords
+  //     .split(",")
+  //     .map((k) => k.trim())
+  //     .filter(Boolean);
+
+  //   const seo: BlogSeo = {};
+  //   if (seoTitle.trim()) seo.title = seoTitle.trim();
+  //   if (seoDescription.trim()) seo.description = seoDescription.trim();
+  //   if (keywords.length > 0) seo.keywords = keywords;
+
+  //   try {
+  //     setSubmitting(true);
+
+  //     let res;
+  //     if (imageFile) {
+  //       const body = new FormData();
+  //       body.append("title", trimmedTitle);
+  //       body.append("content", trimmedContent);
+  //       body.append("categoryId", categoryId);
+  //       body.append("isActive", String(isActive));
+  //       if (Object.keys(seo).length > 0) {
+  //         body.append("seo", JSON.stringify(seo));
+  //       }
+  //       if (faqs.length > 0) {
+  //         body.append("faqs", JSON.stringify(faqs));
+  //       }
+  //       body.append("file", imageFile);
+
+  //       res = await createBlogApi(body);
+  //     } else {
+  //       res = await createBlogApi({
+  //         title: trimmedTitle,
+  //         content: trimmedContent,
+  //         categoryId,
+  //         isActive,
+  //         seo: Object.keys(seo).length > 0 ? seo : undefined,
+  //         faqs: faqs.length > 0 ? faqs : undefined,
+  //       });
+  //     }
+
+  //     if (!res.success) {
+  //       toast(res.message || "Failed to create blog");
+  //       return;
+  //     }
+
+  //     toast("Blog created successfully");
+  //     router.push(basePath);
+  //   } catch (error) {
+  //     console.error("Create blog error:", error);
+  //     toast("Failed to create blog");
+  //   } finally {
+  //     setSubmitting(false);
+  //   }
+  // };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const trimmedTitle = title.trim();
-    const trimmedContent = content.trim();
 
-    if (!trimmedTitle || !trimmedContent || !categoryId) {
+    if (!trimmedTitle || isBlogContentEmpty(content) || !categoryId) {
       toast("Title, content and category are required");
       return;
     }
@@ -169,6 +235,7 @@ export default function CreateBlogPage({ eyebrow }: { eyebrow?: string }) {
       .filter(Boolean);
 
     const seo: BlogSeo = {};
+
     if (seoTitle.trim()) seo.title = seoTitle.trim();
     if (seoDescription.trim()) seo.description = seoDescription.trim();
     if (keywords.length > 0) seo.keywords = keywords;
@@ -177,25 +244,30 @@ export default function CreateBlogPage({ eyebrow }: { eyebrow?: string }) {
       setSubmitting(true);
 
       let res;
+
       if (imageFile) {
         const body = new FormData();
+
         body.append("title", trimmedTitle);
-        body.append("content", trimmedContent);
+        body.append("content", content);
         body.append("categoryId", categoryId);
         body.append("isActive", String(isActive));
+
         if (Object.keys(seo).length > 0) {
           body.append("seo", JSON.stringify(seo));
         }
+
         if (faqs.length > 0) {
           body.append("faqs", JSON.stringify(faqs));
         }
+
         body.append("file", imageFile);
 
         res = await createBlogApi(body);
       } else {
         res = await createBlogApi({
           title: trimmedTitle,
-          content: trimmedContent,
+          content,
           categoryId,
           isActive,
           seo: Object.keys(seo).length > 0 ? seo : undefined,
@@ -328,14 +400,12 @@ export default function CreateBlogPage({ eyebrow }: { eyebrow?: string }) {
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Content <span className="text-rose-500">*</span>
                 </label>
-                <textarea
+                <RichTextEditor
                   value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Write blog content..."
-                  rows={12}
+                  onChange={setContent}
+                  placeholder="Write rich blog content..."
                   disabled={submitting}
-                  className="w-full px-3.5 py-3 rounded-xl border border-slate-200 bg-white text-sm outline-none transition resize-y focus:border-amber-400 focus:ring-2 focus:ring-amber-100 disabled:bg-slate-50"
-                  required
+                  minHeight={320}
                 />
               </div>
 

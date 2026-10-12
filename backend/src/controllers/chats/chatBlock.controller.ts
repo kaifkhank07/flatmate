@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
 import { blockUser, unblockUser, getBlockedUsers } from '../../services/chat/chatBlock.service';
+import { emitToUser } from '../../socket/chat.socket';
 
 /**
  * Block a user
@@ -16,6 +17,18 @@ export const blockUserHandler = async (req: Request, res: Response): Promise<Res
     const { blockedUserId, reason } = req.body;
 
     const block = await blockUser(req.user._id, blockedUserId, reason);
+
+    // Notify both users in real-time
+    emitToUser(blockedUserId, 'user_block_updated', {
+      blockerId: req.user._id.toString(),
+      blockedUserId: blockedUserId.toString(),
+      isBlocked: true,
+    });
+    emitToUser(req.user._id, 'user_block_updated', {
+      blockerId: req.user._id.toString(),
+      blockedUserId: blockedUserId.toString(),
+      isBlocked: true,
+    });
 
     return sendSuccess(res, 'User blocked successfully', block, 201);
   } catch (error: any) {
@@ -41,6 +54,18 @@ export const unblockUserHandler = async (req: Request, res: Response): Promise<R
     if (!success) {
       return sendError(res, 'User was not blocked', 404);
     }
+
+    // Notify both users in real-time
+    emitToUser(userId, 'user_block_updated', {
+      blockerId: req.user._id.toString(),
+      blockedUserId: userId.toString(),
+      isBlocked: false,
+    });
+    emitToUser(req.user._id, 'user_block_updated', {
+      blockerId: req.user._id.toString(),
+      blockedUserId: userId.toString(),
+      isBlocked: false,
+    });
 
     return sendSuccess(res, 'User unblocked successfully');
   } catch (error: any) {

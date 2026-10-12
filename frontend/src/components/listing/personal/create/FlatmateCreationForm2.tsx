@@ -32,6 +32,7 @@ import {
   UserPreferenceItem,
   PropertyAmenityItem,
 } from "@/lib/apiServices";
+import { ViewReveal } from "@/components/animation";
 
 interface FlatmateCreationFormProps {
   onBack: () => void;
@@ -415,11 +416,13 @@ export default function FlatmateCreationForm2({
 
         {/* Main Card Wrapper */}
         <div className="bg-white border border-gray-100 rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 md:p-12 space-y-8 sm:space-y-10 md:space-y-12">
-          <SectionHeading
-            title="Create Flatmate Requirement"
-            description="Find your ideal roommate or flatmate by specifying location, preferences, amenities, and budget"
-            align="center"
-          />
+          <ViewReveal duration={800}>
+            <SectionHeading
+              title="Create Flatmate Requirement"
+              description="Find your ideal roommate or flatmate by specifying location, preferences, amenities, and budget"
+              align="center"
+            />
+          </ViewReveal>
 
           <form onSubmit={handlePublish} className="space-y-8">
             {/* Location Autocomplete Field */}

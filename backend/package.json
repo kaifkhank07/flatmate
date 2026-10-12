@@ -17,7 +17,8 @@
     "seed:reports": "tsx src/scripts/seed-reports.ts",
     "seed:chats": "tsx src/scripts/seed-chats.ts",
     "seed:blog-categories": "tsx src/scripts/seed-blog-categories.ts",
-    "seed:avatars": "tsx src/scripts/seed-avatars.ts"
+    "seed:avatars": "tsx src/scripts/seed-avatars.ts",
+    "test:realtime-chat": "tsx src/scripts/testRealtimeChat.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.587.0",
@@ -46,6 +47,8 @@
     "@types/multer": "^2.2.0",
     "@types/node": "^20.14.2",
     "@types/nodemailer": "^6.4.15",
+    "@types/socket.io-client": "^1.4.36",
+    "socket.io-client": "^4.8.4",
     "tsx": "^4.15.2",
     "typescript": "^5.4.5"
   }

@@ -41,7 +41,7 @@ export default function ListingDetails({ slug: propSlug, listingData }: ListingD
   if (loadingDetails) {
     return (
       <section className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
-        <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border border-gray-200 drop-shadow-md p-12 flex flex-col items-center justify-center min-h-[400px]">
+        <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border border-gray-200 p-12 flex flex-col items-center justify-center min-h-[400px]">
           <Loader2 className="w-10 h-10 text-[#0066FF] animate-spin mb-3" />
           <p className="text-gray-500 font-medium text-sm">Loading listing details...</p>
         </div>
@@ -56,7 +56,7 @@ export default function ListingDetails({ slug: propSlug, listingData }: ListingD
 
     return (
       <section className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
-        <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border border-gray-200 drop-shadow-md p-12 flex flex-col items-center justify-center min-h-[400px] text-center">
+        <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border border-gray-200 p-12 flex flex-col items-center justify-center min-h-[400px] text-center">
           <p className="text-gray-500 font-medium text-base mb-2">Listing not found or unavailable.</p>
         </div>
       </section>

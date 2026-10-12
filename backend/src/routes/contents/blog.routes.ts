@@ -4,6 +4,8 @@ import {
     createBlog,
     getBlogs,
     getBlogById,
+    getPublicBlogs,
+    getPublicBlogBySlug,
     updateBlog,
     deleteBlog,
     toggleBlogStatus,
@@ -20,6 +22,11 @@ import {
 
 const router = Router();
 
+// Public read-only routes (No auth required)
+router.get('/public', getPublicBlogs);
+router.get('/public/:slug', getPublicBlogBySlug);
+
+// Authenticated / Admin routes
 router.get(
     '/',
     authenticateUserOrAdmin,

@@ -3,6 +3,7 @@ import { brand } from "@/brand.config";
 import BrandStyle from "@/components/brand-style";
 import { ToastProvider } from "@/lib/toast";
 import "./globals.css";
+import "quill/dist/quill.snow.css";
 
 export const metadata: Metadata = {
   title: `${brand.name} — Admin`,

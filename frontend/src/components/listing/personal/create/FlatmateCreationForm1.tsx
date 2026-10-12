@@ -32,6 +32,7 @@ import {
   UserPreferenceItem,
   PropertyAmenityItem,
 } from "@/lib/apiServices";
+import { ViewReveal } from "@/components/animation";
 
 interface FlatmateCreationFormProps {
   onBack: () => void;
@@ -419,11 +420,13 @@ export default function FlatmateCreationForm1({
 
         {/* Main Card Wrapper */}
         <div className="bg-white border border-gray-100 rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 md:p-12 space-y-8 sm:space-y-10 md:space-y-12">
-          <SectionHeading
-            title="Create Flat Requirement"
-            description="Fill in Requirement details, select location, preferences, amenities, and upload media assets"
-            align="center"
-          />
+          <ViewReveal duration={800}>
+            <SectionHeading
+              title="Create Flat Requirement"
+              description="Fill in Requirement details, select location, preferences, amenities, and upload media assets"
+              align="center"
+            />
+          </ViewReveal>
 
           <form onSubmit={handlePublish} className="space-y-8">
             {/* Location Autocomplete Field */}
@@ -770,11 +773,10 @@ export default function FlatmateCreationForm1({
                             onClick={() => togglePreference(pref._id)}
                             aria-label={`Select ${pref.name}`}
                             title={pref.name}
-                            className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${
-                              isSelected
-                                ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
-                                : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
-                            }`}
+                            className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${isSelected
+                              ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
+                              : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
+                              }`}
                           >
                             {renderPreferenceImage(pref)}
                           </button>
@@ -839,12 +841,12 @@ export default function FlatmateCreationForm1({
 
             {/* SECTION 4: MEDIA ASSETS MANAGEMENT */}
             {/* <div className="space-y-6 pt-2"> */}
-              {/* <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+            {/* <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
                 MEDIA ASSETS MANAGEMENT
               </h3> */}
 
-              {/* Photos Upload Section */}
-              {/* <div className="space-y-3">
+            {/* Photos Upload Section */}
+            {/* <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Requirement Photos ({photoItems.length})
@@ -902,8 +904,8 @@ export default function FlatmateCreationForm1({
                 )}
               </div> */}
 
-              {/* Videos Upload Section */}
-              {/* <div className="space-y-3">
+            {/* Videos Upload Section */}
+            {/* <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Walkthrough Videos ({videoItems.length})

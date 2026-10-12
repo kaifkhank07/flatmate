@@ -70,18 +70,18 @@ export default function ListingCard({ item, isMylisting = false }: ListingCardPr
           <div className="flex flex-col items-end gap-1 sm:gap-2 text-right shrink-0">
             <div>{renderDistance(item.distance)}</div>
 
-            <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
+            {/* <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
               <span className="text-gray-900 text-xs sm:text-base font-regular whitespace-nowrap">
                 {item.matchPercentage}% Match
               </span>
-              {/* <button
+              <button
                 type="button"
                 aria-label={`Chat with ${item.name}`}
                 className="p-1.5 sm:p-2 bg-background hover:bg-primary/10 text-accent rounded-full transition-colors cursor-pointer flex items-center justify-center shrink-0"
               >
                 <MessageSquare className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-              </button> */}
-            </div>
+              </button>
+            </div> */}
           </div>
         </div>
 
