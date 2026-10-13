@@ -71,7 +71,6 @@ export default function MobileNavbar() {
     label: string;
     href: string;
     icon: LucideIcon;
-    hasNotification?: boolean;
   }[] = [
       {
         id: "search",
@@ -96,7 +95,6 @@ export default function MobileNavbar() {
         label: "More",
         href: "/more",
         icon: CircleEllipsis,
-        hasNotification: true,
       },
     ];
 
@@ -131,9 +129,6 @@ export default function MobileNavbar() {
                   strokeWidth={isActive ? 2 : 1.8}
                 />
 
-                {item.hasNotification && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-white" />
-                )}
               </div>
               <span className="text-[11px] leading-tight font-medium tracking-tight whitespace-nowrap">
                 {item.label}

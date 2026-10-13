@@ -156,15 +156,16 @@ export default function EditAvatarDialog({
             )}
           </div>
 
-          <div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isActive}
-                onChange={(e) => setIsActive(e.target.checked)}
-                className="w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-500"
-              />
-              <span className="text-xs font-semibold text-slate-700">Is Active</span>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="editAvatarIsActive"
+              className="w-4 h-4 rounded border-slate-300 text-amber-500 accent-amber-500 cursor-pointer"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+            />
+            <label htmlFor="editAvatarIsActive" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
+              Mark as Active
             </label>
           </div>
 

@@ -27,6 +27,7 @@ import {
   addVideoToProperty,
   removeVideoFromProperty,
 } from '../../controllers/listing/property.controller';
+import { listingLimitMiddleware } from '../../middlewares/listingLimit.middleware';
 
 const router = Router();
 
@@ -36,7 +37,7 @@ router.get('/slug/:slug', getPropertyBySlug);
 router.get('/:id', getPropertyById);
 
 // Protected CRUD Operations (User / Admin)
-router.post('/', authenticateUserOrAdmin, validate(createPropertySchema), createProperty);
+router.post('/', authenticateUserOrAdmin, listingLimitMiddleware, validate(createPropertySchema), createProperty);
 router.put('/:id', authenticateUserOrAdmin, validate(updatePropertySchema), updateProperty);
 router.delete('/:id', authenticateUserOrAdmin, deleteProperty);
 

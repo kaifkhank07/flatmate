@@ -269,7 +269,7 @@ export default function CreateCityDialog({
                 checked={isPopular}
                 onChange={(e) => setIsPopular(e.target.checked)}
                 disabled={submitting}
-                className="w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-500"
+                className="w-4 h-4 text-amber-500 accent-amber-500 rounded border-slate-300 focus:ring-amber-500"
               />
               <label htmlFor="isPopular" className="text-xs font-semibold text-slate-700 cursor-pointer">
                 Mark as Popular City
@@ -283,7 +283,7 @@ export default function CreateCityDialog({
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
                 disabled={submitting}
-                className="w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-500"
+                className="w-4 h-4 text-amber-500 accent-amber-500 rounded border-slate-300 focus:ring-amber-500"
               />
               <label htmlFor="isActive" className="text-xs font-semibold text-slate-700 cursor-pointer">
                 Active Status

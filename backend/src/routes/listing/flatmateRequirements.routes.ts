@@ -24,6 +24,7 @@ import {
   addVideoToFlatmateRequirement,
   removeVideoFromFlatmateRequirement,
 } from '../../controllers/listing/flatmateRequirements.controller';
+import { listingLimitMiddleware } from '../../middlewares/listingLimit.middleware';
 
 const router = Router();
 
@@ -40,7 +41,7 @@ router.get('/my-posts', authenticateUser, validate(getMyFlatmateRequirementsSche
 router.get('/:id', getFlatmateRequirementById);
 
 // Protected user / admin CRUD routes
-router.post('/', authenticateUserOrAdmin, validate(createFlatmateRequirementSchema), createFlatmateRequirement);
+router.post('/', authenticateUserOrAdmin, listingLimitMiddleware, validate(createFlatmateRequirementSchema), createFlatmateRequirement);
 router.put('/:id', authenticateUserOrAdmin, validate(updateFlatmateRequirementSchema), updateFlatmateRequirement);
 router.patch('/:id/status', authenticateUserOrAdmin, validate(updateFlatmateRequirementStatusSchema), updateFlatmateRequirementStatus);
 router.delete('/:id', authenticateUserOrAdmin, deleteFlatmateRequirement);

@@ -73,22 +73,6 @@ export default function EditUserDialog({
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
-              Account Status
-            </label>
-            <select
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-              value={editForm.accountStatus}
-              onChange={(e) =>
-                setEditForm({ ...editForm, accountStatus: e.target.value })
-              }
-            >
-              <option value="active" className="text-slate-900 bg-white">Active</option>
-              <option value="inactive" className="text-slate-900 bg-white">Inactive</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
               Verification Status
             </label>
             <select
@@ -105,20 +89,54 @@ export default function EditUserDialog({
             </select>
           </div>
 
-          <div className="flex items-center gap-2.5 pt-1">
-            <input
-              type="checkbox"
-              id="profileVerifiedCheckAdmin"
-              className="w-4 h-4 rounded border-slate-300 text-amber-500 accent-amber-500 cursor-pointer"
-              checked={editForm.profileVerified}
-              onChange={(e) =>
-                setEditForm({ ...editForm, profileVerified: e.target.checked })
-              }
-            />
-            <label htmlFor="profileVerifiedCheckAdmin" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
-              Profile Verified Badge
-            </label>
+
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="profileVerifiedCheckAdmin"
+                className="w-4 h-4 rounded border-slate-300 text-amber-500 accent-amber-500 cursor-pointer"
+                checked={editForm.profileVerified}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, profileVerified: e.target.checked })
+                }
+              />
+              <label htmlFor="profileVerifiedCheckAdmin" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
+                Mark as Verified
+              </label>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="accountStatusCheckAdmin"
+                className="w-4 h-4 rounded border-slate-300 text-amber-500 accent-amber-500 cursor-pointer"
+                checked={editForm.accountStatus === "active"}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, accountStatus: e.target.checked ? "active" : "inactive" })
+                }
+              />
+              <label htmlFor="accountStatusCheckAdmin" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
+                Mark as Active
+              </label>
+            </div>
           </div>
+
+          {/* <div>
+            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+              Account Status
+            </label>
+            <select
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+              value={editForm.accountStatus}
+              onChange={(e) =>
+                setEditForm({ ...editForm, accountStatus: e.target.value })
+              }
+            >
+              <option value="active" className="text-slate-900 bg-white">Active</option>
+              <option value="inactive" className="text-slate-900 bg-white">Inactive</option>
+            </select>
+          </div> */}
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
             <button

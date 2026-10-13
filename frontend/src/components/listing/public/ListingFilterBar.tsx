@@ -129,11 +129,10 @@ export default function ListingFilterBar({
                   key={cat.label}
                   type="button"
                   onClick={() => onSelectCategory(cat.label)}
-                  className={`flex flex-col items-center justify-center gap-1.5 py-1 transition-all cursor-pointer relative shrink-0 ${
-                    isActive
-                      ? "text-black font-semibold"
-                      : "text-gray-400 hover:text-gray-600 font-medium"
-                  }`}
+                  className={`flex flex-col items-center justify-center gap-1.5 py-1 transition-all cursor-pointer relative shrink-0 ${isActive
+                    ? "text-black font-semibold"
+                    : "text-gray-400 hover:text-gray-600 font-medium"
+                    }`}
                 >
                   {cat.icon}
                   <span className="text-xs sm:text-sm">{cat.displayLabel}</span>
@@ -142,43 +141,39 @@ export default function ListingFilterBar({
             })}
           </div>
 
-          {/* Right Filter Pills: Gender, Radius, Sort */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            {/* Gender Dropdown Pill */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                type="button"
-                onClick={() => setGenderOpen(!genderOpen)}
-                className="bg-[#0066FF] hover:bg-blue-700 text-white text-xs sm:text-sm font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-full flex items-center gap-2 cursor-pointer transition-colors shadow-sm"
-              >
-                <span>Gender{selectedGender !== "All" ? `: ${selectedGender}` : ""}</span>
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform ${genderOpen ? "rotate-180" : ""}`}
-                />
-              </button>
+          {/* Gender Dropdown Pill */}
+          <div className="w-full sm:w-auto relative" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setGenderOpen(!genderOpen)}
+              className="w-full bg-[#0066FF] hover:bg-blue-700 text-white text-xs sm:text-sm font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-full flex justify-between items-center gap-2 cursor-pointer transition-colors shadow-sm"
+            >
+              <span>Gender{selectedGender !== "All" ? `: ${selectedGender}` : ""}</span>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform ${genderOpen ? "rotate-180" : ""}`}
+              />
+            </button>
 
-              {genderOpen && (
-                <div className="absolute right-0 mt-2 w-36 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
-                  {genderOptions.map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => {
-                        onSelectGender(opt);
-                        setGenderOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${
-                        selectedGender === opt
-                          ? "bg-blue-50 text-[#0066FF] font-semibold"
-                          : "text-gray-700 hover:bg-gray-50"
+            {genderOpen && (
+              <div className="absolute right-0 mt-2 w-full sm:w-36 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
+                {genderOptions.map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => {
+                      onSelectGender(opt);
+                      setGenderOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${selectedGender === opt
+                      ? "bg-blue-50 text-[#0066FF] font-semibold"
+                      : "text-gray-700 hover:bg-gray-50"
                       }`}
-                    >
-                      {opt === "All" ? "All Genders" : opt}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                  >
+                    {opt === "All" ? "All Genders" : opt}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

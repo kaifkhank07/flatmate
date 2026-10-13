@@ -74,7 +74,7 @@ export default function Login({ onSwitchToSignUp }: LoginProps) {
     if (success) {
       const isCompleted = await checkProfileCompletionStatus();
       if (!isCompleted) {
-        router.push("/my-profile-complete");
+        router.push("/my-profile");
       } else {
         router.push("/");
       }

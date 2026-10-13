@@ -405,7 +405,7 @@ export default function FlatmateRequirementPropertyDetails({
             )}
 
             {/* Photos if available */}
-            {imageList.length > 0 && (
+            {/* {imageList.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Photos</h3>
                 <div className="w-full overflow-x-auto pb-3 pt-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
@@ -426,15 +426,12 @@ export default function FlatmateRequirementPropertyDetails({
                             <Maximize2 className="w-5 h-5" />
                           </div>
                         </div>
-                        {/* <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full font-medium">
-                          {idx + 1} / {imageList.length}
-                        </div> */}
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Description */}
             <div className="space-y-3">

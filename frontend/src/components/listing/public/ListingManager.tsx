@@ -19,6 +19,7 @@ export default function ListingManager() {
   const {
     listings,
     loading,
+    loadingMore,
     error,
     pagination,
     fetchListings,
@@ -250,7 +251,7 @@ export default function ListingManager() {
                 </div>
 
                 {/* Backend Pagination Bar */}
-                {pagination.totalPages > 1 && (
+                {/* {pagination.totalPages > 1 && (
                   <div className="flex items-center justify-center gap-3 pt-6">
                     <button
                       type="button"
@@ -270,6 +271,24 @@ export default function ListingManager() {
                       className="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-full disabled:opacity-50 hover:bg-gray-50 transition-colors cursor-pointer"
                     >
                       Next
+                    </button>
+                  </div>
+                )} */}
+                {/* Load More Button */}
+                {pagination.hasNextPage && (
+                  <div className="flex justify-center pt-6">
+                    <button
+                      type="button"
+                      disabled={loadingMore}
+                      onClick={() =>
+                        fetchListings(
+                          { page: pagination.page + 1 },
+                          true
+                        )
+                      }
+                      className="text-white text-sm sm:text-base py-3.5 px-7 rounded-full bg-brand-blue hover:bg-[#0052c7] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                    >
+                      {loadingMore ? "Loading..." : "Load More"}
                     </button>
                   </div>
                 )}

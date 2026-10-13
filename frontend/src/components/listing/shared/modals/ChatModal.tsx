@@ -140,19 +140,21 @@ export default function ChatModal({
             </div>
           )}
 
-          <div className="flex items-center gap-2">
+          <div className="flex w-full min-w-0 items-center gap-2">
             <input
               type="text"
               value={chatMessage}
               onChange={(e) => setChatMessage(e.target.value)}
               placeholder="Type your message..."
               disabled={isSending}
-              className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-full focus:outline-none focus:border-[#0066FF] disabled:bg-gray-50"
+              className="min-w-0 flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-full focus:outline-none focus:border-[#0066FF] disabled:bg-gray-50"
             />
+
             <button
               type="submit"
               disabled={isSending || !chatMessage.trim()}
-              className="p-2.5 bg-[#0066FF] hover:bg-blue-700 text-white rounded-full transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+              aria-label="Send message"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0066FF] text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </button>

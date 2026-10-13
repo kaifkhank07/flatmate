@@ -178,16 +178,18 @@ export default function EditUserPreferenceDialog({
             )}
           </div>
 
-          <div className="flex items-center gap-2.5 pt-1">
+          <div className="flex items-center gap-2">
             <input
               type="checkbox"
               id="editPrefIsActive"
               className="w-4 h-4 rounded border-slate-300 text-amber-500 accent-amber-500 cursor-pointer"
               checked={formData.isActive}
-              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              onChange={(e) =>
+                setFormData({ ...formData, isActive: e.target.checked })
+              }
             />
             <label htmlFor="editPrefIsActive" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
-              Is Active
+              Mark as Active
             </label>
           </div>
 

@@ -252,26 +252,18 @@ export default function CreateRentalGuideDialog({
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
               Status
             </label>
-            <div className="flex items-center gap-3 h-10">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={isActive}
-                onClick={() => setIsActive((prev) => !prev)}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="createRentalIsActive"
+                className="w-4 h-4 rounded border-slate-300 text-amber-500 accent-amber-500 cursor-pointer"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
                 disabled={submitting}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  isActive ? "bg-emerald-500" : "bg-slate-300"
-                } disabled:opacity-50`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                    isActive ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
-              </button>
-              <span className="text-xs font-semibold text-slate-700">
-                {isActive ? "Active (Published)" : "Inactive (Draft)"}
-              </span>
+              />
+              <label htmlFor="createRentalIsActive" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
+                Mark as Public
+              </label>
             </div>
           </div>
 

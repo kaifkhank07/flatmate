@@ -178,7 +178,7 @@ export default function EditPropertyAmenityDialog({
             )}
           </div>
 
-          <div className="flex items-center gap-2.5 pt-1">
+          <div className="flex items-center gap-2">
             <input
               type="checkbox"
               id="editAmenityIsActive"
@@ -187,7 +187,7 @@ export default function EditPropertyAmenityDialog({
               onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
             />
             <label htmlFor="editAmenityIsActive" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
-              Is Active
+              Mark as Active
             </label>
           </div>
 

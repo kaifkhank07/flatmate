@@ -29,6 +29,7 @@ interface ListingState {
   selectedListing: UnifiedListingItem | null;
 
   loading: boolean;
+  loadingMore: boolean;
   loadingLatestListings: boolean;
   loadingDetails: boolean;
   loadingOptions: boolean;
@@ -46,7 +47,11 @@ interface ListingState {
   options: ListingOptions;
 
   // Actions
-  fetchListings: (customParams?: ListingQueryParams) => Promise<void>;
+  // fetchListings: (customParams?: ListingQueryParams) => Promise<void>;
+  fetchListings: (
+    customParams?: ListingQueryParams,
+    append?: boolean
+  ) => Promise<void>;
   fetchLatestListings: () => Promise<void>;
 
   fetchMyListings: (params?: {
@@ -162,7 +167,8 @@ const initialPagination: PaginationInfo = {
 
 const initialFilters: ListingQueryParams = {
   page: 1,
-  limit: 10,
+  // limit: 10,
+  limit: 1,
   sourceType: 'all',
   sortBy: 'createdAt',
   order: 'desc',
@@ -211,6 +217,7 @@ export const useListingStore = create<ListingState>((set, get) => ({
   selectedListing: null,
 
   loading: false,
+  loadingMore: false,
   loadingLatestListings: false,
   loadingMyListings: false,
   loadingDetails: false,
@@ -342,8 +349,78 @@ export const useListingStore = create<ListingState>((set, get) => ({
   /**
    * Fetch listings from GET /api/listings using active filters
    */
-  fetchListings: async (customParams?: ListingQueryParams) => {
-    set({ loading: true, error: null });
+  // fetchListings: async (customParams?: ListingQueryParams) => {
+  //   set({ loading: true, error: null });
+
+  //   try {
+  //     const activeFilters = {
+  //       ...get().filters,
+  //       ...customParams,
+  //     };
+
+  //     // Clean empty / undefined filter values before sending
+  //     const cleanParams: Record<string, any> = {};
+  //     Object.entries(activeFilters).forEach(([key, val]) => {
+  //       if (val !== undefined && val !== '' && val !== 'all') {
+  //         cleanParams[key] = val;
+  //       }
+  //     });
+
+  //     if (cleanParams.listingType && !cleanParams.propertyType) {
+  //       cleanParams.propertyType = cleanParams.listingType;
+  //       delete cleanParams.listingType;
+  //     }
+
+  //     // Maintain explicit pagination and sorting params
+  //     cleanParams.page = activeFilters.page || 1;
+  //     cleanParams.limit = activeFilters.limit || 10;
+  //     cleanParams.sortBy = activeFilters.sortBy || 'createdAt';
+  //     cleanParams.order = activeFilters.order || 'desc';
+
+  //     if (activeFilters.sourceType && activeFilters.sourceType !== 'all') {
+  //       cleanParams.sourceType = activeFilters.sourceType;
+  //     }
+
+  //     const response = await apiClient.get<
+  //       ApiResponse<GetListingsResponseData>
+  //     >('/listings', {
+  //       params: cleanParams,
+  //     });
+
+  //     const responseData = response.data?.data;
+
+  //     if (responseData) {
+  //       set({
+  //         listings: responseData.listings || [],
+  //         pagination: responseData.pagination || initialPagination,
+  //         loading: false,
+  //         error: null,
+  //       });
+  //     } else {
+  //       set({
+  //         listings: [],
+  //         pagination: initialPagination,
+  //         loading: false,
+  //         error: null,
+  //       });
+  //     }
+  //   } catch (err: any) {
+  //     set({
+  //       loading: false,
+  //       error: err.message || 'Failed to fetch listings',
+  //     });
+  //   }
+  // },
+
+  fetchListings: async (
+    customParams?: ListingQueryParams,
+    append = false
+  ) => {
+    set({
+      ...(append ? {} : { loading: true }),
+      loadingMore: append,
+      error: null,
+    });
 
     try {
       const activeFilters = {
@@ -351,10 +428,10 @@ export const useListingStore = create<ListingState>((set, get) => ({
         ...customParams,
       };
 
-      // Clean empty / undefined filter values before sending
       const cleanParams: Record<string, any> = {};
+
       Object.entries(activeFilters).forEach(([key, val]) => {
-        if (val !== undefined && val !== '' && val !== 'all') {
+        if (val !== undefined && val !== "" && val !== "all") {
           cleanParams[key] = val;
         }
       });
@@ -364,43 +441,57 @@ export const useListingStore = create<ListingState>((set, get) => ({
         delete cleanParams.listingType;
       }
 
-      // Maintain explicit pagination and sorting params
       cleanParams.page = activeFilters.page || 1;
       cleanParams.limit = activeFilters.limit || 10;
-      cleanParams.sortBy = activeFilters.sortBy || 'createdAt';
-      cleanParams.order = activeFilters.order || 'desc';
+      cleanParams.sortBy = activeFilters.sortBy || "createdAt";
+      cleanParams.order = activeFilters.order || "desc";
 
-      if (activeFilters.sourceType && activeFilters.sourceType !== 'all') {
+      if (activeFilters.sourceType && activeFilters.sourceType !== "all") {
         cleanParams.sourceType = activeFilters.sourceType;
       }
 
       const response = await apiClient.get<
         ApiResponse<GetListingsResponseData>
-      >('/listings', {
+      >("/listings", {
         params: cleanParams,
       });
 
       const responseData = response.data?.data;
 
       if (responseData) {
-        set({
-          listings: responseData.listings || [],
+        const newListings = responseData.listings || [];
+
+        set((state) => ({
+          listings: append
+            ? [
+              ...state.listings,
+              ...newListings.filter(
+                (item) =>
+                  !state.listings.some(
+                    (existing) => existing._id === item._id
+                  )
+              ),
+            ]
+            : newListings,
           pagination: responseData.pagination || initialPagination,
           loading: false,
+          loadingMore: false,
           error: null,
-        });
+        }));
       } else {
         set({
-          listings: [],
-          pagination: initialPagination,
+          ...(append ? {} : { listings: [] }),
+          pagination: append ? get().pagination : initialPagination,
           loading: false,
+          loadingMore: false,
           error: null,
         });
       }
     } catch (err: any) {
       set({
         loading: false,
-        error: err.message || 'Failed to fetch listings',
+        loadingMore: false,
+        error: err.message || "Failed to fetch listings",
       });
     }
   },

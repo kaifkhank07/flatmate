@@ -79,10 +79,10 @@ export default function EditCityDialog({
     const seoObj =
       seoTitle.trim() || seoDescription.trim() || keywordsArr.length > 0
         ? {
-            title: seoTitle.trim() || undefined,
-            description: seoDescription.trim() || undefined,
-            keywords: keywordsArr.length > 0 ? keywordsArr : undefined,
-          }
+          title: seoTitle.trim() || undefined,
+          description: seoDescription.trim() || undefined,
+          keywords: keywordsArr.length > 0 ? keywordsArr : undefined,
+        }
         : null;
 
     let payload: FormData | any;
@@ -265,7 +265,7 @@ export default function EditCityDialog({
                 checked={isPopular}
                 onChange={(e) => setIsPopular(e.target.checked)}
                 disabled={submitting}
-                className="w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-500"
+                className="w-4 h-4 text-amber-500 accent-amber-500 rounded border-slate-300 focus:ring-amber-500"
               />
               <label htmlFor="editIsPopular" className="text-xs font-semibold text-slate-700 cursor-pointer">
                 Mark as Popular City
@@ -279,7 +279,7 @@ export default function EditCityDialog({
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
                 disabled={submitting}
-                className="w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-500"
+                className="w-4 h-4 text-amber-500 accent-amber-500 rounded border-slate-300 focus:ring-amber-500"
               />
               <label htmlFor="editIsActive" className="text-xs font-semibold text-slate-700 cursor-pointer">
                 Active Status
