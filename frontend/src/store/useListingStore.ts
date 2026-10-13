@@ -167,8 +167,7 @@ const initialPagination: PaginationInfo = {
 
 const initialFilters: ListingQueryParams = {
   page: 1,
-  // limit: 10,
-  limit: 1,
+  limit: 10,
   sourceType: 'all',
   sortBy: 'createdAt',
   order: 'desc',
