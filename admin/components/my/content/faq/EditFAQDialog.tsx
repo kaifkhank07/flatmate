@@ -166,31 +166,18 @@ export default function EditFAQDialog({
             </select>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Status
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="editFaqIsActive"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              disabled={submitting}
+              className="w-4 h-4 rounded border-slate-300 text-amber-500 accent-amber-500 cursor-pointer"
+            />
+            <label htmlFor="editFaqIsActive" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
+              Mark as Active
             </label>
-            <div className="flex items-center gap-3 h-10">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={isActive}
-                onClick={() => setIsActive((prev) => !prev)}
-                disabled={submitting}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  isActive ? "bg-emerald-500" : "bg-slate-300"
-                } disabled:opacity-50`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                    isActive ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
-              </button>
-              <span className="text-xs font-semibold text-slate-700">
-                {isActive ? "Active (Visible)" : "Inactive (Hidden)"}
-              </span>
-            </div>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">

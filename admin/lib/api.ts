@@ -31,6 +31,8 @@ export interface UserItem {
   lastName?: string;
   profileCompletion?: number;
   image?: UserProfileImage | null;
+  avatar?: any;
+  photoUrl?: string | null;
   profile?: UserProfileItem | null;
 }
 
@@ -57,6 +59,7 @@ export interface UserProfileItem {
   languagesKnown?: string[];
   aboutMe?: string;
   image?: UserProfileImage;
+  avatar?: any;
   preferences?: Array<UserPreferenceItem | string>;
   profileCompletion: number;
   createdAt?: string;
@@ -94,6 +97,219 @@ export interface DashboardStatsData {
   newUsersToday: number;
   newUsersThisMonth: number;
   totalAdmins: number;
+}
+
+export interface ListingStatusCounts {
+  draft: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  blocked: number;
+  closed: number;
+  expired: number;
+  total: number;
+  totalFavorites: number;
+}
+
+export interface DashboardMonthlyTrendItem {
+  month: string;
+  year: number;
+  monthNumber: number;
+  count: number;
+}
+
+export interface DashboardListingTrendItem {
+  month: string;
+  year: number;
+  monthNumber: number;
+  properties: number;
+  flatmates: number;
+  totalListings: number;
+}
+
+export interface DashboardStatusDistributionItem {
+  status: string;
+  label: string;
+  count: number;
+}
+
+export interface DashboardPendingListingItem {
+  _id: string;
+  title: string;
+  slug: string;
+  listingType: "property" | "flatmate_requirement";
+  rent: number;
+  createdAt: string;
+  userId?: { email?: string; mobile?: string };
+  location?: { name?: string; city?: string };
+}
+
+export interface DashboardRecentUserItem {
+  _id: string;
+  name?: string;
+  email?: string;
+  mobile?: string;
+  accountStatus: string;
+  verificationStatus: string;
+  profileVerified: boolean;
+  image?: string | null;
+  avatar?: string | null;
+  avatarName?: string;
+  createdAt: string;
+}
+
+export interface DashboardRecentReportItem {
+  _id: string;
+  targetType: string;
+  reason: string;
+  status: string;
+  createdAt: string;
+  userId?: { email?: string; mobile?: string };
+}
+
+export interface DashboardRecentReviewItem {
+  _id: string;
+  rating: number;
+  title?: string;
+  comment?: string;
+  createdAt: string;
+  reviewerId?: { email?: string; mobile?: string };
+}
+
+export interface SuperAdminDashboardData {
+  summary: {
+    totalUsers: number;
+    activeUsers: number;
+    inactiveUsers: number;
+    deletedUsers: number;
+    verifiedUsers: number;
+    pendingVerifications: number;
+    newUsersToday: number;
+    newUsersThisWeek: number;
+    newUsersThisMonth: number;
+    totalAdmins: number;
+    activeAdmins: number;
+    inactiveAdmins: number;
+    superAdmins: number;
+    regularAdmins: number;
+    totalListings: number;
+    activeListings: number;
+    pendingListings: number;
+    rejectedListings: number;
+    newListingsToday: number;
+    newListingsThisMonth: number;
+    pendingModerationCount: number;
+  };
+  breakdown: {
+    users: {
+      total: number;
+      active: number;
+      inactive: number;
+      deleted: number;
+      verified: number;
+      pendingVerification: number;
+    };
+    admins: {
+      total: number;
+      active: number;
+      inactive: number;
+      superAdminCount: number;
+      regularAdminCount: number;
+    };
+    listings: {
+      combined: ListingStatusCounts;
+      property: ListingStatusCounts & { byType: Record<string, number> };
+      flatmate: ListingStatusCounts & { byPostType: Record<string, number> };
+    };
+    moderation: {
+      listingReports: { pending: number; reviewed: number; resolved: number; dismissed: number; total: number };
+      chatReports: { pending: number; reviewed: number; resolved: number; rejected: number; total: number };
+      reviews: { pending: number; published: number; hidden: number; rejected: number; total: number; averageRating: number };
+    };
+    platformMasters: {
+      cities: { total: number; active: number };
+      blogs: { total: number; active: number };
+      faqs: { total: number };
+      rentalGuides: { total: number };
+      amenities: { active: number };
+      preferences: { active: number };
+    };
+  };
+  charts: {
+    userRegistrationTrend: DashboardMonthlyTrendItem[];
+    listingCreationTrend: DashboardListingTrendItem[];
+    listingStatusDistribution: DashboardStatusDistributionItem[];
+  };
+  recentActivity: {
+    pendingModerationListings: DashboardPendingListingItem[];
+    recentUsers: DashboardRecentUserItem[];
+    recentReports: DashboardRecentReportItem[];
+  };
+  revenue: {
+    supported: boolean;
+    message: string;
+  };
+}
+
+export interface AdminDashboardData {
+  summary: {
+    totalUsers: number;
+    activeUsers: number;
+    inactiveUsers: number;
+    deletedUsers: number;
+    verifiedUsers: number;
+    pendingVerifications: number;
+    newUsersToday: number;
+    newUsersThisMonth: number;
+    totalListings: number;
+    activeListings: number;
+    pendingListings: number;
+    rejectedListings: number;
+    expiredListings: number;
+    newListingsToday: number;
+    newListingsThisMonth: number;
+    pendingListingReports: number;
+    pendingChatReports: number;
+    pendingReviews: number;
+    totalPendingWorkload: number;
+  };
+  breakdown: {
+    users: {
+      total: number;
+      active: number;
+      inactive: number;
+      deleted: number;
+      verified: number;
+      pendingVerification: number;
+    };
+    listings: {
+      combined: ListingStatusCounts;
+      property: ListingStatusCounts & { byType: Record<string, number> };
+      flatmate: ListingStatusCounts & { byPostType: Record<string, number> };
+    };
+    workload: {
+      pendingListings: number;
+      pendingListingReports: number;
+      pendingChatReports: number;
+      pendingReviews: number;
+      totalPendingWorkload: number;
+    };
+  };
+  charts: {
+    userRegistrationTrend: DashboardMonthlyTrendItem[];
+    listingCreationTrend: DashboardListingTrendItem[];
+    listingStatusDistribution: DashboardStatusDistributionItem[];
+  };
+  recentActivity: {
+    pendingModerationListings: DashboardPendingListingItem[];
+    pendingReports: DashboardRecentReportItem[];
+    pendingReviews: DashboardRecentReviewItem[];
+    recentUsers: DashboardRecentUserItem[];
+  };
+  revenue?: {
+    supported: boolean;
+    message: string;
+  };
 }
 
 // Token & Admin Data Helpers
@@ -207,6 +423,14 @@ export async function adminLogout() {
 
 export async function getDashboardStats() {
   return apiFetch<DashboardStatsData>("/admin/dashboard/stats");
+}
+
+export async function getSuperAdminDashboardStats() {
+  return apiFetch<SuperAdminDashboardData>("/dashboard/super-admin");
+}
+
+export async function getAdminDashboardStats() {
+  return apiFetch<AdminDashboardData>("/dashboard/admin");
 }
 
 // ==========================================

@@ -424,7 +424,11 @@ export const getUsers = async (req: Request, res: Response): Promise<Response> =
 
     const userIds = users.map((u: any) => u._id);
     const profiles = await UserProfile.find({ userId: { $in: userIds } })
-      .select('userId firstName lastName profileCompletion image')
+      .select('userId firstName lastName profileCompletion image avatar')
+      .populate({
+        path: 'avatar',
+        select: '_id name image',
+      })
       .lean();
 
     const profileMap = new Map();
@@ -434,12 +438,18 @@ export const getUsers = async (req: Request, res: Response): Promise<Response> =
 
     const usersWithProfiles = users.map((u: any) => {
       const p = profileMap.get(u._id.toString());
+      const customImageUrl = p?.image?.url || (typeof p?.image === 'string' ? p.image : null) || null;
+      const avatarImageUrl = (p?.avatar as any)?.image?.url || (p?.avatar as any)?.url || null;
+      const resolvedPhoto = customImageUrl || avatarImageUrl || null;
+
       return {
         ...u,
         firstName: p?.firstName || '',
         lastName: p?.lastName || '',
         profileCompletion: p?.profileCompletion || 0,
-        image: p?.image || null,
+        image: p?.image || (avatarImageUrl ? { url: avatarImageUrl } : null),
+        avatar: avatarImageUrl,
+        photoUrl: resolvedPhoto,
         profile: p || null,
       };
     });

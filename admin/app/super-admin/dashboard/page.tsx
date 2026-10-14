@@ -1,160 +1,159 @@
 "use client";
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { usePageMotion } from "@/lib/motion";
 import { useToast } from "@/lib/toast";
-import { getDashboardStats, DashboardStatsData, getStoredAdminUser, AdminItem } from "@/lib/api";
-import Band from "@/components/band";
-import Icon from "@/components/icons";
-import { Card, CardHead, PageHead } from "@/components/ui";
-import { Kpi } from "@/components/charts";
-import { FollowUpTasks, MiniCalendar, QuickConnects, RailHead } from "@/components/rail";
+import {
+  getSuperAdminDashboardStats,
+  SuperAdminDashboardData,
+  getStoredAdminUser,
+  AdminItem,
+} from "@/lib/api";
+import {
+  DashboardHeader,
+  DashboardWelcomeBand,
+  DashboardKpiGrid,
+  UserStatusSummary,
+  ListingStatistics,
+  DashboardQuickActions,
+  DashboardCharts,
+  DashboardRecentActivity,
+  PlatformMastersSummary,
+  AdminStaffSummary,
+} from "@/components/dashboard";
 
 export default function SuperAdminDashboardPage() {
   usePageMotion();
   const toast = useToast();
 
   const [currentAdmin, setCurrentAdmin] = useState<AdminItem | null>(null);
-  const [stats, setStats] = useState<DashboardStatsData | null>(null);
+  const [data, setData] = useState<SuperAdminDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const isMountedRef = useRef(true);
+
+  const loadDashboard = useCallback(
+    async (isRefresh = false) => {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+
+      try {
+        const res = await getSuperAdminDashboardStats();
+        if (!isMountedRef.current) return;
+
+        if (res.success && res.data) {
+          setData(res.data);
+          if (isRefresh) {
+            toast("Dashboard metrics updated successfully");
+          }
+        } else {
+          toast(res.message || "Failed to load super admin dashboard data");
+        }
+      } catch (err: any) {
+        if (isMountedRef.current) {
+          toast(err?.message || "Error fetching super admin dashboard statistics");
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
+      }
+    },
+    [toast]
+  );
 
   useEffect(() => {
+    isMountedRef.current = true;
     setCurrentAdmin(getStoredAdminUser());
+    loadDashboard();
 
-    const loadStats = async () => {
-      const res = await getDashboardStats();
-      if (res.success && res.data) {
-        setStats(res.data);
-      } else {
-        toast(res.message || "Failed to load dashboard statistics");
-      }
-      setLoading(false);
+    return () => {
+      isMountedRef.current = false;
     };
+  }, [loadDashboard]);
 
-    loadStats();
-  }, [toast]);
+  const handleRefresh = () => {
+    loadDashboard(true);
+  };
 
   return (
     <>
-      <PageHead
-        eyebrow={new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+      <DashboardHeader
         title="Super Admin Dashboard"
         sub="Full administrative control over flatmate marketplace, admin staff, and platform operations."
-        actions={
-          <>
-            <button className="btn btn-ghost sm" onClick={() => window.location.reload()}>
-              <Icon name="refresh" size={13} /> Refresh
-            </button>
-            <Link className="btn btn-brand sm" href="/super-admin/admins">
-              Manage Admins
-            </Link>
-          </>
-        }
+        role="super_admin"
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
+        manageLink={{ href: "/super-admin/admins", label: "Manage Admins" }}
       />
 
-      <Band
-        eyebrow="Super Admin Panel · Master Overview"
-        title={`Welcome back, <em>${currentAdmin?.name || "Super Admin"}</em>.`}
-        body={`${stats?.totalUsers || 0} total marketplace users. ${stats?.totalAdmins || 0} registered admin staff members.`}
-        metrics={[
-          { label: "Total Users", value: "0", count: String(stats?.totalUsers || 0) },
-          { label: "Active Users", value: "0", count: String(stats?.activeUsers || 0) },
-          { label: "Verified Users", value: "0", count: String(stats?.verifiedUsers || 0) },
-          { label: "Total Admins", value: "0", count: String(stats?.totalAdmins || 0) },
-        ]}
-        tiles={[
-          { icon: "★", value: "0", label: "Admin Staff", count: String(stats?.totalAdmins || 0) },
-          { icon: "✓", value: "0", label: "New Users Today", count: String(stats?.newUsersToday || 0) },
-        ]}
-      />
-
-      <div className="canvas-grid">
-        <div className="stream">
-          <div className="kpis" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
-            <Kpi
-              icon={<Icon name="users" />}
-              iconBg="var(--lav)"
-              iconInk="var(--lav-ink)"
-              chip="Live"
-              value="0"
-              count={String(stats?.totalUsers || 0)}
-              label="Total Users"
-              spark="M0 30 L15 26 L30 28 L45 19 L60 22 L75 13 L90 16 L105 8 L120 11"
-            />
-            <Kpi
-              icon="✓"
-              iconBg="var(--mint)"
-              iconInk="var(--mint-ink)"
-              chip="Active"
-              value="0"
-              count={String(stats?.activeUsers || 0)}
-              label="Active Users"
-              spark="M0 32 L15 29 L30 30 L45 23 L60 26 L75 19 L90 21 L105 13 L120 15"
-              stroke="var(--mint-ink)"
-            />
-            <Kpi
-              icon="!"
-              iconBg="var(--rose)"
-              iconInk="var(--rose-ink)"
-              chip="Blocked"
-              chipTone="rose"
-              value="0"
-              count={String(stats?.blockedUsers || 0)}
-              label="Blocked Users"
-              spark="M0 13 L15 17 L30 15 L45 22 L60 18 L75 24 L90 21 L105 28 L120 26"
-            />
-            <Kpi
-              icon="◍"
-              iconBg="var(--iris)"
-              iconInk="var(--iris-ink)"
-              chip="Staff"
-              value="0"
-              count={String(stats?.totalAdmins || 0)}
-              label="Admin Accounts"
-              spark="M0 28 L15 24 L30 26 L45 17 L60 20 L75 11 L90 14 L105 7 L120 9"
-            />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
-            <Card>
-              <CardHead title="Super Admin Controls" sub="Direct platform access" />
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px 0" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span>Manage Platform Users</span>
-                  <Link className="btn btn-ghost sm" href="/super-admin/users">
-                    Go to Users ({stats?.totalUsers || 0})
-                  </Link>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span>Manage Admin Staff</span>
-                  <Link className="btn btn-ghost sm" href="/super-admin/admins">
-                    Go to Admins ({stats?.totalAdmins || 0})
-                  </Link>
-                </div>
-              </div>
-            </Card>
-
-            <Card>
-              <CardHead title="Quick Operations" sub="Super Admin Shortcuts" />
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
-                <Link className="btn btn-brand" href="/super-admin/admins">
-                  Manage Staff Admins
-                </Link>
-                <Link className="btn btn-ghost" href="/super-admin/users">
-                  Manage Marketplace Users
-                </Link>
-              </div>
-            </Card>
-          </div>
+      {loading && !data ? (
+        <div
+          className="band gs"
+          style={{
+            minHeight: 220,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div style={{ color: "var(--ink-3)", fontSize: 13 }}>Loading live dashboard metrics…</div>
         </div>
+      ) : data ? (
+        <>
+          <DashboardWelcomeBand
+            adminName={currentAdmin?.name || "Super Admin"}
+            role="super_admin"
+            summary={data.summary}
+          />
 
-        <aside className="rail">
-          <RailHead title="System Summary" />
-          <QuickConnects />
-          <FollowUpTasks />
-          <MiniCalendar />
-        </aside>
-      </div>
+          <div className="canvas-grid">
+            <div className="stream" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Dynamic 4-Column KPI Grid */}
+              <DashboardKpiGrid role="super_admin" summary={data.summary} />
+
+              {/* Status and Listing Dynamic Breakdowns */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <UserStatusSummary
+                  users={data.breakdown.users}
+                  usersLink="/super-admin/users"
+                  role="super_admin"
+                />
+                <ListingStatistics
+                  listings={data.breakdown.listings}
+                  role="super_admin"
+                />
+              </div>
+
+              {/* Dynamic 6-Month Trend & Status Distribution */}
+              <DashboardCharts charts={data.charts} title="Marketplace Registration Trend" />
+
+              {/* Dynamic Moderation Queue & Recent Activity */}
+              <DashboardRecentActivity
+                role="super_admin"
+                recentActivity={data.recentActivity}
+              />
+            </div>
+
+            {/* Purely Dynamic Right Rail */}
+            <aside className="rail" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <DashboardQuickActions
+                role="super_admin"
+                pendingWorkload={data.summary.pendingModerationCount}
+              />
+              <AdminStaffSummary admins={data.breakdown.admins} />
+              <PlatformMastersSummary masters={data.breakdown.platformMasters} />
+            </aside>
+          </div>
+        </>
+      ) : (
+        <div style={{ padding: 40, textAlign: "center", color: "var(--ink-4)" }}>
+          Failed to load dashboard data. Click{" "}
+          <button className="btn btn-ghost sm" onClick={handleRefresh}>
+            Retry
+          </button>
+        </div>
+      )}
     </>
   );
 }

@@ -31,6 +31,7 @@ import blogRoutes from './contents/blog.routes';
 import faqRoutes from './contents/faq.routes';
 import rentalGuideRoutes from './contents/rentalGuide.routes';
 import cityRoutes from './contents/city.routes';
+import dashboardRoutes from './dashboard/dashboard.routes';
 
 const router = Router();
 
@@ -43,6 +44,7 @@ router.get('/health', (_req: Request, res: Response) => {
 });
 
 // Register Module Routes
+router.use('/dashboard', dashboardRoutes);
 router.use('/admin', adminRoutes);
 router.use('/users', userRoutes);
 router.use('/otp', otpRoutes);

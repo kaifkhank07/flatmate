@@ -243,7 +243,14 @@ export default function UsersManager({
                 ) : (
                   users.map((u, idx) => {
                     const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ");
-                    const avatarSrc = u.image?.url || u.profile?.image?.url;
+                    const avatarSrc =
+                      u.image?.url ||
+                      (typeof u.image === "string" ? u.image : null) ||
+                      (typeof u.avatar === "string" ? u.avatar : u.avatar?.image?.url) ||
+                      u.photoUrl ||
+                      u.profile?.image?.url ||
+                      (u.profile?.avatar as any)?.image?.url ||
+                      undefined;
 
                     return (
                       <tr key={u._id}>

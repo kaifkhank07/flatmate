@@ -154,6 +154,42 @@ export default function FlatmateRequirementCreateDialog({
     onClose();
   };
 
+  const handlePostTypeChange = (newPostType: "property" | "partner") => {
+    if (newPostType === formData.postType) return;
+
+    if (newPostType === "property") {
+      imageItems.forEach((img) => {
+        if (img.previewUrl.startsWith("blob:")) URL.revokeObjectURL(img.previewUrl);
+      });
+      videoItems.forEach((vid) => {
+        if (vid.previewUrl.startsWith("blob:")) URL.revokeObjectURL(vid.previewUrl);
+      });
+      setImageItems([]);
+      setVideoItems([]);
+
+      setFormData((prev) => ({
+        ...prev,
+        postType: "property",
+        propertyType: prev.propertyType || "flat",
+        area: 0,
+        securityDeposit: 0,
+        furnishing: "semi_furnished",
+        parking: false,
+        maintenanceCharges: {
+          amount: 0,
+          frequency: "yearly",
+        },
+        amenities: [],
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        postType: "partner",
+        partnerType: prev.partnerType || "flatmate",
+      }));
+    }
+  };
+
   const searchUsers = useCallback(async (query: string) => {
     setLoadingUsers(true);
     const res = await fetchUsers({ limit: 50, search: query });
@@ -334,24 +370,41 @@ export default function FlatmateRequirementCreateDialog({
       return;
     }
 
-    if (!formData.title.trim()) {
-      toast("Please enter a title.");
-      return;
-    }
-
     if (!selectedGooglePlace) {
       toast("Please search and select a location from Google suggestions.");
       return;
     }
 
-    if (formData.rent < 0) {
-      toast("Please enter a valid rent amount.");
+    if (!formData.title.trim()) {
+      toast("Please enter a title.");
+      return;
+    }
+
+    if (formData.rent <= 0) {
+      toast("Please enter a valid monthly rent amount.");
       return;
     }
 
     if (!formData.availableFrom) {
       toast("Please select an available from date.");
       return;
+    }
+
+    if (preferenceOptions.length >= 3 && formData.userPreferences.length < 3) {
+      toast("Please select at least 3 user preferences.");
+      return;
+    }
+
+    if (formData.postType === "partner") {
+      if (amenityOptions.length >= 3 && formData.amenities.length < 3) {
+        toast("Please select at least 3 property amenities.");
+        return;
+      }
+
+      if (imageItems.length === 0) {
+        toast("At least one requirement photo is required for partner requirements.");
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -368,38 +421,40 @@ export default function FlatmateRequirementCreateDialog({
     };
 
     try {
-      if (imageItems.length > 0) {
-        toast("Uploading requirement photos…");
-        for (const imgItem of imageItems) {
-          if (imgItem.file) {
-            const res = await uploadImageApi(imgItem.file, "flatmate", "image");
-            if (!res.success || !res.data?._id) {
-              await cleanupUploadedMedia();
-              setSubmitting(false);
-              toast(`Failed to upload image "${imgItem.file.name}": ${res.message || "Upload error"}`);
-              return;
+      if (formData.postType === "partner") {
+        if (imageItems.length > 0) {
+          toast("Uploading requirement photos…");
+          for (const imgItem of imageItems) {
+            if (imgItem.file) {
+              const res = await uploadImageApi(imgItem.file, "flatmate", "image");
+              if (!res.success || !res.data?._id) {
+                await cleanupUploadedMedia();
+                setSubmitting(false);
+                toast(`Failed to upload image "${imgItem.file.name}": ${res.message || "Upload error"}`);
+                return;
+              }
+              createdImageIds.push(res.data._id);
+            } else if (imgItem.mediaObject?._id) {
+              createdImageIds.push(imgItem.mediaObject._id);
             }
-            createdImageIds.push(res.data._id);
-          } else if (imgItem.mediaObject?._id) {
-            createdImageIds.push(imgItem.mediaObject._id);
           }
         }
-      }
 
-      if (videoItems.length > 0) {
-        toast("Uploading walkthrough videos…");
-        for (const vidItem of videoItems) {
-          if (vidItem.file) {
-            const res = await uploadVideoApi(vidItem.file, "flatmate", "video");
-            if (!res.success || !res.data?._id) {
-              await cleanupUploadedMedia();
-              setSubmitting(false);
-              toast(`Failed to upload video "${vidItem.file.name}": ${res.message || "Upload error"}`);
-              return;
+        if (videoItems.length > 0) {
+          toast("Uploading walkthrough videos…");
+          for (const vidItem of videoItems) {
+            if (vidItem.file) {
+              const res = await uploadVideoApi(vidItem.file, "flatmate", "video");
+              if (!res.success || !res.data?._id) {
+                await cleanupUploadedMedia();
+                setSubmitting(false);
+                toast(`Failed to upload video "${vidItem.file.name}": ${res.message || "Upload error"}`);
+                return;
+              }
+              createdVideoIds.push(res.data._id);
+            } else if (vidItem.mediaObject?._id) {
+              createdVideoIds.push(vidItem.mediaObject._id);
             }
-            createdVideoIds.push(res.data._id);
-          } else if (vidItem.mediaObject?._id) {
-            createdVideoIds.push(vidItem.mediaObject._id);
           }
         }
       }
@@ -416,29 +471,49 @@ export default function FlatmateRequirementCreateDialog({
       const locationId = locRes.data._id;
 
       toast("Creating flatmate requirement…");
+      const isProperty = formData.postType === "property";
+
       const payload: any = {
         userId: resolvedUserId,
         title: formData.title.trim(),
         description: formData.description.trim() || undefined,
         postType: formData.postType,
-        propertyType: formData.postType === "property" ? formData.propertyType : undefined,
-        partnerType: formData.postType === "partner" ? formData.partnerType : undefined,
         location: locationId,
-        area: Number(formData.area),
         rent: Number(formData.rent),
-        securityDeposit: Number(formData.securityDeposit),
-        maintenanceCharges: formData.maintenanceCharges,
-        furnishing: formData.furnishing,
-        parking: formData.parking,
         availableFrom: formData.availableFrom || new Date().toISOString().split("T")[0],
         genderPreference: formData.genderPreference,
         occupationPreference: formData.occupationPreference,
         userPreferences: formData.userPreferences,
-        amenities: formData.amenities,
-        images: createdImageIds,
-        videos: createdVideoIds,
         status: formData.status,
       };
+
+      if (isProperty) {
+        payload.propertyType = formData.propertyType;
+        payload.area = 0;
+        payload.securityDeposit = 0;
+        payload.maintenanceCharges = { amount: 0, frequency: "yearly" };
+        payload.furnishing = "semi_furnished";
+        payload.parking = false;
+        payload.amenities = [];
+        payload.images = [];
+        payload.videos = [];
+      } else {
+        payload.partnerType = formData.partnerType;
+        payload.area = Number(formData.area) || 0;
+        payload.securityDeposit = Number(formData.securityDeposit) || 0;
+        payload.maintenanceCharges =
+          Number(formData.maintenanceCharges.amount) > 0
+            ? {
+                amount: Number(formData.maintenanceCharges.amount),
+                frequency: formData.maintenanceCharges.frequency || "yearly",
+              }
+            : { amount: 0, frequency: "yearly" };
+        payload.furnishing = formData.furnishing;
+        payload.parking = formData.parking;
+        payload.amenities = formData.amenities;
+        payload.images = createdImageIds;
+        payload.videos = createdVideoIds;
+      }
 
       const res = await createFlatmateRequirementApi(payload);
 
@@ -469,7 +544,11 @@ export default function FlatmateRequirementCreateDialog({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white shrink-0">
           <div>
             <h3 className="text-lg font-bold text-slate-900">Create Flatmate Requirement</h3>
-            <p className="text-xs text-slate-500">Fill in requirements, select location, and upload media assets.</p>
+            <p className="text-xs text-slate-500">
+              {formData.postType === "property"
+                ? "Fill in flat requirement, select location, and set lifestyle preferences."
+                : "Fill in room details, select location, amenities, and upload media assets."}
+            </p>
           </div>
           <button
             type="button"
@@ -671,57 +750,30 @@ export default function FlatmateRequirementCreateDialog({
               3. Requirement Overview
             </h4>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                Title <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                placeholder="e.g. Looking for 2 BHK Flatmate in Koramangala"
-                value={formData.title}
-                onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                Description
-              </label>
-              <textarea
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                rows={3}
-                placeholder="Detailed description of requirements, preferences, and expectations…"
-                value={formData.description}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-              />
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                   Post Type <span className="text-rose-500">*</span>
                 </label>
                 <select
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
                   value={formData.postType}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, postType: e.target.value as "property" | "partner" }))
+                    handlePostTypeChange(e.target.value as "property" | "partner")
                   }
                 >
-                  <option value="property">Property</option>
-                  <option value="partner">Partner</option>
+                  <option value="property">Property (Need Room / Flat)</option>
+                  <option value="partner">Partner (Have Room / Flat, Need Flatmate)</option>
                 </select>
               </div>
 
               {formData.postType === "property" ? (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Property Type <span className="text-rose-500">*</span>
+                    Looking For (Property Type) <span className="text-rose-500">*</span>
                   </label>
                   <select
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
                     value={formData.propertyType}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -739,10 +791,10 @@ export default function FlatmateRequirementCreateDialog({
               ) : (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Partner Type <span className="text-rose-500">*</span>
+                    Looking For (Partner Type) <span className="text-rose-500">*</span>
                   </label>
                   <select
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
                     value={formData.partnerType}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -751,177 +803,269 @@ export default function FlatmateRequirementCreateDialog({
                       }))
                     }
                   >
-                    <option value="roommate">Roommate</option>
                     <option value="flatmate">Flatmate</option>
+                    <option value="roommate">Roommate</option>
                   </select>
                 </div>
               )}
             </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                Title <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                placeholder={
+                  formData.postType === "property"
+                    ? "e.g. Looking for 2 BHK Flat / Room in Koramangala"
+                    : "e.g. Looking for a Flatmate in Indiranagar, Bangalore"
+                }
+                value={formData.title}
+                onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                Description
+              </label>
+              <textarea
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all resize-none"
+                rows={3}
+                placeholder={
+                  formData.postType === "property"
+                    ? "e.g. I am looking for a room with roommate..."
+                    : "e.g. I am looking for a flatmate..."
+                }
+                value={formData.description}
+                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+              />
+            </div>
           </div>
 
-          {/* Section 4: Budget & Move-in Parameters */}
+          {/* Section 4: Pricing & Specifications */}
           <div className="space-y-4 pt-3 border-t border-slate-100">
             <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-              4. Pricing & Specifications
+              {formData.postType === "property" ? "4. Pricing & Schedule" : "4. Pricing & Specifications"}
             </h4>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Rent Amount (₹) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  value={formData.rent}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, rent: Number(e.target.value) }))}
-                  min={0}
-                  required
-                />
-              </div>
+            {formData.postType === "property" ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Approx Rent Amount (₹/mo) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    placeholder="e.g. 15000"
+                    value={formData.rent === 0 ? "" : formData.rent}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, rent: Number(e.target.value) }))}
+                    min={0}
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Security Deposit (₹)
-                </label>
-                <input
-                  type="number"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  value={formData.securityDeposit}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, securityDeposit: Number(e.target.value) }))}
-                  min={0}
-                />
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Available From <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    value={formData.availableFrom}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, availableFrom: e.target.value }))}
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Area (sq.ft)
-                </label>
-                <input
-                  type="number"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  value={formData.area}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, area: Number(e.target.value) }))}
-                  min={0}
-                />
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Status
+                  </label>
+                  <select
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                    value={formData.status}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as any }))}
+                  >
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                    <option value="draft">Draft</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="blocked">Blocked</option>
+                    <option value="closed">Closed</option>
+                    <option value="expired">Expired</option>
+                  </select>
+                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Rent Amount (₹/mo) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                      placeholder="e.g. 12000"
+                      value={formData.rent === 0 ? "" : formData.rent}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, rent: Number(e.target.value) }))}
+                      min={0}
+                      required
+                    />
+                  </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Maintenance Amount (₹)
-                </label>
-                <input
-                  type="number"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  value={formData.maintenanceCharges.amount}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      maintenanceCharges: {
-                        ...prev.maintenanceCharges,
-                        amount: Number(e.target.value),
-                      },
-                    }))
-                  }
-                  min={0}
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Security Deposit (₹)
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                      placeholder="e.g. 24000"
+                      value={formData.securityDeposit === 0 ? "" : formData.securityDeposit}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, securityDeposit: Number(e.target.value) }))}
+                      min={0}
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Maintenance Frequency
-                </label>
-                <select
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  value={formData.maintenanceCharges.frequency}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      maintenanceCharges: {
-                        ...prev.maintenanceCharges,
-                        frequency: e.target.value as any,
-                      },
-                    }))
-                  }
-                >
-                  <option value="monthly">Monthly</option>
-                  <option value="yearly">Yearly</option>
-                  <option value="included">Included</option>
-                  <option value="one_time">One Time</option>
-                </select>
-              </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Furnishing Status <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                      value={formData.furnishing}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, furnishing: e.target.value as any }))}
+                    >
+                      <option value="fully_furnished">Fully Furnished</option>
+                      <option value="semi_furnished">Semi Furnished</option>
+                      <option value="unfurnished">Unfurnished</option>
+                    </select>
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Furnishing
-                </label>
-                <select
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  value={formData.furnishing}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, furnishing: e.target.value as any }))}
-                >
-                  <option value="fully_furnished">Fully Furnished</option>
-                  <option value="semi_furnished">Semi Furnished</option>
-                  <option value="unfurnished">Unfurnished</option>
-                </select>
-              </div>
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Area (sq.ft)
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                      placeholder="e.g. 1000"
+                      value={formData.area === 0 ? "" : formData.area}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, area: Number(e.target.value) }))}
+                      min={0}
+                    />
+                  </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Available From <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  value={formData.availableFrom}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, availableFrom: e.target.value }))}
-                  required
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Parking Facility
+                    </label>
+                    <select
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                      value={formData.parking ? "true" : "false"}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, parking: e.target.value === "true" }))}
+                    >
+                      <option value="false">No Parking</option>
+                      <option value="true">Parking Available</option>
+                    </select>
+                  </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Parking
-                </label>
-                <select
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  value={formData.parking ? "true" : "false"}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, parking: e.target.value === "true" }))}
-                >
-                  <option value="false">No Parking</option>
-                  <option value="true">Parking Available</option>
-                </select>
-              </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Available From <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                      value={formData.availableFrom}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, availableFrom: e.target.value }))}
+                      required
+                    />
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Status
-                </label>
-                <select
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  value={formData.status}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as any }))}
-                >
-                  <option value="approved">Approved</option>
-                  <option value="pending">Pending</option>
-                  <option value="draft">Draft</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="blocked">Blocked</option>
-                  <option value="closed">Closed</option>
-                  <option value="expired">Expired</option>
-                </select>
-              </div>
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Maintenance Charges (₹)
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                      placeholder="e.g. 1500"
+                      value={formData.maintenanceCharges.amount === 0 ? "" : formData.maintenanceCharges.amount}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          maintenanceCharges: {
+                            ...prev.maintenanceCharges,
+                            amount: Number(e.target.value),
+                          },
+                        }))
+                      }
+                      min={0}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Maintenance Frequency
+                    </label>
+                    <select
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                      value={formData.maintenanceCharges.frequency}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          maintenanceCharges: {
+                            ...prev.maintenanceCharges,
+                            frequency: e.target.value as any,
+                          },
+                        }))
+                      }
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="yearly">Yearly</option>
+                      <option value="included">Included in Rent</option>
+                      <option value="one_time">One Time</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Status
+                    </label>
+                    <select
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                      value={formData.status}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as any }))}
+                    >
+                      <option value="approved">Approved</option>
+                      <option value="pending">Pending</option>
+                      <option value="draft">Draft</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="blocked">Blocked</option>
+                      <option value="closed">Closed</option>
+                      <option value="expired">Expired</option>
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Section 5: Preferences & Lifestyle */}
           <div className="space-y-4 pt-3 border-t border-slate-100">
             <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-              5. Preferences & Amenities
+              {formData.postType === "property" ? "5. Preferences & Lifestyle" : "5. Preferences & Amenities"}
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -930,7 +1074,7 @@ export default function FlatmateRequirementCreateDialog({
                   Occupation Preference
                 </label>
                 <select
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
                   value={formData.occupationPreference}
                   onChange={(e) => setFormData((prev) => ({ ...prev, occupationPreference: e.target.value as any }))}
                 >
@@ -949,7 +1093,7 @@ export default function FlatmateRequirementCreateDialog({
                   Gender Preference
                 </label>
                 <select
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
                   value={formData.genderPreference}
                   onChange={(e) => setFormData((prev) => ({ ...prev, genderPreference: e.target.value as any }))}
                 >
@@ -964,7 +1108,7 @@ export default function FlatmateRequirementCreateDialog({
             {preferenceOptions.length > 0 && (
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  User / Lifestyle Preferences
+                  User / Lifestyle Preferences ({formData.userPreferences.length} / 3 min selected) <span className="text-rose-500">*</span>
                 </label>
                 <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
                   {preferenceOptions.map((pref) => {
@@ -988,10 +1132,10 @@ export default function FlatmateRequirementCreateDialog({
               </div>
             )}
 
-            {amenityOptions.length > 0 && (
+            {formData.postType === "partner" && amenityOptions.length > 0 && (
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Property Amenities
+                  Property Amenities ({formData.amenities.length} / 3 min selected) <span className="text-rose-500">*</span>
                 </label>
                 <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
                   {amenityOptions.map((amenity) => {
@@ -1016,138 +1160,140 @@ export default function FlatmateRequirementCreateDialog({
             )}
           </div>
 
-          {/* Section 6: Media Assets Management */}
-          <div className="space-y-4 pt-3 border-t border-slate-100">
-            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">6. Media Assets Management</h4>
+          {/* Section 6: Media Assets Management (Partner postType only) */}
+          {formData.postType === "partner" && (
+            <div className="space-y-4 pt-3 border-t border-slate-100">
+              <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">6. Media Assets Management</h4>
 
-            {/* Images */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                  Requirement Photos ({imageItems.length})
-                </label>
-                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-600 text-white cursor-pointer transition-all shadow-sm">
-                  <Icon name="refresh" size={12} />
-                  <span>+ Select Photos</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={handleAddImageFiles}
-                  />
-                </label>
-              </div>
+              {/* Images */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    Requirement Photos ({imageItems.length}) <span className="text-rose-500">*</span>
+                  </label>
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-600 text-white cursor-pointer transition-all shadow-sm">
+                    <Icon name="refresh" size={12} />
+                    <span>+ Select Photos</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleAddImageFiles}
+                    />
+                  </label>
+                </div>
 
-              {imageItems.length > 0 ? (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                  {imageItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="relative group rounded-lg overflow-hidden border border-slate-300 aspect-video bg-slate-900 flex items-center justify-center"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={item.previewUrl}
-                        alt="Image Preview"
-                        className={`w-full h-full object-cover transition-opacity ${
-                          item.uploading ? "opacity-40" : "opacity-100"
-                        }`}
-                      />
-                      {item.uploading && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white text-[10px] font-bold">
-                          <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-1" />
-                          <span>Uploading…</span>
-                        </div>
-                      )}
-                      {item.error && (
-                        <div className="absolute inset-0 flex items-center justify-center p-1 bg-rose-900/80 text-white text-[9px] text-center font-semibold">
-                          Upload Failed
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white rounded-full p-1 transition-colors z-10"
-                        onClick={() => handleRemoveImageItem(item.id)}
-                        title="Remove Image"
+                {imageItems.length > 0 ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                    {imageItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="relative group rounded-lg overflow-hidden border border-slate-300 aspect-video bg-slate-900 flex items-center justify-center"
                       >
-                        <Icon name="x" size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-3 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-xs text-slate-400">
-                  No requirement photos attached yet. Click &quot;+ Select Photos&quot; to upload high-res images.
-                </div>
-              )}
-            </div>
-
-            {/* Videos */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                  Requirement Walkthrough Videos ({videoItems.length})
-                </label>
-                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-900 text-white cursor-pointer transition-all shadow-sm">
-                  <Icon name="refresh" size={12} />
-                  <span>+ Select Video</span>
-                  <input
-                    type="file"
-                    accept="video/*"
-                    multiple
-                    className="hidden"
-                    onChange={handleAddVideoFiles}
-                  />
-                </label>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.previewUrl}
+                          alt="Image Preview"
+                          className={`w-full h-full object-cover transition-opacity ${
+                            item.uploading ? "opacity-40" : "opacity-100"
+                          }`}
+                        />
+                        {item.uploading && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white text-[10px] font-bold">
+                            <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-1" />
+                            <span>Uploading…</span>
+                          </div>
+                        )}
+                        {item.error && (
+                          <div className="absolute inset-0 flex items-center justify-center p-1 bg-rose-900/80 text-white text-[9px] text-center font-semibold">
+                            Upload Failed
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white rounded-full p-1 transition-colors z-10"
+                          onClick={() => handleRemoveImageItem(item.id)}
+                          title="Remove Image"
+                        >
+                          <Icon name="x" size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-xs text-slate-400">
+                    No requirement photos attached yet. At least 1 photo is required for partner requirements. Click &quot;+ Select Photos&quot; to upload high-res images.
+                  </div>
+                )}
               </div>
 
-              {videoItems.length > 0 ? (
-                <div className="space-y-3 max-h-52 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                  {videoItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-2 relative"
-                    >
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="font-semibold text-slate-900 truncate max-w-[300px]">
-                          {item.file?.name || item.mediaObject?.url || "Video Walkthrough"}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {item.uploading && (
-                            <span className="text-[10px] text-amber-600 font-bold animate-pulse">
-                              Uploading…
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                            onClick={() => handleRemoveVideoItem(item.id)}
-                            title="Remove Video"
-                          >
-                            <Icon name="x" size={14} />
-                          </button>
-                        </div>
-                      </div>
+              {/* Videos */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    Requirement Walkthrough Videos ({videoItems.length})
+                  </label>
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-900 text-white cursor-pointer transition-all shadow-sm">
+                    <Icon name="refresh" size={12} />
+                    <span>+ Select Video</span>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleAddVideoFiles}
+                    />
+                  </label>
+                </div>
 
-                      {/* HTML5 Video Player Preview */}
-                      <div className="aspect-video w-full max-w-sm mx-auto bg-black rounded-lg overflow-hidden border border-slate-300">
-                        <video
-                          src={item.mediaObject?.url || item.previewUrl}
-                          controls
-                          className="w-full h-full object-contain"
-                        />
+                {videoItems.length > 0 ? (
+                  <div className="space-y-3 max-h-52 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                    {videoItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-2 relative"
+                      >
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="font-semibold text-slate-900 truncate max-w-[300px]">
+                            {item.file?.name || item.mediaObject?.url || "Video Walkthrough"}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {item.uploading && (
+                              <span className="text-[10px] text-amber-600 font-bold animate-pulse">
+                                Uploading…
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                              onClick={() => handleRemoveVideoItem(item.id)}
+                              title="Remove Video"
+                            >
+                              <Icon name="x" size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* HTML5 Video Player Preview */}
+                        <div className="aspect-video w-full max-w-sm mx-auto bg-black rounded-lg overflow-hidden border border-slate-300">
+                          <video
+                            src={item.mediaObject?.url || item.previewUrl}
+                            controls
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-3 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-xs text-slate-400">
-                  No requirement videos attached yet. Click &quot;+ Select Video&quot; to upload walkthrough clips.
-                </div>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-xs text-slate-400">
+                    No requirement videos attached yet. Click &quot;+ Select Video&quot; to upload walkthrough clips.
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </form>
 
         {/* Sticky Footer */}
@@ -1164,7 +1310,11 @@ export default function FlatmateRequirementCreateDialog({
             type="submit"
             form="create-requirement-form"
             className="px-5 py-2 text-xs font-semibold rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
-            disabled={submitting || imageItems.some((img) => img.uploading) || videoItems.some((vid) => vid.uploading)}
+            disabled={
+              submitting ||
+              (formData.postType === "partner" &&
+                (imageItems.some((img) => img.uploading) || videoItems.some((vid) => vid.uploading)))
+            }
           >
             {submitting ? "Creating…" : "Create Requirement"}
           </button>

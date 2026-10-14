@@ -280,6 +280,44 @@ export default function FlatmateRequirementEditDialog({
     });
   };
 
+  const handleClose = () => {
+    imageItems.forEach((img) => {
+      if (img.previewUrl.startsWith("blob:")) URL.revokeObjectURL(img.previewUrl);
+    });
+    videoItems.forEach((vid) => {
+      if (vid.previewUrl.startsWith("blob:")) URL.revokeObjectURL(vid.previewUrl);
+    });
+    onClose();
+  };
+
+  const handlePostTypeChange = (newPostType: "property" | "partner") => {
+    if (newPostType === postType) return;
+
+    if (newPostType === "property") {
+      imageItems.forEach((img) => {
+        if (img.previewUrl.startsWith("blob:")) URL.revokeObjectURL(img.previewUrl);
+      });
+      videoItems.forEach((vid) => {
+        if (vid.previewUrl.startsWith("blob:")) URL.revokeObjectURL(vid.previewUrl);
+      });
+      setImageItems([]);
+      setVideoItems([]);
+
+      setPostType("property");
+      setPropertyType(propertyType || "flat");
+      setArea(0);
+      setSecurityDeposit(0);
+      setFurnishing("semi_furnished");
+      setParking(false);
+      setMaintenanceAmount(0);
+      setMaintenanceFrequency("yearly");
+      setAmenities([]);
+    } else {
+      setPostType("partner");
+      setPartnerType(partnerType || "flatmate");
+    }
+  };
+
   const toggleUserPreference = (prefId: string) => {
     setUserPreferences((prev) =>
       prev.includes(prefId) ? prev.filter((id) => id !== prefId) : [...prev, prefId]
@@ -302,14 +340,31 @@ export default function FlatmateRequirementEditDialog({
       return;
     }
 
-    if (rent < 0) {
-      toast("Please enter a valid rent amount.");
+    if (rent <= 0) {
+      toast("Please enter a valid monthly rent amount.");
       return;
     }
 
     if (!availableFrom) {
       toast("Please select an available from date.");
       return;
+    }
+
+    if (preferenceOptions.length >= 3 && userPreferences.length < 3) {
+      toast("Please select at least 3 user preferences.");
+      return;
+    }
+
+    if (postType === "partner") {
+      if (amenityOptions.length >= 3 && amenities.length < 3) {
+        toast("Please select at least 3 property amenities.");
+        return;
+      }
+
+      if (imageItems.length === 0) {
+        toast("At least one requirement photo is required for partner requirements.");
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -328,38 +383,41 @@ export default function FlatmateRequirementEditDialog({
 
     try {
       const finalImageIds: string[] = [];
-      for (const item of imageItems) {
-        if (item.file) {
-          toast(`Uploading photo "${item.file.name}"…`);
-          const res = await uploadImageApi(item.file, "flatmate", "image");
-          if (!res.success || !res.data?._id) {
-            await cleanupNewlyUploadedMedia();
-            setSubmitting(false);
-            toast(`Failed to upload photo "${item.file.name}": ${res.message || "Upload error"}`);
-            return;
-          }
-          newlyUploadedImageIds.push(res.data._id);
-          finalImageIds.push(res.data._id);
-        } else if (item.mediaObject?._id) {
-          finalImageIds.push(item.mediaObject._id);
-        }
-      }
-
       const finalVideoIds: string[] = [];
-      for (const item of videoItems) {
-        if (item.file) {
-          toast(`Uploading video "${item.file.name}"…`);
-          const res = await uploadVideoApi(item.file, "flatmate", "video");
-          if (!res.success || !res.data?._id) {
-            await cleanupNewlyUploadedMedia();
-            setSubmitting(false);
-            toast(`Failed to upload video "${item.file.name}": ${res.message || "Upload error"}`);
-            return;
+
+      if (postType === "partner") {
+        for (const item of imageItems) {
+          if (item.file) {
+            toast(`Uploading photo "${item.file.name}"…`);
+            const res = await uploadImageApi(item.file, "flatmate", "image");
+            if (!res.success || !res.data?._id) {
+              await cleanupNewlyUploadedMedia();
+              setSubmitting(false);
+              toast(`Failed to upload photo "${item.file.name}": ${res.message || "Upload error"}`);
+              return;
+            }
+            newlyUploadedImageIds.push(res.data._id);
+            finalImageIds.push(res.data._id);
+          } else if (item.mediaObject?._id) {
+            finalImageIds.push(item.mediaObject._id);
           }
-          newlyUploadedVideoIds.push(res.data._id);
-          finalVideoIds.push(res.data._id);
-        } else if (item.mediaObject?._id) {
-          finalVideoIds.push(item.mediaObject._id);
+        }
+
+        for (const item of videoItems) {
+          if (item.file) {
+            toast(`Uploading video "${item.file.name}"…`);
+            const res = await uploadVideoApi(item.file, "flatmate", "video");
+            if (!res.success || !res.data?._id) {
+              await cleanupNewlyUploadedMedia();
+              setSubmitting(false);
+              toast(`Failed to upload video "${item.file.name}": ${res.message || "Upload error"}`);
+              return;
+            }
+            newlyUploadedVideoIds.push(res.data._id);
+            finalVideoIds.push(res.data._id);
+          } else if (item.mediaObject?._id) {
+            finalVideoIds.push(item.mediaObject._id);
+          }
         }
       }
 
@@ -378,31 +436,48 @@ export default function FlatmateRequirementEditDialog({
       }
 
       toast("Updating flatmate requirement…");
+      const isProperty = postType === "property";
+
       const payload: any = {
         title: title.trim(),
         description: description.trim() || undefined,
         postType,
-        propertyType: postType === "property" ? propertyType : undefined,
-        partnerType: postType === "partner" ? partnerType : undefined,
         location: locationId,
-        area: Number(area),
         rent: Number(rent),
-        securityDeposit: Number(securityDeposit),
-        maintenanceCharges: {
-          amount: Number(maintenanceAmount),
-          frequency: maintenanceFrequency,
-        },
-        furnishing,
-        parking,
         availableFrom,
-        occupationPreference,
         genderPreference,
+        occupationPreference,
         userPreferences,
-        amenities,
-        images: finalImageIds,
-        videos: finalVideoIds,
         status,
       };
+
+      if (isProperty) {
+        payload.propertyType = propertyType;
+        payload.area = 0;
+        payload.securityDeposit = 0;
+        payload.maintenanceCharges = { amount: 0, frequency: "yearly" };
+        payload.furnishing = "semi_furnished";
+        payload.parking = false;
+        payload.amenities = [];
+        payload.images = [];
+        payload.videos = [];
+      } else {
+        payload.partnerType = partnerType;
+        payload.area = Number(area) || 0;
+        payload.securityDeposit = Number(securityDeposit) || 0;
+        payload.maintenanceCharges =
+          Number(maintenanceAmount) > 0
+            ? {
+                amount: Number(maintenanceAmount),
+                frequency: maintenanceFrequency || "yearly",
+              }
+            : { amount: 0, frequency: "yearly" };
+        payload.furnishing = furnishing;
+        payload.parking = parking;
+        payload.amenities = amenities;
+        payload.images = finalImageIds;
+        payload.videos = finalVideoIds;
+      }
 
       const res = await updateFlatmateRequirementApi(requirementId, payload);
 
@@ -415,7 +490,7 @@ export default function FlatmateRequirementEditDialog({
 
       setSubmitting(false);
       toast("Flatmate requirement updated successfully!");
-      onClose();
+      handleClose();
       onSuccess();
     } catch (err: any) {
       await cleanupNewlyUploadedMedia();
@@ -432,12 +507,16 @@ export default function FlatmateRequirementEditDialog({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white shrink-0">
           <div>
             <h3 className="text-lg font-bold text-slate-900">Edit Flatmate Requirement</h3>
-            <p className="text-xs text-slate-500">Update requirement details, pricing, location, and media assets.</p>
+            <p className="text-xs text-slate-500">
+              {postType === "property"
+                ? "Update flat requirement, location, and lifestyle preferences."
+                : "Update room details, location, amenities, and media assets."}
+            </p>
           </div>
           <button
             type="button"
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Close"
           >
             <Icon name="x" size={18} />
@@ -587,53 +666,28 @@ export default function FlatmateRequirementEditDialog({
             <div className="space-y-4 pt-3 border-t border-slate-100">
               <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">2. Requirement Overview</h4>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Title <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Description
-                </label>
-                <textarea
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                     Post Type <span className="text-rose-500">*</span>
                   </label>
                   <select
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
                     value={postType}
-                    onChange={(e) => setPostType(e.target.value as any)}
+                    onChange={(e) => handlePostTypeChange(e.target.value as "property" | "partner")}
                   >
-                    <option value="property">Property</option>
-                    <option value="partner">Partner</option>
+                    <option value="property">Property (Need Room / Flat)</option>
+                    <option value="partner">Partner (Have Room / Flat, Need Flatmate)</option>
                   </select>
                 </div>
 
                 {postType === "property" ? (
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Property Type <span className="text-rose-500">*</span>
+                      Looking For (Property Type) <span className="text-rose-500">*</span>
                     </label>
                     <select
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
                       value={propertyType}
                       onChange={(e) => setPropertyType(e.target.value as any)}
                     >
@@ -646,168 +700,260 @@ export default function FlatmateRequirementEditDialog({
                 ) : (
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Partner Type <span className="text-rose-500">*</span>
+                      Looking For (Partner Type) <span className="text-rose-500">*</span>
                     </label>
                     <select
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
                       value={partnerType}
                       onChange={(e) => setPartnerType(e.target.value as any)}
                     >
-                      <option value="roommate">Roommate</option>
                       <option value="flatmate">Flatmate</option>
+                      <option value="roommate">Roommate</option>
                     </select>
                   </div>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                  placeholder={
+                    postType === "property"
+                      ? "e.g. Looking for 2 BHK Flat / Room in Koramangala"
+                      : "e.g. Looking for a Flatmate in Indiranagar, Bangalore"
+                  }
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Description
+                </label>
+                <textarea
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all resize-none"
+                  rows={3}
+                  placeholder={
+                    postType === "property"
+                      ? "e.g. I am looking for a room with roommate..."
+                      : "e.g. I am looking for a flatmate..."
+                  }
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
               </div>
             </div>
 
             {/* Pricing & Specifications */}
             <div className="space-y-4 pt-3 border-t border-slate-100">
               <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-                3. Pricing & Specifications
+                {postType === "property" ? "3. Pricing & Schedule" : "3. Pricing & Specifications"}
               </h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Rent Amount (₹) <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                    value={rent}
-                    onChange={(e) => setRent(Number(e.target.value))}
-                    min={0}
-                    required
-                  />
-                </div>
+              {postType === "property" ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Approx Rent Amount (₹/mo) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                      placeholder="e.g. 15000"
+                      value={rent === 0 ? "" : rent}
+                      onChange={(e) => setRent(Number(e.target.value))}
+                      min={0}
+                      required
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Security Deposit (₹)
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                    value={securityDeposit}
-                    onChange={(e) => setSecurityDeposit(Number(e.target.value))}
-                    min={0}
-                  />
-                </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Available From <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                      value={availableFrom}
+                      onChange={(e) => setAvailableFrom(e.target.value)}
+                      required
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Area (sq.ft)
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                    value={area}
-                    onChange={(e) => setArea(Number(e.target.value))}
-                    min={0}
-                  />
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Status
+                    </label>
+                    <select
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value as any)}
+                    >
+                      <option value="approved">Approved</option>
+                      <option value="pending">Pending</option>
+                      <option value="draft">Draft</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="blocked">Blocked</option>
+                      <option value="closed">Closed</option>
+                      <option value="expired">Expired</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Rent Amount (₹/mo) <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                        placeholder="e.g. 12000"
+                        value={rent === 0 ? "" : rent}
+                        onChange={(e) => setRent(Number(e.target.value))}
+                        min={0}
+                        required
+                      />
+                    </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Maintenance Amount (₹)
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                    value={maintenanceAmount}
-                    onChange={(e) => setMaintenanceAmount(Number(e.target.value))}
-                    min={0}
-                  />
-                </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Security Deposit (₹)
+                      </label>
+                      <input
+                        type="number"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                        placeholder="e.g. 24000"
+                        value={securityDeposit === 0 ? "" : securityDeposit}
+                        onChange={(e) => setSecurityDeposit(Number(e.target.value))}
+                        min={0}
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Maintenance Frequency
-                  </label>
-                  <select
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                    value={maintenanceFrequency}
-                    onChange={(e) => setMaintenanceFrequency(e.target.value as any)}
-                  >
-                    <option value="monthly">Monthly</option>
-                    <option value="yearly">Yearly</option>
-                    <option value="included">Included</option>
-                    <option value="one_time">One Time</option>
-                  </select>
-                </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Furnishing Status <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                        value={furnishing}
+                        onChange={(e) => setFurnishing(e.target.value as any)}
+                      >
+                        <option value="fully_furnished">Fully Furnished</option>
+                        <option value="semi_furnished">Semi Furnished</option>
+                        <option value="unfurnished">Unfurnished</option>
+                      </select>
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Furnishing
-                  </label>
-                  <select
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                    value={furnishing}
-                    onChange={(e) => setFurnishing(e.target.value as any)}
-                  >
-                    <option value="fully_furnished">Fully Furnished</option>
-                    <option value="semi_furnished">Semi Furnished</option>
-                    <option value="unfurnished">Unfurnished</option>
-                  </select>
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Area (sq.ft)
+                      </label>
+                      <input
+                        type="number"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                        placeholder="e.g. 1000"
+                        value={area === 0 ? "" : area}
+                        onChange={(e) => setArea(Number(e.target.value))}
+                        min={0}
+                      />
+                    </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Available From <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                    value={availableFrom}
-                    onChange={(e) => setAvailableFrom(e.target.value)}
-                    required
-                  />
-                </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Parking Facility
+                      </label>
+                      <select
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                        value={parking ? "true" : "false"}
+                        onChange={(e) => setParking(e.target.value === "true")}
+                      >
+                        <option value="false">No Parking</option>
+                        <option value="true">Parking Available</option>
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Parking
-                  </label>
-                  <select
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                    value={parking ? "true" : "false"}
-                    onChange={(e) => setParking(e.target.value === "true")}
-                  >
-                    <option value="false">No Parking</option>
-                    <option value="true">Parking Available</option>
-                  </select>
-                </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Available From <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                        value={availableFrom}
+                        onChange={(e) => setAvailableFrom(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Status
-                  </label>
-                  <select
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as any)}
-                  >
-                    <option value="approved">Approved</option>
-                    <option value="pending">Pending</option>
-                    <option value="draft">Draft</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="blocked">Blocked</option>
-                    <option value="closed">Closed</option>
-                    <option value="expired">Expired</option>
-                  </select>
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Maintenance Charges (₹)
+                      </label>
+                      <input
+                        type="number"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                        placeholder="e.g. 1500"
+                        value={maintenanceAmount === 0 ? "" : maintenanceAmount}
+                        onChange={(e) => setMaintenanceAmount(Number(e.target.value))}
+                        min={0}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Maintenance Frequency
+                      </label>
+                      <select
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                        value={maintenanceFrequency}
+                        onChange={(e) => setMaintenanceFrequency(e.target.value as any)}
+                      >
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="included">Included in Rent</option>
+                        <option value="one_time">One Time</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Status
+                      </label>
+                      <select
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value as any)}
+                      >
+                        <option value="approved">Approved</option>
+                        <option value="pending">Pending</option>
+                        <option value="draft">Draft</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="blocked">Blocked</option>
+                        <option value="closed">Closed</option>
+                        <option value="expired">Expired</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Preferences & Amenities */}
             <div className="space-y-4 pt-3 border-t border-slate-100">
               <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-                4. Preferences & Amenities
+                {postType === "property" ? "4. Preferences & Lifestyle" : "4. Preferences & Amenities"}
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -816,7 +962,7 @@ export default function FlatmateRequirementEditDialog({
                     Occupation Preference
                   </label>
                   <select
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
                     value={occupationPreference}
                     onChange={(e) => setOccupationPreference(e.target.value as any)}
                   >
@@ -835,7 +981,7 @@ export default function FlatmateRequirementEditDialog({
                     Gender Preference
                   </label>
                   <select
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
                     value={genderPreference}
                     onChange={(e) => setGenderPreference(e.target.value as any)}
                   >
@@ -850,7 +996,7 @@ export default function FlatmateRequirementEditDialog({
               {preferenceOptions.length > 0 && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    User / Lifestyle Preferences
+                    User / Lifestyle Preferences ({userPreferences.length} / 3 min selected) <span className="text-rose-500">*</span>
                   </label>
                   <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
                     {preferenceOptions.map((pref) => {
@@ -874,10 +1020,10 @@ export default function FlatmateRequirementEditDialog({
                 </div>
               )}
 
-              {amenityOptions.length > 0 && (
+              {postType === "partner" && amenityOptions.length > 0 && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Property Amenities
+                    Property Amenities ({amenities.length} / 3 min selected) <span className="text-rose-500">*</span>
                   </label>
                   <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
                     {amenityOptions.map((amenity) => {
@@ -902,132 +1048,134 @@ export default function FlatmateRequirementEditDialog({
               )}
             </div>
 
-            {/* Media Assets */}
-            <div className="space-y-4 pt-3 border-t border-slate-100">
-              <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">5. Media Assets Management</h4>
+            {/* Media Assets (Partner postType only) */}
+            {postType === "partner" && (
+              <div className="space-y-4 pt-3 border-t border-slate-100">
+                <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">5. Media Assets Management</h4>
 
-              {/* Images */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Requirement Photos ({imageItems.length})
-                  </label>
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-600 text-white cursor-pointer transition-all shadow-sm">
-                    <Icon name="refresh" size={12} />
-                    <span>+ Select Photos</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={handleAddImageFiles}
-                    />
-                  </label>
-                </div>
+                {/* Images */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                      Requirement Photos ({imageItems.length}) <span className="text-rose-500">*</span>
+                    </label>
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-600 text-white cursor-pointer transition-all shadow-sm">
+                      <Icon name="refresh" size={12} />
+                      <span>+ Select Photos</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={handleAddImageFiles}
+                      />
+                    </label>
+                  </div>
 
-                {imageItems.length > 0 ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                    {imageItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="relative group rounded-lg overflow-hidden border border-slate-300 aspect-video bg-slate-900 flex items-center justify-center"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={item.previewUrl}
-                          alt="Image Preview"
-                          className={`w-full h-full object-cover transition-opacity ${
-                            item.uploading ? "opacity-40" : "opacity-100"
-                          }`}
-                        />
-                        {item.uploading && (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white text-[10px] font-bold">
-                            <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-1" />
-                            <span>Uploading…</span>
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white rounded-full p-1 transition-colors z-10"
-                          onClick={() => handleRemoveImageItem(item.id)}
-                          title="Remove Image"
+                  {imageItems.length > 0 ? (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                      {imageItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="relative group rounded-lg overflow-hidden border border-slate-300 aspect-video bg-slate-900 flex items-center justify-center"
                         >
-                          <Icon name="x" size={12} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-3 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-xs text-slate-400">
-                    No photos attached. Click &quot;+ Select Photos&quot; to upload high-res images.
-                  </div>
-                )}
-              </div>
-
-              {/* Videos */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Requirement Walkthrough Videos ({videoItems.length})
-                  </label>
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-900 text-white cursor-pointer transition-all shadow-sm">
-                    <Icon name="refresh" size={12} />
-                    <span>+ Select Video</span>
-                    <input
-                      type="file"
-                      accept="video/*"
-                      multiple
-                      className="hidden"
-                      onChange={handleAddVideoFiles}
-                    />
-                  </label>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.previewUrl}
+                            alt="Image Preview"
+                            className={`w-full h-full object-cover transition-opacity ${
+                              item.uploading ? "opacity-40" : "opacity-100"
+                            }`}
+                          />
+                          {item.uploading && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white text-[10px] font-bold">
+                              <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-1" />
+                              <span>Uploading…</span>
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white rounded-full p-1 transition-colors z-10"
+                            onClick={() => handleRemoveImageItem(item.id)}
+                            title="Remove Image"
+                          >
+                            <Icon name="x" size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-3 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-xs text-slate-400">
+                      No photos attached. At least 1 photo is required for partner requirements. Click &quot;+ Select Photos&quot; to upload high-res images.
+                    </div>
+                  )}
                 </div>
 
-                {videoItems.length > 0 ? (
-                  <div className="space-y-3 max-h-52 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                    {videoItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-2 relative"
-                      >
-                        <div className="flex items-center justify-between text-xs">
-                          <div className="font-semibold text-slate-900 truncate max-w-[300px]">
-                            {item.file?.name || item.mediaObject?.url || "Video Walkthrough"}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {item.uploading && (
-                              <span className="text-[10px] text-amber-600 font-bold animate-pulse">
-                                Uploading…
-                              </span>
-                            )}
-                            <button
-                              type="button"
-                              className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                              onClick={() => handleRemoveVideoItem(item.id)}
-                              title="Remove Video"
-                            >
-                              <Icon name="x" size={14} />
-                            </button>
-                          </div>
-                        </div>
+                {/* Videos */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                      Requirement Walkthrough Videos ({videoItems.length})
+                    </label>
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-900 text-white cursor-pointer transition-all shadow-sm">
+                      <Icon name="refresh" size={12} />
+                      <span>+ Select Video</span>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        multiple
+                        className="hidden"
+                        onChange={handleAddVideoFiles}
+                      />
+                    </label>
+                  </div>
 
-                        <div className="aspect-video w-full max-w-sm mx-auto bg-black rounded-lg overflow-hidden border border-slate-300">
-                          <video
-                            src={item.mediaObject?.url || item.previewUrl}
-                            controls
-                            className="w-full h-full object-contain"
-                          />
+                  {videoItems.length > 0 ? (
+                    <div className="space-y-3 max-h-52 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                      {videoItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-2 relative"
+                        >
+                          <div className="flex items-center justify-between text-xs">
+                            <div className="font-semibold text-slate-900 truncate max-w-[300px]">
+                              {item.file?.name || item.mediaObject?.url || "Video Walkthrough"}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {item.uploading && (
+                                <span className="text-[10px] text-amber-600 font-bold animate-pulse">
+                                  Uploading…
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                                onClick={() => handleRemoveVideoItem(item.id)}
+                                title="Remove Video"
+                              >
+                                <Icon name="x" size={14} />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="aspect-video w-full max-w-sm mx-auto bg-black rounded-lg overflow-hidden border border-slate-300">
+                            <video
+                              src={item.mediaObject?.url || item.previewUrl}
+                              controls
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-3 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-xs text-slate-400">
-                    No videos attached. Click &quot;+ Select Video&quot; to upload walkthrough clips.
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-3 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-xs text-slate-400">
+                      No videos attached. Click &quot;+ Select Video&quot; to upload walkthrough clips.
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </form>
         )}
 
@@ -1035,7 +1183,7 @@ export default function FlatmateRequirementEditDialog({
           <button
             type="button"
             className="px-4 py-2 text-xs font-semibold rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all disabled:opacity-50"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={submitting}
           >
             Cancel
@@ -1044,7 +1192,11 @@ export default function FlatmateRequirementEditDialog({
             type="submit"
             form="edit-requirement-form"
             className="px-5 py-2 text-xs font-semibold rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
-            disabled={submitting || imageItems.some((img) => img.uploading) || videoItems.some((vid) => vid.uploading)}
+            disabled={
+              submitting ||
+              (postType === "partner" &&
+                (imageItems.some((img) => img.uploading) || videoItems.some((vid) => vid.uploading)))
+            }
           >
             {submitting ? "Saving…" : "Save Changes"}
           </button>

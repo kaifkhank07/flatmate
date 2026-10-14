@@ -150,31 +150,44 @@ export default function EditBlogPage({
     setImagePreview(null);
   };
 
+  const clearFaqForm = () => {
+    setFaqQuestion("");
+    setFaqAnswer("");
+    setEditingFaqIndex(null);
+  };
+
   const handleAddOrUpdateFaq = () => {
     const trimmedQuestion = faqQuestion.trim();
     const trimmedAnswer = faqAnswer.trim();
 
-    if (!trimmedQuestion || !trimmedAnswer) {
-      toast("Both FAQ question and answer are required");
+    if (!trimmedQuestion) {
+      toast("Question is required");
       return;
     }
 
+    if (!trimmedAnswer) {
+      toast("Answer is required");
+      return;
+    }
+
+    const faq: BlogFaq = {
+      question: trimmedQuestion,
+      answer: trimmedAnswer,
+    };
+
     if (editingFaqIndex !== null) {
-      const updated = [...faqs];
-      updated[editingFaqIndex] = {
-        question: trimmedQuestion,
-        answer: trimmedAnswer,
-      };
-      setFaqs(updated);
-      setEditingFaqIndex(null);
+      setFaqs((prev) =>
+        prev.map((item, index) =>
+          index === editingFaqIndex ? faq : item
+        )
+      );
       toast("FAQ updated");
     } else {
-      setFaqs([...faqs, { question: trimmedQuestion, answer: trimmedAnswer }]);
+      setFaqs((prev) => [...prev, faq]);
       toast("FAQ added");
     }
 
-    setFaqQuestion("");
-    setFaqAnswer("");
+    clearFaqForm();
   };
 
   const handleEditFaq = (index: number) => {
@@ -185,16 +198,18 @@ export default function EditBlogPage({
   };
 
   const handleCancelFaqEdit = () => {
-    setFaqQuestion("");
-    setFaqAnswer("");
-    setEditingFaqIndex(null);
+    clearFaqForm();
   };
 
   const handleRemoveFaq = (index: number) => {
-    setFaqs(faqs.filter((_, i) => i !== index));
+    setFaqs((prev) => prev.filter((_, i) => i !== index));
+
     if (editingFaqIndex === index) {
-      handleCancelFaqEdit();
+      clearFaqForm();
+    } else if (editingFaqIndex !== null && editingFaqIndex > index) {
+      setEditingFaqIndex((prev) => (prev === null ? null : prev - 1));
     }
+
     toast("FAQ removed");
   };
 
@@ -202,10 +217,61 @@ export default function EditBlogPage({
     const targetIndex = direction === "up" ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= faqs.length) return;
 
-    const newFaqs = [...faqs];
-    const [movedItem] = newFaqs.splice(index, 1);
-    newFaqs.splice(targetIndex, 0, movedItem);
-    setFaqs(newFaqs);
+    setFaqs((prev) => {
+      const updated = [...prev];
+      [updated[index], updated[targetIndex]] = [
+        updated[targetIndex],
+        updated[index],
+      ];
+      return updated;
+    });
+
+    setEditingFaqIndex((current) => {
+      if (current === index) return targetIndex;
+      if (current === targetIndex) return index;
+      return current;
+    });
+  };
+
+  const getFaqsToSubmit = (): BlogFaq[] | null => {
+    const currentQuestion = faqQuestion.trim();
+    const currentAnswer = faqAnswer.trim();
+
+    // Include the current input even if Add FAQ has not been clicked.
+    const faqsToSubmit: BlogFaq[] = [...faqs];
+
+    if (currentQuestion || currentAnswer) {
+      if (!currentQuestion || !currentAnswer) {
+        toast("Please enter both question and answer for the current FAQ");
+        return null;
+      }
+
+      if (editingFaqIndex !== null) {
+        faqsToSubmit[editingFaqIndex] = {
+          question: currentQuestion,
+          answer: currentAnswer,
+        };
+      } else {
+        faqsToSubmit.push({
+          question: currentQuestion,
+          answer: currentAnswer,
+        });
+      }
+    } else if (editingFaqIndex !== null) {
+      toast("Please enter both question and answer for the FAQ being edited, or cancel editing");
+      return null;
+    }
+
+    const invalidIndex = faqsToSubmit.findIndex(
+      (faq) => !faq.question.trim() || !faq.answer.trim()
+    );
+
+    if (invalidIndex !== -1) {
+      toast(`Question and answer are required for FAQ ${invalidIndex + 1}`);
+      return null;
+    }
+
+    return faqsToSubmit;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -216,6 +282,11 @@ export default function EditBlogPage({
 
     if (!trimmedTitle || isBlogContentEmpty(content) || !categoryId) {
       toast("Title, content and category are required");
+      return;
+    }
+
+    const faqsToSubmit = getFaqsToSubmit();
+    if (faqsToSubmit === null) {
       return;
     }
 
@@ -243,9 +314,7 @@ export default function EditBlogPage({
         if (Object.keys(seo).length > 0) {
           body.append("seo", JSON.stringify(seo));
         }
-        if (faqs.length > 0) {
-          body.append("faqs", JSON.stringify(faqs));
-        }
+        body.append("faqs", JSON.stringify(faqsToSubmit));
         body.append("file", imageFile);
 
         res = await updateBlogApi(blogId, body);
@@ -257,7 +326,7 @@ export default function EditBlogPage({
           isActive,
           image: image ?? null,
           seo: Object.keys(seo).length > 0 ? seo : undefined,
-          faqs: faqs.length > 0 ? faqs : undefined,
+          faqs: faqsToSubmit,
         });
       }
 
@@ -322,6 +391,11 @@ export default function EditBlogPage({
       </>
     );
   }
+
+  const pendingNewFaq = Boolean(
+    faqQuestion.trim() && faqAnswer.trim() && editingFaqIndex === null
+  );
+  const totalFaqsCount = faqs.length + (pendingNewFaq ? 1 : 0);
 
   return (
     <>
@@ -532,8 +606,8 @@ export default function EditBlogPage({
                     Manage FAQs associated with this blog post.
                   </p>
                 </div>
-                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
-                  {faqs.length} FAQ{faqs.length === 1 ? "" : "s"}
+                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 whitespace-nowrap">
+                  {totalFaqsCount} FAQ{totalFaqsCount === 1 ? "" : "s"}
                 </span>
               </div>
 
@@ -550,13 +624,15 @@ export default function EditBlogPage({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1 flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
-                            <span className="text-amber-600 text-xs font-bold">
+                          <h4 className="text-sm font-semibold text-slate-900 flex items-start gap-1.5">
+                            <span className="text-amber-600 text-xs font-bold mt-0.5">
                               Q{index + 1}.
                             </span>{" "}
-                            {faq.question}
+                            <span className="break-words">
+                              {faq.question}
+                            </span>
                           </h4>
-                          <p className="text-xs text-slate-600 whitespace-pre-wrap">
+                          <p className="text-xs text-slate-600 whitespace-pre-wrap break-words">
                             {faq.answer}
                           </p>
                         </div>
@@ -584,7 +660,7 @@ export default function EditBlogPage({
                             type="button"
                             onClick={() => handleEditFaq(index)}
                             disabled={submitting}
-                            className="p-1.5 rounded text-amber-600 hover:bg-amber-100 transition"
+                            className="p-1.5 rounded text-amber-600 hover:bg-amber-100 transition disabled:opacity-50"
                             title="Edit FAQ"
                           >
                             <Pencil size={14} />
@@ -593,7 +669,7 @@ export default function EditBlogPage({
                             type="button"
                             onClick={() => handleRemoveFaq(index)}
                             disabled={submitting}
-                            className="p-1.5 rounded text-rose-600 hover:bg-rose-100 transition"
+                            className="p-1.5 rounded text-rose-600 hover:bg-rose-100 transition disabled:opacity-50"
                             title="Remove FAQ"
                           >
                             <Trash2 size={14} />
@@ -642,13 +718,13 @@ export default function EditBlogPage({
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-1">
+                <div className="flex flex-wrap justify-end gap-2 pt-1">
                   {editingFaqIndex !== null && (
                     <button
                       type="button"
                       onClick={handleCancelFaqEdit}
                       disabled={submitting}
-                      className="px-3.5 h-9 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
+                      className="px-3.5 h-9 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-100 transition disabled:opacity-50"
                     >
                       Cancel Edit
                     </button>

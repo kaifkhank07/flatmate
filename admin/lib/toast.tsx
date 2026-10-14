@@ -20,7 +20,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <Ctx.Provider value={push}>
       {children}
-      <div id="toast" style={msg ? { opacity: 1, transform: "translateX(-50%) translateY(0)" } : undefined}>
+      <div id="toast" style={msg ? { opacity: 1, zIndex:1000, transform: "translateX(-50%) translateY(0)" } : undefined}>
         {msg}
       </div>
     </Ctx.Provider>
