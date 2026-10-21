@@ -78,7 +78,7 @@ export const createPropertySchema = z.object({
     status: z
       .enum(['draft', 'pending', 'approved', 'rejected', 'blocked', 'closed', 'expired'])
       .optional(),
-    rejectionReason: z.string().trim().optional(),
+    rejectionReason: z.string().trim().nullable().optional(),
   }),
 });
 

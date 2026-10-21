@@ -7,6 +7,7 @@ import {
   getCurrentUser,
   updateCurrentUser,
   deleteCurrentUser,
+  deactivateCurrentUser,
   getUsers,
   getUserDetails,
   getUserProfileByAdmin,
@@ -45,6 +46,7 @@ router.post('/refresh-token', refreshToken);
 router.get('/me', authenticateUser, getCurrentUser);
 router.patch('/me', authenticateUser, validate(updateUserSchema), updateCurrentUser);
 router.delete('/me', authenticateUser, deleteCurrentUser);
+router.patch('/me/deactivate', authenticateUser, deactivateCurrentUser);
 router.get('/profile/completion-status', authenticateUser, getProfileCompletionStatus);
 router.patch('/profile/complete', authenticateUser, markProfileAsCompleted);
 

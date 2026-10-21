@@ -287,8 +287,8 @@ export default function ChatManager() {
     const participant = conv.otherParticipant;
     const name = participant
       ? `${participant.firstName || ""} ${participant.lastName || ""}`.trim() ||
-        participant.email ||
-        "Chat User"
+      participant.email ||
+      "Chat User"
       : "Chat User";
 
     const avatar = getMediaUrl(participant?.image || participant?.avatar) || DEFAULT_AVATAR;
@@ -334,9 +334,9 @@ export default function ChatManager() {
     const isUserOnline = itemBlockedByOther
       ? false
       : Boolean(
-          cOtherUserId &&
-            (onlineUserIds.includes(cOtherUserId) || conv.isOnline)
-        );
+        cOtherUserId &&
+        (onlineUserIds.includes(cOtherUserId) || conv.isOnline)
+      );
 
     return {
       id: conv._id,
@@ -388,30 +388,30 @@ export default function ChatManager() {
   const isOtherUserOnline = isBlockedByOther
     ? false
     : Boolean(
-        otherUserId &&
-          (onlineUserIds.includes(otherUserId) || activeConvObj?.isOnline)
-      );
+      otherUserId &&
+      (onlineUserIds.includes(otherUserId) || activeConvObj?.isOnline)
+    );
 
   const activeChat: ChatConversation | null = activeConvObj
     ? {
-        id: activeConvObj._id,
-        name: otherParticipant
-          ? `${otherParticipant.firstName || ""} ${otherParticipant.lastName || ""}`.trim() ||
-            otherParticipant.email ||
-            "Chat User"
-          : "Chat User",
-        avatar:
-          getMediaUrl(otherParticipant?.image || otherParticipant?.avatar) ||
-          DEFAULT_AVATAR,
-        isOnline: isOtherUserOnline,
-        isTyping: isBlockedByOther ? false : Boolean(typingState[activeConvObj._id]),
-        lastTime: "",
-        lastMessage: "",
-        isBlocked: isAnyBlocked,
-        isBlockedByMe,
-        isBlockedByOther,
-        messages: [],
-      }
+      id: activeConvObj._id,
+      name: otherParticipant
+        ? `${otherParticipant.firstName || ""} ${otherParticipant.lastName || ""}`.trim() ||
+        otherParticipant.email ||
+        "Chat User"
+        : "Chat User",
+      avatar:
+        getMediaUrl(otherParticipant?.image || otherParticipant?.avatar) ||
+        DEFAULT_AVATAR,
+      isOnline: isOtherUserOnline,
+      isTyping: isBlockedByOther ? false : Boolean(typingState[activeConvObj._id]),
+      lastTime: "",
+      lastMessage: "",
+      isBlocked: isAnyBlocked,
+      isBlockedByMe,
+      isBlockedByOther,
+      messages: [],
+    }
     : null;
 
   // Action Handlers for Block, Unblock, Report
@@ -578,31 +578,29 @@ export default function ChatManager() {
   };
 
   return (
-    <section className="relative w-full py-4 md:py-8">
-      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto px-4 sm:px-6 lg:px-16 space-y-6 sm:space-y-10 md:space-y-12">
+    <section className="relative w-full py-2 sm:py-4 md:py-6 lg:py-8">
+      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto px-3 sm:px-6 lg:px-16">
         {/* Chat Interface Container */}
-        <div className="w-full h-[calc(100vh-120px)] min-h-[550px] max-h-[850px] rounded-[24px] sm:rounded-[32px] border border-gray-200/80 overflow-hidden flex flex-col lg:flex-row">
-          
+        <div className="w-full h-[80vh] sm:h-[80vh] md:h-[80vh] lg:h-[calc(100vh-120px)] max-h-[80vh] sm:max-h-[80vh] md:max-h-[80vh] lg:max-h-[850px] rounded-[20px] sm:rounded-[28px] lg:rounded-[32px] border border-gray-200/80 overflow-hidden flex flex-col lg:flex-row bg-white shadow-xs">
+
           {/* LEFT SIDEBAR: Conversation List */}
           <div
-            className={`w-full lg:w-[340px] xl:w-[380px] shrink-0 border-r border-gray-100 flex flex-col min-h-0 bg-white transition-all ${
-              mobileShowChat ? "hidden lg:flex" : "flex"
-            }`}
+            className={`w-full lg:w-[340px] xl:w-[380px] shrink-0 border-r border-gray-100 flex flex-col min-h-0 bg-white transition-all h-full ${mobileShowChat ? "hidden lg:flex" : "flex"}`}
           >
             {/* Sidebar Top Bar */}
-            <div className="p-5 sm:p-6 pb-3 space-y-4 shrink-0">
+            <div className="p-3.5 sm:p-5 lg:p-6 pb-2 sm:pb-3 space-y-2.5 sm:space-y-3.5 shrink-0">
               <div className="flex items-center justify-between">
-                <h2 className="font-roboto-serif text-2xl sm:text-3xl font-regular text-[#0066FF] tracking-tight">
+                <h2 className="font-roboto-serif text-xl sm:text-2xl lg:text-3xl font-regular text-[#0066FF] tracking-tight">
                   Chatbox
                 </h2>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setShowSearchInput((prev) => !prev)}
-                    className="w-9 h-9 rounded-full bg-gray-100/80 hover:bg-gray-200/80 flex items-center justify-center text-gray-700 transition-all cursor-pointer active:scale-95"
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gray-100/80 hover:bg-gray-200/80 flex items-center justify-center text-gray-700 transition-all cursor-pointer active:scale-95"
                     title="Search chat"
                   >
-                    <Search className="w-4 h-4" />
+                    <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                 </div>
               </div>
@@ -615,9 +613,9 @@ export default function ChatManager() {
                     value={searchQuery}
                     onChange={handleSearchChange}
                     placeholder="Search conversations..."
-                    className="w-full pl-9 pr-8 py-2 bg-gray-100/80 border border-gray-200 rounded-full text-xs sm:text-sm text-gray-800 focus:outline-none focus:border-[#0066FF] transition-all"
+                    className="w-full pl-8 sm:pl-9 pr-8 py-1.5 sm:py-2 bg-gray-100/80 border border-gray-200 rounded-full text-xs sm:text-sm text-gray-800 focus:outline-none focus:border-[#0066FF] transition-all"
                   />
-                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2" />
                   {searchQuery && (
                     <button
                       type="button"
@@ -632,8 +630,8 @@ export default function ChatManager() {
               )}
 
               {/* Sub-Header Label */}
-              <div className="font-roboto-serif flex items-center gap-2 text-[#0066FF] font-regular text-base sm:text-lg lg:text-xl pt-1">
-                <MessageCircle className="w-4 h-4 text-[#0066FF]" />
+              <div className="font-roboto-serif flex items-center gap-2 text-[#0066FF] font-regular text-sm sm:text-base lg:text-xl pt-0.5 sm:pt-1">
+                <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#0066FF]" />
                 <span>All Messages</span>
               </div>
             </div>
@@ -641,7 +639,7 @@ export default function ChatManager() {
             {/* Conversation Items List */}
             <div
               onWheel={(e) => e.stopPropagation()}
-              className="flex-1 overflow-y-auto min-h-0 overscroll-none scrollbar-thin scrollbar-thumb-gray-200 px-3 sm:px-4 space-y-1"
+              className="flex-1 overflow-y-auto min-h-0 overscroll-none scrollbar-thin scrollbar-thumb-gray-200 px-2.5 sm:px-4 space-y-1"
               style={{ overscrollBehavior: "none", overscrollBehaviorY: "none" }}
             >
               {filteredConversations.length === 0 ? (
@@ -659,21 +657,20 @@ export default function ChatManager() {
                     <div
                       key={chat.id}
                       onClick={() => handleSelectChat(chat.id)}
-                      className={`flex items-center gap-3.5 p-3 rounded-2xl cursor-pointer transition-all duration-200 ${
-                        isActive
-                          ? "bg-blue-50/80 border border-blue-100 shadow-2xs"
-                          : "hover:bg-gray-50 border border-transparent"
-                      }`}
+                      className={`flex items-center gap-2.5 sm:gap-3.5 p-2 sm:p-2.5 lg:p-3 rounded-2xl cursor-pointer transition-all duration-200 ${isActive
+                        ? "bg-blue-50/80 border border-blue-100 shadow-2xs"
+                        : "hover:bg-gray-50 border border-transparent"
+                        }`}
                     >
                       {/* User Avatar */}
                       <div className="relative shrink-0">
                         <img
                           src={chat.avatar}
                           alt={chat.name}
-                          className="w-12 h-12 rounded-full object-cover shadow-2xs border border-gray-100"
+                          className="w-10 h-10 sm:w-11 sm:h-11 lg:w-12 lg:h-12 rounded-full object-cover shadow-2xs border border-gray-100"
                         />
                         {chat.isOnline && (
-                          <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
+                          <span className="absolute bottom-0 right-0 w-3 h-3 sm:w-3.5 sm:h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
                         )}
                       </div>
 
@@ -681,7 +678,7 @@ export default function ChatManager() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <h4 className="font-roboto-serif text-sm sm:text-base font-regular text-gray-900 truncate">
+                            <h4 className="font-roboto-serif text-xs sm:text-sm lg:text-base font-regular text-gray-900 truncate">
                               {chat.name}
                             </h4>
                             {chat.isBlockedByOther && (
@@ -715,11 +712,10 @@ export default function ChatManager() {
                             </p>
                           ) : (
                             <p
-                              className={`text-xs truncate font-regular ${
-                                (chat.unreadCount || 0) > 0
-                                  ? "font-semibold text-gray-900"
-                                  : "text-gray-500"
-                              }`}
+                              className={`text-xs truncate font-regular ${(chat.unreadCount || 0) > 0
+                                ? "font-semibold text-gray-900"
+                                : "text-gray-500"
+                                }`}
                             >
                               {chat.lastMessage}
                             </p>
@@ -751,20 +747,19 @@ export default function ChatManager() {
 
           {/* RIGHT MAIN CHAT PANE */}
           <div
-            className={`flex-1 flex flex-col min-h-0 bg-[#F0F7FF] relative transition-all ${
-              !mobileShowChat ? "hidden lg:flex" : "flex"
-            }`}
+            className={`flex-1 flex flex-col min-h-0 bg-[#F0F7FF] relative transition-all h-full ${!mobileShowChat ? "hidden lg:flex" : "flex"
+              }`}
           >
             {activeChat ? (
               <>
                 {/* Active Chat Top Bar Header */}
-                <div className="p-4 sm:p-5 bg-white border-b border-gray-100 flex items-center justify-between shrink-0 shadow-2xs">
-                  <div className="flex items-center gap-3">
+                <div className="p-2.5 sm:p-3.5 lg:p-5 bg-white border-b border-gray-100 flex items-center justify-between shrink-0 shadow-2xs">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     {/* Back button for mobile */}
                     <button
                       type="button"
                       onClick={handleCloseMobileChat}
-                      className="lg:hidden p-1.5 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-colors"
+                      className="lg:hidden p-1 sm:p-1.5 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-colors shrink-0"
                     >
                       <ArrowLeft className="w-5 h-5" />
                     </button>
@@ -773,34 +768,33 @@ export default function ChatManager() {
                       <img
                         src={activeChat.avatar}
                         alt={activeChat.name}
-                        className="w-11 h-11 rounded-full object-cover border border-gray-100"
+                        className="w-8 h-8 sm:w-9 sm:h-9 lg:w-11 lg:h-11 rounded-full object-cover border border-gray-100"
                       />
                       {activeChat.isOnline && (
-                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
+                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 border-2 border-white rounded-full" />
                       )}
                     </div>
 
-                    <div>
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 tracking-tight leading-tight">
+                    <div className="min-w-0">
+                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 tracking-tight leading-tight truncate">
                         {activeChat.name}
                       </h3>
                       {isBlockedByOther ? (
-                        <p className="text-xs font-semibold text-rose-500 flex items-center gap-1">
+                        <p className="text-[10px] sm:text-xs font-semibold text-rose-500 flex items-center gap-1">
                           <Ban className="w-3 h-3" /> Blocked you
                         </p>
                       ) : isBlockedByMe ? (
-                        <p className="text-xs font-medium text-gray-500">
+                        <p className="text-[10px] sm:text-xs font-medium text-gray-500">
                           Blocked by you
                         </p>
                       ) : (
                         <p
-                          className={`text-xs font-medium ${
-                            activeChat.isTyping
-                              ? "text-emerald-500 animate-pulse"
-                              : activeChat.isOnline
+                          className={`text-[10px] sm:text-xs font-medium ${activeChat.isTyping
+                            ? "text-emerald-500 animate-pulse"
+                            : activeChat.isOnline
                               ? "text-emerald-500"
                               : "text-gray-400"
-                          }`}
+                            }`}
                         >
                           {activeChat.isTyping ? "Typing.." : activeChat.isOnline ? "Online" : "Offline"}
                         </p>
@@ -834,11 +828,10 @@ export default function ChatManager() {
                       <button
                         type="button"
                         onClick={() => setIsMenuOpen((prev) => !prev)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
-                          isMenuOpen
-                            ? "bg-gray-200 text-gray-900 shadow-2xs"
-                            : "bg-gray-100/80 hover:bg-gray-200/80 text-gray-700"
-                        }`}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer active:scale-95 ${isMenuOpen
+                          ? "bg-gray-200 text-gray-900 shadow-2xs"
+                          : "bg-gray-100/80 hover:bg-gray-200/80 text-gray-700"
+                          }`}
                         title="More options"
                         aria-expanded={isMenuOpen}
                       >
@@ -859,11 +852,10 @@ export default function ChatManager() {
                                 setShowBlockModal(true);
                               }
                             }}
-                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-xs sm:text-sm font-medium transition-colors text-left cursor-pointer ${
-                              isBlockedByMe
-                                ? "text-emerald-600 hover:bg-emerald-50"
-                                : "text-rose-600 hover:bg-rose-50"
-                            }`}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-xs sm:text-sm font-medium transition-colors text-left cursor-pointer ${isBlockedByMe
+                              ? "text-emerald-600 hover:bg-emerald-50"
+                              : "text-rose-600 hover:bg-rose-50"
+                              }`}
                           >
                             {isBlockedByMe ? (
                               <>
@@ -930,12 +922,12 @@ export default function ChatManager() {
                   ref={messagesContainerRef}
                   onScroll={handleMessagesScroll}
                   onWheel={(e) => e.stopPropagation()}
-                  className="flex-1 overflow-y-auto min-h-0 overscroll-none scrollbar-thin scrollbar-thumb-gray-200 p-4 sm:p-6 space-y-6"
+                  className="flex-1 overflow-y-auto min-h-0 overscroll-none scrollbar-thin scrollbar-thumb-gray-200 p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6"
                   style={{ overscrollBehavior: "none", overscrollBehaviorY: "none" }}
                 >
                   {/* Date Separator Pill */}
-                  <div className="flex justify-center my-2">
-                    <span className="bg-[#0066FF] text-white text-xs font-medium px-4 py-1.5 rounded-full shadow-md shadow-blue-500/20">
+                  <div className="flex justify-center my-1 sm:my-2">
+                    <span className="bg-[#0066FF] text-white text-[11px] sm:text-xs font-medium px-3 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-md shadow-blue-500/20">
                       Today
                     </span>
                   </div>
@@ -947,43 +939,39 @@ export default function ChatManager() {
                     return (
                       <div
                         key={msg.id || index}
-                        className={`flex items-start gap-3 ${
-                          isUser ? "flex-row-reverse" : "flex-row"
-                        }`}
+                        className={`flex items-start gap-2 sm:gap-3 ${isUser ? "flex-row-reverse" : "flex-row"
+                          }`}
                       >
                         {/* Avatar */}
                         <img
                           src={msg.senderAvatar}
                           alt={msg.senderName}
-                          className="w-9 h-9 rounded-full object-cover shrink-0 mt-0.5 border border-white shadow-2xs"
+                          className="w-7 h-7 sm:w-8 sm:h-8 lg:w-9 lg:h-9 rounded-full object-cover shrink-0 mt-0.5 border border-white shadow-2xs"
                         />
 
                         {/* Content Group */}
                         <div
-                          className={`space-y-1 max-w-[80%] sm:max-w-[65%] ${
-                            isUser ? "items-end text-right" : "items-start text-left"
-                          }`}
+                          className={`space-y-0.5 sm:space-y-1 max-w-[85%] sm:max-w-[70%] lg:max-w-[65%] ${isUser ? "items-end text-right" : "items-start text-left"
+                            }`}
                         >
                           <div
-                            className={`flex items-center gap-2 ${
-                              isUser ? "justify-end" : "justify-start"
-                            }`}
+                            className={`flex items-center gap-1.5 sm:gap-2 ${isUser ? "justify-end" : "justify-start"
+                              }`}
                           >
-                            <span className="text-sm font-semibold text-gray-900">
+                            <span className="text-xs sm:text-sm font-semibold text-gray-900">
                               {msg.senderName}
                             </span>
-                            <span className="text-[11px] text-gray-400 font-regular">
+                            <span className="text-[10px] sm:text-[11px] text-gray-400 font-regular">
                               {msg.time}
                             </span>
                           </div>
 
                           {/* Bubble */}
                           <div
-                            className={`p-3.5 px-4 rounded-2xl text-sm font-regular leading-relaxed inline-block shadow-2xs border border-gray-100/60 ${
-                              isUser
-                                ? "bg-white text-gray-800 rounded-tr-xs"
-                                : "bg-white text-gray-800 rounded-tl-xs"
-                            }`}
+                            className={`p-2.5 sm:p-3.5 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-regular leading-relaxed inline-block shadow-2xs border border-gray-100/60 ${isUser
+                              ? "bg-white text-gray-800 rounded-tr-xs"
+                              : "bg-white text-gray-800 rounded-tl-xs"
+                              }`}
                           >
                             <p>{msg.text}</p>
                           </div>
@@ -992,11 +980,11 @@ export default function ChatManager() {
                           {isUser && (
                             <div className="flex justify-end pt-0.5">
                               {msg.status === "read" ? (
-                                <span title="Read"><CheckCheck className="w-4 h-4 text-[#0066FF]" /></span>
+                                <span title="Read"><CheckCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#0066FF]" /></span>
                               ) : msg.status === "delivered" ? (
-                                <span title="Delivered"><CheckCheck className="w-4 h-4 text-gray-400" /></span>
+                                <span title="Delivered"><CheckCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" /></span>
                               ) : (
-                                <span title="Sent"><Check className="w-4 h-4 text-gray-400" /></span>
+                                <span title="Sent"><Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" /></span>
                               )}
                             </div>
                           )}
@@ -1011,22 +999,22 @@ export default function ChatManager() {
                   <button
                     type="button"
                     onClick={() => scrollToBottom("smooth")}
-                    className="absolute bottom-24 right-6 sm:right-8 z-10 p-2.5 bg-[#0066FF] text-white hover:bg-blue-700 rounded-full shadow-lg shadow-blue-500/30 transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 cursor-pointer active:scale-95 flex items-center justify-center border border-white/20"
+                    className="absolute bottom-16 sm:bottom-20 lg:bottom-24 right-3 sm:right-6 lg:right-8 z-10 p-2 sm:p-2.5 bg-[#0066FF] text-white hover:bg-blue-700 rounded-full shadow-lg shadow-blue-500/30 transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 cursor-pointer active:scale-95 flex items-center justify-center border border-white/20"
                     title="Scroll to bottom"
                   >
-                    <ChevronDown className="w-5 h-5" />
+                    <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 )}
 
                 {/* Input Bar Footer */}
-                <div className="p-4 sm:p-5 bg-white border-t border-gray-100 shrink-0">
+                <div className="p-2.5 sm:p-3.5 lg:p-5 bg-white border-t border-gray-100 shrink-0">
                   {isBlockedByOther ? (
-                    <div className="flex items-center gap-3 p-3.5 px-4 bg-rose-50/80 border border-rose-200/80 rounded-2xl text-xs sm:text-sm text-rose-800">
+                    <div className="flex items-center gap-2.5 p-2.5 sm:p-3.5 px-3 sm:px-4 bg-rose-50/80 border border-rose-200/80 rounded-2xl text-xs sm:text-sm text-rose-800">
                       <Ban className="w-4 h-4 text-rose-600 shrink-0" />
                       <span>You cannot send messages to this conversation because {activeChat.name} has blocked you.</span>
                     </div>
                   ) : isBlockedByMe ? (
-                    <div className="flex items-center justify-between p-3.5 px-4 bg-gray-50 border border-gray-200 rounded-2xl text-xs sm:text-sm text-gray-700">
+                    <div className="flex items-center justify-between p-2.5 sm:p-3.5 px-3 sm:px-4 bg-gray-50 border border-gray-200 rounded-2xl text-xs sm:text-sm text-gray-700">
                       <div className="flex items-center gap-2">
                         <Ban className="w-4 h-4 text-gray-500 shrink-0" />
                         <span>You have blocked this user. Unblock to resume messaging.</span>
@@ -1040,24 +1028,24 @@ export default function ChatManager() {
                       </button>
                     </div>
                   ) : (
-                    <form onSubmit={handleSendMessage} className="flex items-center gap-3">
-                      <div className="flex-1 bg-gray-100/80 hover:bg-gray-100 border border-gray-200/80 rounded-full px-4 py-2.5 flex items-center gap-3 transition-colors">
+                    <form onSubmit={handleSendMessage} className="flex items-center gap-2 sm:gap-3">
+                      <div className="flex-1 bg-gray-100/80 hover:bg-gray-100 border border-gray-200/80 rounded-full px-3 sm:px-4 py-1.5 sm:py-2.5 flex items-center gap-2 sm:gap-3 transition-colors">
                         <input
                           type="text"
                           value={inputText}
                           onChange={handleInputChange}
                           placeholder="Type A Message......"
-                          className="flex-1 bg-transparent text-sm text-gray-800 focus:outline-none placeholder:text-gray-400 font-regular"
+                          className="flex-1 bg-transparent text-xs sm:text-sm text-gray-800 focus:outline-none placeholder:text-gray-400 font-regular"
                         />
                       </div>
 
                       <button
                         type="submit"
                         disabled={!inputText.trim() || sendingMessage}
-                        className="bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white rounded-full px-5 py-2.5 flex items-center gap-2 text-sm font-medium transition-all shadow-md shadow-blue-500/20 active:scale-95 cursor-pointer shrink-0"
+                        className="bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white rounded-full px-3.5 sm:px-5 py-1.5 sm:py-2.5 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium transition-all shadow-md shadow-blue-500/20 active:scale-95 cursor-pointer shrink-0"
                       >
                         <span>Send</span>
-                        <Send className="w-4 h-4" />
+                        <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
                     </form>
                   )}
@@ -1231,11 +1219,10 @@ export default function ChatManager() {
 
               {reportFeedback && (
                 <p
-                  className={`text-xs p-2.5 rounded-xl border ${
-                    reportFeedback.type === "success"
-                      ? "text-emerald-700 bg-emerald-50 border-emerald-200"
-                      : "text-rose-700 bg-rose-50 border-rose-200"
-                  }`}
+                  className={`text-xs p-2.5 rounded-xl border ${reportFeedback.type === "success"
+                    ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                    : "text-rose-700 bg-rose-50 border-rose-200"
+                    }`}
                 >
                   {reportFeedback.message}
                 </p>

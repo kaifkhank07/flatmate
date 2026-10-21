@@ -20,6 +20,9 @@ export interface IUser extends Document {
   isOnline: boolean;
   isDeleted: boolean;
   deletedAt?: Date;
+  deletedBy?: Types.ObjectId;
+  deactiveAt?: Date;
+  deactiveBy?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -89,6 +92,18 @@ const userSchema = new Schema<IUser>(
     },
     deletedAt: {
       type: Date,
+    },
+    deletedBy: {
+      type: Schema.Types.ObjectId,
+      default: null,
+    },
+    deactiveAt: {
+      type: Date,
+      default: null,
+    },
+    deactiveBy: {
+      type: Schema.Types.ObjectId,
+      default: null,
     },
   },
   {

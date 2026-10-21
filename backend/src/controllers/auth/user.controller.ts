@@ -21,6 +21,7 @@ import {
 } from '../../utils/cookie.util';
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
+import { createNotification, notifyAdmins } from '../../services/notification/notification.service';
 
 /**
  * Register a new user
@@ -65,6 +66,29 @@ export const registerUser = async (req: Request, res: Response): Promise<Respons
     });
 
     logger.info(`User registered successfully: ${user._id}`);
+
+    // Send welcome notification to user
+    // createNotification({
+    //   recipientType: 'USER',
+    //   recipientId: user._id,
+    //   eventType: 'USER_REGISTERED',
+    //   category: 'ACCOUNT_AND_VERIFICATION',
+    //   title: 'Welcome to FlatMate!',
+    //   message: 'Your account has been successfully created. Explore properties and find ideal flatmates today.',
+    //   actionUrl: '/profile',
+    //   priority: 'NORMAL',
+    // }).catch((err) => logger.warn('[UserController] Failed to create welcome notification for user', err));
+
+    // Notify admins of new user registration
+    // notifyAdmins({
+    //   eventType: 'ADMIN_NEW_USER_REGISTERED',
+    //   category: 'ADMINISTRATIVE',
+    //   title: 'New User Registered',
+    //   message: `A new user account (${user.email || user.mobile || user._id}) has registered on FlatMate.`,
+    //   data: { userId: user._id.toString(), email: user.email, mobile: user.mobile },
+    //   actionUrl: '/admin/users',
+    //   priority: 'NORMAL',
+    // }).catch((err) => logger.warn('[UserController] Failed to notify admins of user registration', err));
 
     const userJson = user.toObject();
     delete userJson.password;
@@ -339,6 +363,59 @@ export const updateCurrentUser = async (req: Request, res: Response): Promise<Re
 };
 
 /**
+ * Deactivate current authenticated user account
+ * PATCH /api/users/me/deactivate
+ */
+export const deactivateCurrentUser = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    if (!req.user) {
+      return sendError(res, 'Authentication required', 401);
+    }
+
+    req.user.accountStatus = 'inactive';
+    req.user.deactiveAt = new Date();
+    req.user.deactiveBy = req.user._id;
+    await req.user.save();
+
+    // Revoke all sessions for user
+    await UserSession.updateMany({ userId: req.user._id }, { isRevoked: true });
+
+    clearAuthCookies(res);
+
+    logger.info(`User deactivated their account: ${req.user._id}`);
+
+    // Fetch user profile / name for notification
+    const userProfile = await UserProfile.findOne({ userId: req.user._id }).select('firstName lastName').lean();
+    const userFullName = userProfile
+      ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim()
+      : '';
+    const userName = userFullName || req.user.email || req.user.mobile || req.user._id.toString();
+
+    // Dispatch notification to admins when user deactivates account by itself
+    notifyAdmins({
+      eventType: 'ADMIN_USER_DEACTIVATED',
+      category: 'ADMINISTRATIVE',
+      title: 'User Account Deactivated',
+      message: `User ${userName} (${req.user.email || req.user.mobile || 'No email/mobile'}) has deactivated their own account.`,
+      actionUrl: '/admin/users',
+      data: {
+        userId: req.user._id.toString(),
+        email: req.user.email,
+        mobile: req.user.mobile,
+        deactivatedBy: 'self',
+        deactiveAt: req.user.deactiveAt,
+      },
+      priority: 'NORMAL',
+    }).catch((err) => logger.warn('[UserController] Failed to notify admins of user deactivation', err));
+
+    return sendSuccess(res, 'Account deactivated successfully');
+  } catch (error) {
+    logger.error('[UserController] Failed to deactivate current user:', error);
+    return sendError(res, 'Failed to deactivate account', 500);
+  }
+};
+
+/**
  * Soft delete current authenticated user
  * DELETE /api/users/me
  */
@@ -350,10 +427,13 @@ export const deleteCurrentUser = async (req: Request, res: Response): Promise<Re
 
     req.user.isDeleted = true;
     req.user.deletedAt = new Date();
+    req.user.deletedBy = req.user._id;
     await req.user.save();
 
     // Revoke all sessions for user
     await UserSession.updateMany({ userId: req.user._id }, { isRevoked: true });
+
+    clearAuthCookies(res);
 
     logger.info(`User soft-deleted: ${req.user._id}`);
 
@@ -736,7 +816,16 @@ export const updateUserByAdmin = async (req: Request, res: Response): Promise<Re
       return sendError(res, 'User not found', 404);
     }
 
-    if (accountStatus) user.accountStatus = accountStatus;
+    if (accountStatus) {
+      user.accountStatus = accountStatus;
+      if (accountStatus === 'inactive') {
+        user.deactiveAt = new Date();
+        user.deactiveBy = req.admin?._id;
+      } else if (accountStatus === 'active') {
+        user.deactiveAt = undefined;
+        user.deactiveBy = undefined;
+      }
+    }
     if (profileVerified !== undefined) user.profileVerified = profileVerified;
     if (verificationStatus) user.verificationStatus = verificationStatus;
 
@@ -768,6 +857,8 @@ export const blockUser = async (req: Request, res: Response): Promise<Response> 
     }
 
     user.accountStatus = 'inactive';
+    user.deactiveAt = new Date();
+    user.deactiveBy = req.admin?._id;
     await user.save();
 
     await UserSession.updateMany({ userId }, { isRevoked: true });
@@ -795,6 +886,8 @@ export const unblockUser = async (req: Request, res: Response): Promise<Response
     }
 
     user.accountStatus = 'active';
+    user.deactiveAt = undefined;
+    user.deactiveBy = undefined;
     await user.save();
 
     logger.info(`User ${userId} unblocked by admin ${req.admin?._id}`);
@@ -821,6 +914,7 @@ export const deleteUserByAdmin = async (req: Request, res: Response): Promise<Re
 
     user.isDeleted = true;
     user.deletedAt = new Date();
+    user.deletedBy = req.admin?._id;
     await user.save();
 
     await UserSession.updateMany({ userId }, { isRevoked: true });
@@ -850,6 +944,9 @@ export const restoreUser = async (req: Request, res: Response): Promise<Response
     user.isDeleted = false;
     user.accountStatus = 'active';
     user.deletedAt = undefined;
+    user.deletedBy = undefined;
+    user.deactiveAt = undefined;
+    user.deactiveBy = undefined;
     await user.save();
 
     logger.info(`User ${userId} restored by admin ${req.admin?._id}`);

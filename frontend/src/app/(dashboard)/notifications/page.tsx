@@ -1,6 +1,6 @@
 import React from "react";
 import { Metadata } from "next";
-import Notifications from "@/components/dashboard/Notifications";
+import NotificationsManager from "@/components/dashboard/notification/NotificationsManager";
 import Faq from "@/components/ui/Faq";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function MyNotificationsPage() {
   return (
     <main className="w-full min-h-screen pt-8 sm:pt-20">
-      <Notifications />
+      <NotificationsManager />
       <Faq />
     </main>
   );

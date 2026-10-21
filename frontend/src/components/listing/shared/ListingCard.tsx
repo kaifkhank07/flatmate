@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { FlatmateListingItem } from "@/types/listing";
 import AvatarIllustration from "./AvatarIllustration";
 import { MapPin, MessageSquare } from "lucide-react";
 import Link from "next/link";
+import { getMediaUrl } from "@/lib/api";
 
 interface ListingCardProps {
   item: FlatmateListingItem;
@@ -28,26 +29,43 @@ export default function ListingCard({ item, isMylisting = false }: ListingCardPr
   };
 
   const href = isMylisting ? `/my-listings/${item.id}` : `/listing/${item.id}`;
-  
+
+  const isProperty = item.sourceType === "property" || item.category === "Property";
+  // If property, show property image (with fallback to user image). Otherwise show user image.
+  const rawImage = isProperty ? (item.propertyImage || item.userImage) : item.userImage;
+  const displayImage = getMediaUrl(rawImage);
+
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [displayImage]);
+
+  const showImage = Boolean(displayImage && !imageError);
+
   return (
     <Link
       href={href}
-      className="bg-white rounded-[24px] sm:rounded-[32px] flex flex-row items-stretch overflow-hidden transition-all duration-300 drop-shadow-md border border-gray-200/90 hover:-translate-y-1 w-full"
+      className="bg-white rounded-[24px] sm:rounded-[32px] flex flex-row items-stretch overflow-hidden transition-all duration-300 drop-shadow-md border border-gray-200/90 hover:-translate-y-1 w-full min-h-[125px] xs:min-h-[135px] sm:min-h-[150px] md:min-h-[160px]"
     >
-      {/* Avatar Container Box Left */}
-      <div className="w-24 xs:w-28 sm:w-36 md:w-44 shrink-0 relative flex items-center justify-center rounded-[24px] sm:rounded-[32px] drop-shadow-md border border-gray-200/90 overflow-hidden self-stretch min-h-full bg-gray-100">
-        {item.userImage ? (
+      {/* Avatar / Property Image Container Box Left */}
+      <div className="w-24 xs:w-28 sm:w-36 md:w-44 shrink-0 relative flex items-center justify-center rounded-[24px] sm:rounded-[32px] drop-shadow-md border border-gray-200/90 overflow-hidden self-stretch bg-gray-100">
+        {showImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={item.userImage}
+            src={displayImage}
             alt={item.name}
-            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
+            className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
-          <AvatarIllustration
-            type={item.avatarType}
-            bg={item.avatarBg}
-            className="w-full h-full"
-          />
+          <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+            <AvatarIllustration
+              type={item.avatarType}
+              bg={item.avatarBg}
+              className="w-full h-full"
+            />
+          </div>
         )}
       </div>
 

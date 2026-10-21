@@ -17,27 +17,70 @@ import {
     CloudDownload,
     Mail,
     LogOut,
+    Info,
+    Users,
+    Search,
+    MessageCircle,
+    PlusCircle,
 } from "lucide-react";
 import ViewReveal from "@/components/animation/ViewReveal";
 import SectionHeading from "../utils/SectionHeading";
 
+// const services = [
+//     { label: "Tenant Verification", icon: BadgeCheck, color: "text-emerald-600", bg: "bg-emerald-100" },
+//     { label: "Rental Agreement", icon: KeyRound, color: "text-amber-500", bg: "bg-orange-100" },
+//     { label: "Buy Furniture", icon: Sofa, color: "text-amber-700", bg: "bg-orange-100" },
+//     { label: "Manage Flat", icon: Building2, color: "text-slate-600", bg: "bg-orange-100" },
+//     { label: "Rent Receipt", icon: ReceiptText, color: "text-sky-600", bg: "bg-orange-100", badge: "FREE" },
+//     { label: "Premium Properties", icon: Crown, color: "text-pink-500", bg: "bg-orange-100" },
+// ];
+
 const services = [
-    { label: "Tenant Verification", icon: BadgeCheck, color: "text-emerald-600", bg: "bg-emerald-100" },
-    { label: "Rental Agreement", icon: KeyRound, color: "text-amber-500", bg: "bg-orange-100" },
-    { label: "Buy Furniture", icon: Sofa, color: "text-amber-700", bg: "bg-orange-100" },
-    { label: "Manage Flat", icon: Building2, color: "text-slate-600", bg: "bg-orange-100" },
-    { label: "Rent Receipt", icon: ReceiptText, color: "text-sky-600", bg: "bg-orange-100", badge: "FREE" },
-    { label: "Premium Properties", icon: Crown, color: "text-pink-500", bg: "bg-orange-100" },
+    {
+        label: "Find a Flatmate",
+        icon: Users,
+        color: "text-emerald-600",
+        bg: "bg-emerald-100",
+    },
+    {
+        label: "Explore Properties",
+        icon: Building2,
+        color: "text-blue-600",
+        bg: "bg-blue-100",
+    },
+    {
+        label: "Find a Room",
+        icon: Search,
+        color: "text-violet-600",
+        bg: "bg-violet-100",
+    },
+    {
+        label: "Chat with Flatmates",
+        icon: MessageCircle,
+        color: "text-sky-600",
+        bg: "bg-sky-100",
+    },
+    {
+        label: "Saved Listings",
+        icon: Heart,
+        color: "text-rose-600",
+        bg: "bg-rose-100",
+    },
+    {
+        label: "Post a Listing",
+        icon: PlusCircle,
+        color: "text-amber-600",
+        bg: "bg-amber-100",
+    },
 ];
 
 const menuItems = [
-    { label: "My Preferences", description: "It shows other what kind of flatmate you prefer.", icon: Heart, href: "/my-preferences" },
-    // { label: "My Team", description: "Manage your teammates from here.", icon: UsersRound, href: "/my-team" },
+    { label: "Preferences", description: "It shows other what kind of flatmate you prefer.", icon: Heart, href: "/preferences" },
     // { label: "Request Refund", description: "You haven't took any plan", icon: Banknote, href: "/request-refund" },
-    { label: "My Profile", description: "View or edit your profile details.", icon: CircleUserRound, href: "/my-profile" },
-    { label: "My Notifications", description: "Manage your notifications.", icon: Bell, href: "/my-notifications" },
+    { label: "Profile", description: "View or edit your profile details.", icon: CircleUserRound, href: "/profile" },
+    { label: "Notifications", description: "Manage your notifications.", icon: Bell, href: "/notifications" },
     // { label: "Download App", description: "Get FlatMate App for better user experience.", icon: CloudDownload, href: "/download-app" },
-    { label: "About Us", description: "Know who we are & what are we trying to do.", icon: UsersRound, href: "/about-us" },
+    { label: "About Us", description: "Know who we are & what are we trying to do.", icon: Info, href: "/about-us" },
     // { label: "Contact Us", description: "We are always here for you.", icon: Mail, href: "/contact-us" },
     // { label: "Logout", description: "You can login anytime to your account.", icon: LogOut, href: "/logout" },
 ];
@@ -75,11 +118,11 @@ export default function MoreServices() {
                                             strokeWidth={1.8}
                                         />
 
-                                        {service.badge && (
+                                        {/* {service?.badge && (
                                             <span className="absolute -right-2 top-0 rounded-full bg-green-600 px-1.5 py-0.5 text-[7px] font-bold leading-none text-white">
-                                                {service.badge}
+                                                {service?.badge}
                                             </span>
-                                        )}
+                                        )} */}
                                     </span>
 
                                     <span className="whitespace-pre-line text-[10px] font-medium leading-snug text-black sm:text-xs max-w-[100px]">

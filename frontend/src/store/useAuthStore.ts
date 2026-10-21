@@ -12,6 +12,7 @@ import {
   RegistrationResponseData,
   LoginResponseData,
 } from '@/types/auth';
+import { useNotificationStore } from './useNotificationStore';
 
 export interface UserPreferenceItem {
   _id: string;
@@ -96,7 +97,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearError: () => set({ error: null }),
   clearProfileError: () => set({ profileError: null }),
   clearPreferencesError: () => set({ preferencesError: null }),
-  resetAuth: () =>
+  resetAuth: () => {
+    useNotificationStore.getState().reset();
     set({
       user: null,
       profile: null,
@@ -109,7 +111,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       error: null,
       profileError: null,
       preferencesError: null,
-    }),
+    });
+  },
   setRegistrationStep: (step) => set({ registrationStep: step }),
   setLoginStep: (step) => set({ loginStep: step }),
   setProfile: (profile) => set({ profile }),
@@ -696,6 +699,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Ignore logout errors and proceed clearing frontend state
       }
     }
+    useNotificationStore.getState().reset();
     set({
       user: null,
       profile: null,

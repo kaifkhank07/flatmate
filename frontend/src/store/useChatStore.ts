@@ -31,6 +31,7 @@ interface ChatState {
   blockedUsers: BlockedUserItem[];
   onlineUserIds: string[];
   typingState: TypingMap;
+  unreadCount: number;
   loadingConversations: boolean;
   loadingMessages: boolean;
   loadingMoreMessages: boolean;
@@ -42,6 +43,7 @@ interface ChatState {
 
   // Actions
   fetchConversations: (search?: string) => Promise<void>;
+  fetchUnreadCount: () => Promise<void>;
   selectConversation: (conversationId: string) => Promise<void>;
   fetchMessages: (conversationId: string, isLoadMore?: boolean) => Promise<void>;
   sendMessage: (conversationId: string, text: string) => Promise<ChatMessageItem | null>;
@@ -66,6 +68,13 @@ interface ChatState {
   resetChatStore: () => void;
 }
 
+export const selectChatUnreadCount = (state: ChatState): number => {
+  if (typeof state.unreadCount === 'number' && !isNaN(state.unreadCount)) {
+    return state.unreadCount;
+  }
+  return state.conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+};
+
 export const useChatStore = create<ChatState>((set, get) => ({
   conversations: [],
   activeConversationId: null,
@@ -74,6 +83,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   blockedUsers: [],
   onlineUserIds: [],
   typingState: {},
+  unreadCount: 0,
   loadingConversations: false,
   loadingMessages: false,
   loadingMoreMessages: false,
@@ -128,8 +138,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
       }
 
+      const totalUnread = list.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+
       set({
         conversations: list,
+        unreadCount: totalUnread,
         activeConversation: preservedActiveConv,
         loadingConversations: false,
         errorConversations: null,
@@ -140,6 +153,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
         loadingConversations: false,
         errorConversations: msg,
       });
+    }
+  },
+
+  /**
+   * Fetch total unread count for current user
+   */
+  fetchUnreadCount: async () => {
+    try {
+      await get().fetchConversations();
+    } catch {
+      // ignore
     }
   },
 
@@ -324,11 +348,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       await markMessagesReadApi(conversationId);
 
-      set((state) => ({
-        conversations: state.conversations.map((c) =>
+      set((state) => {
+        const updated = state.conversations.map((c) =>
           c._id === conversationId ? { ...c, unreadCount: 0 } : c
-        ),
-      }));
+        );
+        return {
+          conversations: updated,
+          unreadCount: updated.reduce((acc, c) => acc + (c.unreadCount || 0), 0),
+        };
+      });
     } catch (err) {
       // Non-critical, swallow silent error
     }
@@ -451,7 +479,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const updatedConversations = state.conversations.map((c) => {
         if (c._id === convId) {
           convExists = true;
-          const isUnread = activeId !== convId && !isFromMe;
+          const alreadyProcessed = c.lastMessage?._id === msg._id;
+          const isUnread = activeId !== convId && !isFromMe && !alreadyProcessed;
           return {
             ...c,
             lastMessage: msg,
@@ -482,6 +511,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         messages: newMessages,
         conversations: updatedConversations,
         activeConversation: updatedActiveConv,
+        unreadCount: updatedConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0),
       };
     });
 
@@ -502,10 +532,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       if (!isOtherUserReading) {
         // If current user is the reader, just clear unread count for this conversation
+        const updated = state.conversations.map((c) =>
+          c._id === conversationId ? { ...c, unreadCount: 0 } : c
+        );
         return {
-          conversations: state.conversations.map((c) =>
-            c._id === conversationId ? { ...c, unreadCount: 0 } : c
-          ),
+          conversations: updated,
+          unreadCount: updated.reduce((acc, c) => acc + (c.unreadCount || 0), 0),
         };
       }
 
@@ -740,6 +772,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       blockedUsers: [],
       onlineUserIds: [],
       typingState: {},
+      unreadCount: 0,
       loadingConversations: false,
       loadingMessages: false,
       loadingMoreMessages: false,

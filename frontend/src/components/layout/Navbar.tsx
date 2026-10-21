@@ -9,6 +9,8 @@ import { useAssets } from "@/data/assets";
 import LineRoll from "@/components/utils/LineRoll";
 
 import { useAuthStore } from "@/store/useAuthStore";
+import NotificationBell from "@/components/dashboard/notification/NotificationBell";
+import ChatBell from "@/components/dashboard/chat/ChatBell";
 import {
   Heart,
   MessageCircle,
@@ -19,6 +21,7 @@ import {
   Sliders,
   Bell,
   Home,
+  CircleUserRound,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -159,35 +162,35 @@ export default function Navbar({ activeItem }: NavbarProps) {
       {/* Navigation Items */}
       <div className="space-y-1 py-1">
         <Link
-          href="/my-profile"
+          href="/profile"
           onClick={() => setProfileDropdownOpen(false)}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${pathname === "/my-profile"
-              ? "bg-brand-ice text-brand-blue font-semibold"
-              : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${pathname === "/profile"
+            ? "bg-brand-ice text-brand-blue font-semibold"
+            : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
             }`}
         >
-          <User className="w-4 h-4 text-brand-blue" />
-          My Profile
+          <CircleUserRound className="w-4 h-4 text-brand-blue" />
+          Profile
         </Link>
 
         <Link
-          href="/my-preferences"
+          href="/preferences"
           onClick={() => setProfileDropdownOpen(false)}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${pathname === "/my-preferences"
-              ? "bg-brand-ice text-brand-blue font-semibold"
-              : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${pathname === "/preferences"
+            ? "bg-brand-ice text-brand-blue font-semibold"
+            : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
             }`}
         >
           <Sliders className="w-4 h-4 text-brand-blue" />
-          My Preferences
+          Preferences
         </Link>
 
         <Link
           href="/my-listings"
           onClick={() => setProfileDropdownOpen(false)}
           className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${pathname === "/my-listings"
-              ? "bg-brand-ice text-brand-blue font-semibold"
-              : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
+            ? "bg-brand-ice text-brand-blue font-semibold"
+            : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
             }`}
         >
           <Home className="w-4 h-4 text-brand-blue" />
@@ -195,15 +198,33 @@ export default function Navbar({ activeItem }: NavbarProps) {
         </Link>
 
         <Link
-          href="/my-notifications"
+          href="/chat"
           onClick={() => setProfileDropdownOpen(false)}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${pathname === "/my-notifications"
-              ? "bg-brand-ice text-brand-blue font-semibold"
-              : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
+          className={`flex items-center justify-between px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${pathname === "/chat"
+            ? "bg-brand-ice text-brand-blue font-semibold"
+            : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
             }`}
         >
-          <Bell className="w-4 h-4 text-brand-blue" />
-          My Notifications
+          <div className="flex items-center gap-3">
+            <MessageCircle className="w-4 h-4 text-brand-blue" />
+            <span>Messages</span>
+          </div>
+          <ChatBell showBadgeOnly />
+        </Link>
+
+        <Link
+          href="/notifications"
+          onClick={() => setProfileDropdownOpen(false)}
+          className={`flex items-center justify-between px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${pathname === "/notifications"
+            ? "bg-brand-ice text-brand-blue font-semibold"
+            : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
+            }`}
+        >
+          <div className="flex items-center gap-3">
+            <Bell className="w-4 h-4 text-brand-blue" />
+            <span>Notifications</span>
+          </div>
+          <NotificationBell showBadgeOnly />
         </Link>
       </div>
 
@@ -253,8 +274,8 @@ export default function Navbar({ activeItem }: NavbarProps) {
                 key={item.label}
                 href={item.href}
                 className={`relative text-sm md::text-base xl:text-lg font-regular transition-colors ${isActive
-                    ? "text-brand-blue"
-                    : "text-gray-700 hover:text-brand-blue"
+                  ? "text-brand-blue"
+                  : "text-gray-700 hover:text-brand-blue"
                   }`}
               >
                 <LineRoll
@@ -276,24 +297,18 @@ export default function Navbar({ activeItem }: NavbarProps) {
                 href="/wishlist"
                 aria-label="Wishlist"
                 className={`p-2 transition-colors rounded-full hover:bg-gray-50 cursor-pointer ${pathname === "/wishlist"
-                    ? "text-brand-blue bg-blue-50/60"
-                    : "text-gray-700 hover:text-brand-blue"
+                  ? "text-brand-blue bg-blue-50/60"
+                  : "text-gray-700 hover:text-brand-blue"
                   }`}
               >
                 <Heart className="w-5 h-5 lg:w-6 lg:h-6" />
               </Link>
 
-              {/* Chat Link */}
-              <Link
-                href="/chat"
-                aria-label="Chat"
-                className={`p-2 transition-colors rounded-full hover:bg-gray-50 cursor-pointer ${pathname === "/chat"
-                    ? "text-brand-blue bg-blue-50/60"
-                    : "text-gray-700 hover:text-brand-blue"
-                  }`}
-              >
-                <MessageCircle className="w-5 h-5 lg:w-6 lg:h-6" />
-              </Link>
+              {/* Chat Bell */}
+              <ChatBell />
+
+              {/* Notification Bell */}
+              <NotificationBell />
 
               {/* Add Listing */}
               <Link
@@ -354,36 +369,56 @@ export default function Navbar({ activeItem }: NavbarProps) {
         {/* Mobile Header Right Controls */}
         <div className="flex items-center space-x-1 sm:space-x-2 lg:hidden">
           {isAuthenticated && (
-            /* Mobile Profile Avatar (Triggers Profile Dropdown Dialog) */
-            <div className="relative" ref={mobileProfileDropdownRef}>
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setProfileDropdownOpen(!profileDropdownOpen);
-                }}
-                aria-label="Profile Account Menu"
-                aria-expanded={profileDropdownOpen}
-                className="p-0.5 rounded-full hover:bg-gray-50 transition-colors focus:outline-none"
+            <>
+              {/* Wishlist */}
+              <Link
+                href="/wishlist"
+                aria-label="Wishlist"
+                className={`p-1 transition-colors rounded-full hover:bg-gray-50 cursor-pointer ${pathname === "/wishlist"
+                  ? "text-brand-blue bg-blue-50/60"
+                  : "text-gray-700 hover:text-brand-blue"
+                  }`}
               >
-                <div className="relative w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
-                  {profile?.image?.url || (profile?.avatar && typeof profile.avatar === 'object' && profile.avatar.image?.url) ? (
-                    <Image
-                      src={profile?.image?.url || (profile?.avatar && typeof profile.avatar === 'object' ? profile.avatar.image?.url! : "")}
-                      alt="User Avatar"
-                      fill
-                      unoptimized
-                      className="object-cover"
-                    />
-                  ) : (
-                    <UserCircle className="w-7 h-7 text-brand-blue" />
-                  )}
-                </div>
-              </button>
+                <Heart className="w-5 h-5 lg:w-6 lg:h-6" />
+              </Link>
 
-              {/* Mobile Profile Dropdown Dialog */}
-              {profileDropdownOpen && renderProfileDropdown()}
-            </div>
+              {/* Mobile Chat Bell */}
+              <ChatBell className="p-1" />
+
+              {/* Mobile Notification Bell */}
+              <NotificationBell className="p-1" />
+
+              {/* Mobile Profile Avatar (Triggers Profile Dropdown Dialog) */}
+              <div className="relative" ref={mobileProfileDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setProfileDropdownOpen(!profileDropdownOpen);
+                  }}
+                  aria-label="Profile Account Menu"
+                  aria-expanded={profileDropdownOpen}
+                  className="p-0.5 rounded-full hover:bg-gray-50 transition-colors focus:outline-none"
+                >
+                  <div className="relative w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
+                    {profile?.image?.url || (profile?.avatar && typeof profile.avatar === 'object' && profile.avatar.image?.url) ? (
+                      <Image
+                        src={profile?.image?.url || (profile?.avatar && typeof profile.avatar === 'object' ? profile.avatar.image?.url! : "")}
+                        alt="User Avatar"
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                    ) : (
+                      <UserCircle className="w-7 h-7 text-brand-blue" />
+                    )}
+                  </div>
+                </button>
+
+                {/* Mobile Profile Dropdown Dialog */}
+                {profileDropdownOpen && renderProfileDropdown()}
+              </div>
+            </>
           )}
 
           {/* Hamburger Menu Toggle Button (Triggers Mobile Navigation Drawer) */}
@@ -433,8 +468,8 @@ export default function Navbar({ activeItem }: NavbarProps) {
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`px-4 py-2 rounded-2xl text-base font-medium transition-colors ${isActive
-                    ? "bg-brand-ice text-brand-blue font-semibold"
-                    : "text-gray-700 hover:bg-gray-50"
+                  ? "bg-brand-ice text-brand-blue font-semibold"
+                  : "text-gray-700 hover:bg-gray-50"
                   }`}
               >
                 <LineRoll

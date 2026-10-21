@@ -145,9 +145,9 @@ export default function FlatmateEditForm1({
   const [photoItems, setPhotoItems] = useState<PhotoStateItem[]>(
     Array.isArray(initialData?.images)
       ? initialData.images.map((img: any) => ({
-        id: img._id || img.url || `existing-img-${Math.random()}`,
-        previewUrl: img.url || (typeof img === "string" ? img : ""),
-        imageId: img._id,
+        id: (typeof img === "object" ? img._id : img) || `existing-img-${Math.random()}`,
+        previewUrl: typeof img === "object" ? img.url || "" : img,
+        imageId: typeof img === "object" ? img._id : img,
       }))
       : []
   );
@@ -344,7 +344,7 @@ export default function FlatmateEditForm1({
     };
 
     try {
-      // Step 1: Upload new photo files
+      // Step 1: Upload new photo files if any were added
       const existingImageIds = photoItems.filter((p) => p.imageId).map((p) => p.imageId as string);
       for (const item of photoItems) {
         if (item.file) {
@@ -383,21 +383,26 @@ export default function FlatmateEditForm1({
         budget: Number(rent),
         availableFrom: new Date(availableFrom).toISOString(),
         moveInDate: new Date(availableFrom).toISOString(),
-        furnishing,
-        area: area ? Number(area) : 0,
-        securityDeposit: securityDeposit ? Number(securityDeposit) : 0,
+        furnishing: initialData?.furnishing || furnishing,
+        area: area ? Number(area) : initialData?.area ? Number(initialData.area) : 0,
+        securityDeposit: securityDeposit ? Number(securityDeposit) : initialData?.securityDeposit ? Number(initialData.securityDeposit) : 0,
         maintenanceCharges: maintenanceAmount ? {
           amount: Number(maintenanceAmount),
           frequency: maintenanceFrequency,
-        } : undefined,
-        parking: parkingAvailable,
+        } : initialData?.maintenanceCharges || undefined,
+        parking: parkingAvailable ?? initialData?.parking,
         occupationPreference,
         genderPreference,
         userPreferences: selectedPreferences,
         lifestylePreferences: selectedPreferences,
-        amenities: selectedAmenities,
-        images: createdImageIds,
+        amenities: selectedAmenities.length > 0 ? selectedAmenities : (initialData?.amenities || []),
+        images: createdImageIds.length > 0 ? createdImageIds : (Array.isArray(initialData?.images) ? initialData.images.map((img: any) => (typeof img === "object" ? img._id : img)).filter(Boolean) : []),
       };
+
+      if (initialData?.status === "rejected") {
+        payload.status = "pending";
+        payload.rejectionReason = null;
+      }
 
       const result = await updateFlatmateRequirement(initialData._id, payload);
 
@@ -439,7 +444,7 @@ export default function FlatmateEditForm1({
           <ViewReveal duration={800}>
             <SectionHeading
               title="Edit Flat Requirement"
-              description="Update Requirement details, location, preferences, amenities, and media assets"
+              description="Fill in Requirement details, select location, preferences, amenities, and upload media assets"
               align="center"
             />
           </ViewReveal>
@@ -448,7 +453,7 @@ export default function FlatmateEditForm1({
             {/* Location Autocomplete Field */}
             <div className="space-y-2 relative" ref={locationDropdownRef}>
               <label className="block text-sm sm:text-base font-regular text-black">
-                Preferred Location <span className="text-rose-500">*</span>
+                Location <span className="text-rose-500">*</span>
               </label>
 
               {selectedGooglePlace ? (
@@ -542,7 +547,7 @@ export default function FlatmateEditForm1({
               {/* Title */}
               <div className="space-y-2">
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  Headline Title <span className="text-rose-500">*</span>
+                  Title <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -557,13 +562,13 @@ export default function FlatmateEditForm1({
               {/* Description */}
               <div className="space-y-2">
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  Detailed Description & Expectations <span className="text-rose-500">*</span>
+                  Description <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Provide details about your rent budget, lifestyle, and expected flat environment…"
+                  placeholder="e.g. I am looking for a room with roommate."
                   className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none resize-none"
                   required
                 />
@@ -594,11 +599,11 @@ export default function FlatmateEditForm1({
                 FINANCIALS & SPECIFICATIONS
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* Rent Amount */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Rent Amount (₹/mo) <span className="text-rose-500">*</span>
+                    Approx Rent Amount (₹/mo) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -612,7 +617,7 @@ export default function FlatmateEditForm1({
                 </div>
 
                 {/* Security Deposit */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Security Deposit (₹)
                   </label>
@@ -624,10 +629,10 @@ export default function FlatmateEditForm1({
                     placeholder="e.g. 30000"
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
                   />
-                </div>
+                </div> */}
 
                 {/* Furnishing Status */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Furnishing Status <span className="text-rose-500">*</span>
                   </label>
@@ -640,10 +645,10 @@ export default function FlatmateEditForm1({
                     <option value="semi_furnished">Semi Furnished</option>
                     <option value="unfurnished">Unfurnished</option>
                   </select>
-                </div>
+                </div> */}
 
                 {/* Area */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Area (sq.ft)
                   </label>
@@ -655,10 +660,10 @@ export default function FlatmateEditForm1({
                     placeholder="e.g. 1000"
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
                   />
-                </div>
+                </div> */}
 
                 {/* Parking Facility */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Parking Facility
                   </label>
@@ -670,7 +675,7 @@ export default function FlatmateEditForm1({
                     <option value="yes">Yes</option>
                     <option value="no">No</option>
                   </select>
-                </div>
+                </div> */}
 
                 {/* Available From */}
                 <div className="space-y-2">
@@ -687,7 +692,7 @@ export default function FlatmateEditForm1({
                 </div>
 
                 {/* Maintenance Amount */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Maintenance Charges (₹)
                   </label>
@@ -699,10 +704,10 @@ export default function FlatmateEditForm1({
                     placeholder="e.g. 1500"
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
                   />
-                </div>
+                </div> */}
 
                 {/* Maintenance Frequency */}
-                {maintenanceAmount && maintenanceAmount.trim() !== "" && (
+                {/* {maintenanceAmount && maintenanceAmount.trim() !== "" && (
                   <div className="space-y-2 animate-in fade-in duration-200">
                     <label className="block text-sm sm:text-base font-regular text-black">
                       Maintenance Frequency
@@ -718,7 +723,7 @@ export default function FlatmateEditForm1({
                       <option value="one_time">One Time</option>
                     </select>
                   </div>
-                )}
+                )} */}
               </div>
             </div>
 
@@ -811,7 +816,7 @@ export default function FlatmateEditForm1({
               </div>
 
               {/* Property Amenities Grid */}
-              <div className="space-y-3">
+              {/* <div className="space-y-3">
                 <label className="block text-sm sm:text-base font-regular text-black">
                   Property Amenities ({selectedAmenities.length} selected)
                 </label>
@@ -832,10 +837,11 @@ export default function FlatmateEditForm1({
                             onClick={() => toggleAmenity(amenity._id)}
                             aria-label={`Select ${amenity.name}`}
                             title={amenity.name}
-                            className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${isSelected
-                              ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
-                              : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
-                              }`}
+                            className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${
+                              isSelected
+                                ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
+                                : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
+                            }`}
                           >
                             {renderAmenityImage(amenity)}
                           </button>
@@ -851,17 +857,17 @@ export default function FlatmateEditForm1({
                     No amenities available
                   </div>
                 )}
-              </div>
+              </div> */}
             </div>
 
             {/* SECTION 4: MEDIA ASSETS MANAGEMENT */}
-            <div className="space-y-6 pt-2">
-              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+            {/* <div className="space-y-6 pt-2"> */}
+              {/* <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
                 MEDIA ASSETS MANAGEMENT
-              </h3>
+              </h3> */}
 
               {/* Photos Upload Section */}
-              <div className="space-y-3">
+              {/* <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Requirement Photos ({photoItems.length})
@@ -886,7 +892,6 @@ export default function FlatmateEditForm1({
                         key={item.id}
                         className="relative group rounded-xl overflow-hidden border border-gray-200 aspect-video bg-gray-900 flex items-center justify-center"
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={item.previewUrl}
                           alt="Photo Preview"
@@ -918,8 +923,8 @@ export default function FlatmateEditForm1({
                     </span>
                   </label>
                 )}
-              </div>
-            </div>
+              </div> */}
+            {/* </div> */}
 
             {/* Submit Button */}
             <div className="flex justify-center sm:justify-start items-center gap-2 sm:gap-4 pt-4">

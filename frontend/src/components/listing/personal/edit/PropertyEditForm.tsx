@@ -19,6 +19,7 @@ import {
   searchFrontendGooglePlaces,
   getFrontendPlaceDetails,
 } from "@/lib/googlePlaces";
+import { getMediaUrl } from "@/lib/api";
 import {
   savePlaceLocationApi,
   uploadImageApi,
@@ -139,14 +140,19 @@ export default function PropertyEditForm({
       : []
   );
 
+  const resolveImageUrl = (url?: string) => getMediaUrl(url);
+
   // Media State
   const [photoItems, setPhotoItems] = useState<PhotoStateItem[]>(
     Array.isArray(initialData?.images)
-      ? initialData.images.map((img: any) => ({
-        id: img._id || img.url || `existing-img-${Math.random()}`,
-        previewUrl: img.url || (typeof img === "string" ? img : ""),
-        imageId: img._id,
-      }))
+      ? initialData.images.map((img: any) => {
+        const rawUrl = typeof img === "object" ? img.url || "" : img;
+        return {
+          id: (typeof img === "object" ? img._id : img) || `existing-img-${Math.random()}`,
+          previewUrl: rawUrl.startsWith("blob:") || rawUrl.startsWith("http") ? rawUrl : resolveImageUrl(rawUrl),
+          imageId: typeof img === "object" ? img._id : img,
+        };
+      })
       : []
   );
   const [videoItems, setVideoItems] = useState<VideoStateItem[]>([]);
@@ -388,9 +394,18 @@ export default function PropertyEditForm({
             .filter(Boolean)
           : [],
         amenities: selectedAmenities,
-        images: createdImageIds,
+        images: createdImageIds.length > 0
+          ? createdImageIds
+          : Array.isArray(initialData?.images)
+            ? initialData.images.map((i: any) => (typeof i === "object" ? i._id : i)).filter(Boolean)
+            : [],
         videos: createdVideoIds,
       };
+
+      if (initialData?.status === "rejected") {
+        payload.status = "pending";
+        payload.rejectionReason = null;
+      }
 
       const result = await updateProperty(initialData._id, payload);
 

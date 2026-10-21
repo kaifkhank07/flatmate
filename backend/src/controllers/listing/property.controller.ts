@@ -9,6 +9,7 @@ import { locationService } from '../../services/location/location.service';
 import { cleanupUnreferencedImages, cleanupUnreferencedVideos } from '../../utils/mediaCleanup.util';
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
+import { createNotification, notifyAdmins } from '../../services/notification/notification.service';
 
 /** Helper function to convert text into a URL-friendly slug */
 export const slugify = (text: string): string => {
@@ -166,6 +167,43 @@ export const createProperty = async (req: Request, res: Response): Promise<Respo
     };
 
     const property = await Property.create(propertyData);
+
+    // 1: When user creates any listing, create notification for user and admin
+    if (initialStatus === 'approved') {
+      createNotification({
+        recipientType: 'USER',
+        recipientId: property.userId,
+        eventType: 'LISTING_APPROVED',
+        category: 'LISTING_UPDATES',
+        title: 'Listing Approved!',
+        message: `Your property listing "${property.title}" is approved and live on FlatMate.`,
+        actionUrl: `/my-listings/${property.slug || property._id}`,
+        data: { listingId: property._id.toString(), listingType: 'property' },
+        priority: 'HIGH',
+      }).catch((err) => logger.warn('[PropertyController] Failed to notify user of approved listing', err));
+    } else {
+      createNotification({
+        recipientType: 'USER',
+        recipientId: property.userId,
+        eventType: 'LISTING_SUBMITTED',
+        category: 'LISTING_UPDATES',
+        title: 'Listing Submitted for Review',
+        message: `Your property listing "${property.title}" has been submitted successfully and is awaiting moderation review.`,
+        actionUrl: `/my-listings/${property.slug || property._id}`,
+        data: { listingId: property._id.toString(), listingType: 'property' },
+        priority: 'NORMAL',
+      }).catch((err) => logger.warn('[PropertyController] Failed to notify user of listing submission', err));
+
+      notifyAdmins({
+        eventType: 'ADMIN_LISTING_AWAITING_MODERATION',
+        category: 'ADMINISTRATIVE',
+        title: 'New Property Listing Awaiting Review',
+        message: `A new property listing "${property.title}" has been submitted and is waiting for review.`,
+        actionUrl: '/admin/properties',
+        data: { listingId: property._id.toString(), listingType: 'property' },
+        priority: 'NORMAL',
+      }).catch((err) => logger.warn('[PropertyController] Failed to notify admins of new property', err));
+    }
 
     const populatedProperty = await Property.findById(property._id)
       .populate('userId', 'name email mobile role accountStatus')
@@ -374,6 +412,8 @@ export const updateProperty = async (req: Request, res: Response): Promise<Respo
     }
 
     const body = req.body;
+    const oldStatus = property.status;
+    const wasRejected = oldStatus === 'rejected';
 
     const oldLocationId = property.location ? property.location.toString() : null;
     let locationChanged = false;
@@ -481,8 +521,12 @@ export const updateProperty = async (req: Request, res: Response): Promise<Respo
       property.videos = newVideoIds;
     }
 
-    // Status changes
-    if (body.status !== undefined && body.status !== property.status) {
+    // Status changes: if already rejected and user makes changes/updates, reset status to pending and clear rejectionReason
+    if (body.status === 'pending' || (property.status === 'rejected' && body.status !== 'rejected')) {
+      property.status = 'pending';
+      property.set('rejectionReason', undefined);
+      property.rejectionReason = undefined;
+    } else if (body.status !== undefined && body.status !== property.status) {
       property.status = body.status;
       if (body.status === 'rejected') {
         property.rejectionReason = body.rejectionReason || property.rejectionReason;
@@ -490,10 +534,75 @@ export const updateProperty = async (req: Request, res: Response): Promise<Respo
         const now = new Date();
         if (!property.approvedAt) property.approvedAt = now;
         if (!property.publishedAt) property.publishedAt = now;
+        property.set('rejectionReason', undefined);
+        property.rejectionReason = undefined;
+      } else {
+        property.set('rejectionReason', undefined);
+        property.rejectionReason = undefined;
       }
+    } else if (body.rejectionReason === null) {
+      property.set('rejectionReason', undefined);
+      property.rejectionReason = undefined;
     }
 
     await property.save();
+
+    // 3: When user updates listing but old status was rejected, make notification only for admin
+    if (wasRejected && property.status === 'pending') {
+      notifyAdmins({
+        eventType: 'ADMIN_LISTING_AWAITING_MODERATION',
+        category: 'ADMINISTRATIVE',
+        title: 'Re-submitted Property Listing Awaiting Review',
+        message: `The previously rejected property listing "${property.title}" has been updated by the owner and re-submitted for moderation.`,
+        actionUrl: '/admin/properties',
+        data: { listingId: property._id.toString(), listingType: 'property' },
+        priority: 'NORMAL',
+      }).catch((err) => logger.warn('[PropertyController] Failed to notify admins of re-submitted property', err));
+    }
+
+    // 2 & 4: When admin updates status via updateProperty, create notification for user only
+    const isAdmin = Boolean((req as any).admin);
+    if (isAdmin && body.status && body.status !== oldStatus) {
+      if (property.status === 'approved') {
+        createNotification({
+          recipientType: 'USER',
+          recipientId: property.userId,
+          eventType: 'LISTING_APPROVED',
+          category: 'LISTING_UPDATES',
+          title: 'Listing Approved!',
+          message: `Great news! Your property listing "${property.title}" has been approved and is now live on FlatMate.`,
+          actionUrl: `/my-listings/${property.slug || property._id}`,
+          data: { listingId: property._id.toString(), listingType: 'property' },
+          priority: 'HIGH',
+        }).catch((err) => logger.warn('[PropertyController] Failed to notify user of listing approval', err));
+      } else if (property.status === 'rejected') {
+        createNotification({
+          recipientType: 'USER',
+          recipientId: property.userId,
+          eventType: 'LISTING_REJECTED',
+          category: 'LISTING_UPDATES',
+          title: 'Listing Needs Revision',
+          message: property.rejectionReason
+            ? `Your property listing "${property.title}" was not approved. Reason: ${property.rejectionReason}`
+            : `Your property listing "${property.title}" was not approved. Please review our guidelines, update your details, and re-submit.`,
+          actionUrl: `/my-listings/${property.slug || property._id}`,
+          data: { listingId: property._id.toString(), listingType: 'property', rejectionReason: property.rejectionReason },
+          priority: 'HIGH',
+        }).catch((err) => logger.warn('[PropertyController] Failed to notify user of listing rejection', err));
+      } else if (property.status === 'blocked' || property.status === 'closed') {
+        createNotification({
+          recipientType: 'USER',
+          recipientId: property.userId,
+          eventType: 'LISTING_UNPUBLISHED',
+          category: 'LISTING_UPDATES',
+          title: property.status === 'blocked' ? 'Listing Blocked' : 'Listing Closed',
+          message: `Your property listing "${property.title}" has been ${property.status === 'blocked' ? 'blocked by moderation' : 'closed'}.`,
+          actionUrl: `/my-listings/${property.slug || property._id}`,
+          data: { listingId: property._id.toString(), listingType: 'property', status: property.status },
+          priority: 'NORMAL',
+        }).catch((err) => logger.warn('[PropertyController] Failed to notify user of listing unpublished', err));
+      }
+    }
 
     // Clean up previous Location document if location changed and old location is no longer referenced
     if (locationChanged && oldLocationId) {
@@ -624,9 +733,55 @@ export const updatePropertyStatus = async (req: Request, res: Response): Promise
     } else if (status === 'approved') {
       if (!property.approvedAt) property.approvedAt = now;
       if (!property.publishedAt) property.publishedAt = now;
+      property.set('rejectionReason', undefined);
+      property.rejectionReason = undefined;
+    } else if (status === 'pending') {
+      property.set('rejectionReason', undefined);
+      property.rejectionReason = undefined;
     }
 
     await property.save();
+
+    // 2 & 4: When admin changes status (like approve or reject, or other like blocked/closed), create notification for user only
+    if (status === 'approved') {
+      createNotification({
+        recipientType: 'USER',
+        recipientId: property.userId,
+        eventType: 'LISTING_APPROVED',
+        category: 'LISTING_UPDATES',
+        title: 'Listing Approved!',
+        message: `Great news! Your property listing "${property.title}" has been approved and is now live on FlatMate.`,
+        actionUrl: `/my-listings/${property.slug || property._id}`,
+        data: { listingId: property._id.toString(), listingType: 'property' },
+        priority: 'HIGH',
+      }).catch((err) => logger.warn('[PropertyController] Failed to notify user of listing approval', err));
+    } else if (status === 'rejected') {
+      createNotification({
+        recipientType: 'USER',
+        recipientId: property.userId,
+        eventType: 'LISTING_REJECTED',
+        category: 'LISTING_UPDATES',
+        title: 'Listing Needs Revision',
+        message: rejectionReason
+          ? `Your property listing "${property.title}" was not approved. Reason: ${rejectionReason.trim()}`
+          : `Your property listing "${property.title}" was not approved. Please review our guidelines, update your details, and re-submit.`,
+        actionUrl: `/my-listings/${property.slug || property._id}`,
+        data: { listingId: property._id.toString(), listingType: 'property', rejectionReason: rejectionReason?.trim() },
+        priority: 'HIGH',
+      }).catch((err) => logger.warn('[PropertyController] Failed to notify user of listing rejection', err));
+    } else if (status === 'blocked' || status === 'closed') {
+      createNotification({
+        recipientType: 'USER',
+        recipientId: property.userId,
+        eventType: 'LISTING_UNPUBLISHED',
+        category: 'LISTING_UPDATES',
+        title: status === 'blocked' ? 'Listing Blocked' : 'Listing Closed',
+        message: `Your property listing "${property.title}" has been ${status === 'blocked' ? 'blocked by moderation' : 'closed'}.`,
+        actionUrl: `/my-listings/${property.slug || property._id}`,
+        data: { listingId: property._id.toString(), listingType: 'property', status },
+        priority: 'NORMAL',
+      }).catch((err) => logger.warn('[PropertyController] Failed to notify user of listing unpublished', err));
+    }
 
     const updated = await Property.findById(id)
       .populate('userId', 'name email mobile role')

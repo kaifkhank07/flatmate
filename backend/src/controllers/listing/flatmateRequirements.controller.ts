@@ -8,6 +8,7 @@ import { cleanupUnreferencedImages, cleanupUnreferencedVideos } from '../../util
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
 import { Types } from 'mongoose';
+import { createNotification, notifyAdmins } from '../../services/notification/notification.service';
 
 /** Helper to populate standard flatmate requirement fields */
 const populateFlatmateRequirementFields = (query: any) => {
@@ -182,6 +183,44 @@ export const createFlatmateRequirement = async (req: Request, res: Response): Pr
 
     const newRequirement = await FlatmateRequirement.create(postData);
     const populated = await populateFlatmateRequirementFields(FlatmateRequirement.findById(newRequirement._id)).lean();
+
+    // 1: When user creates any listing, create notification for user and admin
+    if (newRequirement.status === 'approved') {
+      createNotification({
+        recipientType: 'USER',
+        recipientId: newRequirement.userId,
+        eventType: 'LISTING_APPROVED',
+        category: 'LISTING_UPDATES',
+        // title: 'Flatmate Requirement Approved!',
+        title: 'Listing Approved!',
+        message: `Your flatmate requirement listing "${newRequirement.title}" is approved and live on FlatMate.`,
+        actionUrl: `/my-listings/${newRequirement.slug || newRequirement._id}`,
+        data: { listingId: newRequirement._id.toString(), listingType: 'flatmate_requirement' },
+        priority: 'HIGH',
+      }).catch((err) => logger.warn('[FlatmateRequirementController] Failed to notify user of approved requirement', err));
+    } else {
+      createNotification({
+        recipientType: 'USER',
+        recipientId: newRequirement.userId,
+        eventType: 'LISTING_SUBMITTED',
+        category: 'LISTING_UPDATES',
+        title: 'Listing Submitted for Review',
+        message: `Your flatmate requirement listing "${newRequirement.title}" has been submitted successfully and is awaiting moderation review.`,
+        actionUrl: `/my-listings/${newRequirement.slug || newRequirement._id}`,
+        data: { listingId: newRequirement._id.toString(), listingType: 'flatmate_requirement' },
+        priority: 'NORMAL',
+      }).catch((err) => logger.warn('[FlatmateRequirementController] Failed to create listing submitted notification for user', err));
+
+      notifyAdmins({
+        eventType: 'ADMIN_LISTING_AWAITING_MODERATION',
+        category: 'ADMINISTRATIVE',
+        title: 'New Flatmate Requirement Awaiting Review',
+        message: `A new flatmate requirement listing "${newRequirement.title}" has been submitted and is waiting for review.`,
+        actionUrl: '/admin/flatmate-requirements',
+        data: { listingId: newRequirement._id.toString(), listingType: 'flatmate_requirement' },
+        priority: 'NORMAL',
+      }).catch((err) => logger.warn('[FlatmateRequirementController] Failed to notify admins of new requirement', err));
+    }
 
     logger.info(`Flatmate requirement created successfully: ${newRequirement._id} by user: ${userId}`);
     return sendSuccess(res, 'Flatmate requirement created successfully', populated, 201);
@@ -444,6 +483,9 @@ export const updateFlatmateRequirement = async (req: Request, res: Response): Pr
       return sendError(res, 'Cannot modify a closed requirement. Please change status to draft to reopen.', 400);
     }
 
+    const oldStatus = existingRequirement.status;
+    const wasRejected = oldStatus === 'rejected';
+
     const updateData: any = { ...req.body };
     if (updateData.rent !== undefined || updateData.budget !== undefined) {
       updateData.rent = Number(updateData.rent ?? updateData.budget);
@@ -532,6 +574,26 @@ export const updateFlatmateRequirement = async (req: Request, res: Response): Pr
       }
     }
 
+    // Handle Status and Rejection Reason changes: if already rejected and user makes changes/updates, reset to pending
+    if (updateData.status === 'pending' || (existingRequirement.status === 'rejected' && updateData.status !== 'rejected')) {
+      updateData.status = 'pending';
+      unsetFields.rejectionReason = '';
+      delete updateData.rejectionReason;
+    } else if (updateData.status === 'approved') {
+      const now = new Date();
+      if (!existingRequirement.approvedAt) updateData.approvedAt = now;
+      if (!existingRequirement.publishedAt) updateData.publishedAt = now;
+      unsetFields.rejectionReason = '';
+      delete updateData.rejectionReason;
+    } else if (updateData.status === 'rejected') {
+      if (updateData.rejectionReason) {
+        updateData.rejectionReason = updateData.rejectionReason.trim();
+      }
+    } else if (updateData.rejectionReason === null) {
+      unsetFields.rejectionReason = '';
+      delete updateData.rejectionReason;
+    }
+
     const parseValidDate = (val: any): Date | undefined => {
       if (!val) return undefined;
       const d = new Date(val);
@@ -558,6 +620,63 @@ export const updateFlatmateRequirement = async (req: Request, res: Response): Pr
       new: true,
       runValidators: true,
     });
+
+    // 3: When user updates listing but old status was rejected, make notification only for admin
+    if (wasRejected && updatedRequirement?.status === 'pending') {
+      notifyAdmins({
+        eventType: 'ADMIN_LISTING_AWAITING_MODERATION',
+        category: 'ADMINISTRATIVE',
+        title: 'Re-submitted Flatmate Requirement Awaiting Review',
+        message: `The previously rejected flatmate requirement "${updatedRequirement.title}" has been updated by the owner and re-submitted for moderation.`,
+        actionUrl: '/admin/flatmate-requirements',
+        data: { listingId: updatedRequirement._id.toString(), listingType: 'flatmate_requirement' },
+        priority: 'NORMAL',
+      }).catch((err) => logger.warn('[FlatmateRequirementController] Failed to notify admins of re-submitted requirement', err));
+    }
+
+    // 2 & 4: When admin updates status via updateFlatmateRequirement, notify user only
+    if (isAdmin && updateData.status && updateData.status !== oldStatus) {
+      if (updatedRequirement?.status === 'approved') {
+        createNotification({
+          recipientType: 'USER',
+          recipientId: existingRequirement.userId,
+          eventType: 'LISTING_APPROVED',
+          category: 'LISTING_UPDATES',
+          // title: 'Flatmate Requirement Approved!',
+          title: 'Listing Approved!',
+          message: `Great news! Your flatmate requirement listing "${updatedRequirement.title}" has been approved and is now live on FlatMate.`,
+          actionUrl: `/my-listings/${updatedRequirement.slug || updatedRequirement._id}`,
+          data: { listingId: updatedRequirement._id.toString(), listingType: 'flatmate_requirement' },
+          priority: 'HIGH',
+        }).catch((err) => logger.warn('[FlatmateRequirementController] Failed to notify user of approval', err));
+      } else if (updatedRequirement?.status === 'rejected') {
+        createNotification({
+          recipientType: 'USER',
+          recipientId: existingRequirement.userId,
+          eventType: 'LISTING_REJECTED',
+          category: 'LISTING_UPDATES',
+          title: 'Listing Needs Revision',
+          message: updateData.rejectionReason
+            ? `Your flatmate requirement listing "${updatedRequirement.title}" was not approved. Reason: ${updateData.rejectionReason.trim()}`
+            : `Your flatmate requirement listing "${updatedRequirement.title}" was not approved. Please review our guidelines, update your details, and re-submit.`,
+          actionUrl: `/my-listings/${updatedRequirement.slug || updatedRequirement._id}`,
+          data: { listingId: updatedRequirement._id.toString(), listingType: 'flatmate_requirement', rejectionReason: updateData.rejectionReason },
+          priority: 'HIGH',
+        }).catch((err) => logger.warn('[FlatmateRequirementController] Failed to notify user of rejection', err));
+      } else if (updatedRequirement?.status === 'blocked' || updatedRequirement?.status === 'closed') {
+        createNotification({
+          recipientType: 'USER',
+          recipientId: existingRequirement.userId,
+          eventType: 'LISTING_UNPUBLISHED',
+          category: 'LISTING_UPDATES',
+          title: updatedRequirement.status === 'blocked' ? 'Listing Blocked' : 'Listing Closed',
+          message: `Your flatmate requirement listing "${updatedRequirement.title}" has been ${updatedRequirement.status === 'blocked' ? 'blocked by moderation' : 'closed'}.`,
+          actionUrl: `/my-listings/${updatedRequirement.slug || updatedRequirement._id}`,
+          data: { listingId: updatedRequirement._id.toString(), listingType: 'flatmate_requirement', status: updatedRequirement.status },
+          priority: 'NORMAL',
+        }).catch((err) => logger.warn('[FlatmateRequirementController] Failed to notify user of status update', err));
+      }
+    }
 
     // Clean up previous Location document if location changed and old location is no longer referenced
     if (locationChanged && oldLocationId) {
@@ -692,8 +811,59 @@ export const updateFlatmateRequirementStatus = async (req: Request, res: Respons
     existingRequirement.status = status;
     if (status === 'rejected' && rejectionReason) {
       existingRequirement.rejectionReason = rejectionReason.trim();
+    } else if (status === 'approved') {
+      const now = new Date();
+      if (!existingRequirement.approvedAt) existingRequirement.approvedAt = now;
+      if (!existingRequirement.publishedAt) existingRequirement.publishedAt = now;
+      existingRequirement.set('rejectionReason', undefined);
+      existingRequirement.rejectionReason = undefined;
+    } else if (status === 'pending') {
+      existingRequirement.set('rejectionReason', undefined);
+      existingRequirement.rejectionReason = undefined;
     }
     await existingRequirement.save();
+
+    // 2 & 4: When admin changes status (like approve or reject, or other like blocked/closed), create notification for user only
+    if (status === 'approved') {
+      createNotification({
+        recipientType: 'USER',
+        recipientId: existingRequirement.userId,
+        eventType: 'LISTING_APPROVED',
+        category: 'LISTING_UPDATES',
+        // title: 'Flatmate Requirement Approved!',
+        title: 'Listing Approved!',
+        message: `Great news! Your flatmate requirement listing "${existingRequirement.title}" has been approved and is now live on FlatMate.`,
+        actionUrl: `/my-listings/${existingRequirement.slug || existingRequirement._id}`,
+        data: { listingId: existingRequirement._id.toString(), listingType: 'flatmate_requirement' },
+        priority: 'HIGH',
+      }).catch((err) => logger.warn('[FlatmateRequirementController] Failed to notify user of listing approval', err));
+    } else if (status === 'rejected') {
+      createNotification({
+        recipientType: 'USER',
+        recipientId: existingRequirement.userId,
+        eventType: 'LISTING_REJECTED',
+        category: 'LISTING_UPDATES',
+        title: 'Listing Needs Revision',
+        message: rejectionReason
+          ? `Your flatmate requirement listing "${existingRequirement.title}" was not approved. Reason: ${rejectionReason.trim()}`
+          : `Your flatmate requirement listing "${existingRequirement.title}" was not approved. Please review our guidelines, update your details, and re-submit.`,
+        actionUrl: `/my-listings/${existingRequirement.slug || existingRequirement._id}`,
+        data: { listingId: existingRequirement._id.toString(), listingType: 'flatmate_requirement', rejectionReason: rejectionReason?.trim() },
+        priority: 'HIGH',
+      }).catch((err) => logger.warn('[FlatmateRequirementController] Failed to notify user of listing rejection', err));
+    } else if (status === 'blocked' || status === 'closed') {
+      createNotification({
+        recipientType: 'USER',
+        recipientId: existingRequirement.userId,
+        eventType: 'LISTING_UNPUBLISHED',
+        category: 'LISTING_UPDATES',
+        title: status === 'blocked' ? 'Listing Blocked' : 'Listing Closed',
+        message: `Your flatmate requirement listing "${existingRequirement.title}" has been ${status === 'blocked' ? 'blocked by moderation' : 'closed'}.`,
+        actionUrl: `/my-listings/${existingRequirement.slug || existingRequirement._id}`,
+        data: { listingId: existingRequirement._id.toString(), listingType: 'flatmate_requirement', status },
+        priority: 'NORMAL',
+      }).catch((err) => logger.warn('[FlatmateRequirementController] Failed to notify user of listing status update', err));
+    }
 
     const populated = await populateFlatmateRequirementFields(FlatmateRequirement.findById(existingRequirement._id)).lean();
 

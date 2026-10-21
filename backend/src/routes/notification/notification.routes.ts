@@ -9,27 +9,48 @@ import {
   getUnreadNotificationCount,
   markAllNotificationsAsRead,
   markNotificationAsRead,
-  updateNotificationPreferences
+  updateNotificationPreferences,
+  updatePropertyMatchPreferences,
 } from '../../controllers/notification/notification.controller';
 import {
   createNotificationSchema,
   getNotificationsQuerySchema,
   markAsReadSchema,
   updateNotificationPreferencesSchema,
+  updatePropertyMatchPreferencesSchema,
 } from '../../validations/notification/notification.validation';
 
 const router = Router();
 
-// User Notification Routes
-router.get('/', authenticateUser, validate(getNotificationsQuerySchema), getNotifications);
-router.get('/unread-count', authenticateUser, getUnreadNotificationCount);
-router.get('/preferences', authenticateUser, getNotificationPreferences);
-router.patch('/preferences', authenticateUser, validate(updateNotificationPreferencesSchema), updateNotificationPreferences);
-router.patch('/read-all', authenticateUser, markAllNotificationsAsRead);
-router.patch('/:notificationId/read', authenticateUser, validate(markAsReadSchema), markNotificationAsRead);
-router.delete('/:notificationId', authenticateUser, deleteNotification);
+// ---------------------------------------------------------------------------
+// Notification Feed & Status Routes (User & Admin)
+// ---------------------------------------------------------------------------
+router.get('/', authenticateUserOrAdmin, validate(getNotificationsQuerySchema), getNotifications);
+router.get('/unread-count', authenticateUserOrAdmin, getUnreadNotificationCount);
+router.patch('/read-all', authenticateUserOrAdmin, markAllNotificationsAsRead);
+router.patch('/:notificationId/read', authenticateUserOrAdmin, validate(markAsReadSchema), markNotificationAsRead);
+router.delete('/:notificationId', authenticateUserOrAdmin, deleteNotification);
 
-// Admin / System route to create notification
+// ---------------------------------------------------------------------------
+// Preference Management Routes
+// ---------------------------------------------------------------------------
+router.get('/preferences', authenticateUserOrAdmin, getNotificationPreferences);
+router.patch(
+  '/preferences',
+  authenticateUserOrAdmin,
+  validate(updateNotificationPreferencesSchema),
+  updateNotificationPreferences
+);
+router.patch(
+  '/preferences/property-match',
+  authenticateUser,
+  validate(updatePropertyMatchPreferencesSchema),
+  updatePropertyMatchPreferences
+);
+
+// ---------------------------------------------------------------------------
+// Admin / Inter-service Notification Creation Route
+// ---------------------------------------------------------------------------
 router.post('/', authenticateUserOrAdmin, validate(createNotificationSchema), createNotification);
 
 export default router;

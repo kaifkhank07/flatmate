@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { Report, ReportTargetType, getTargetModelName } from '../../models/listing/report.model';
 import { Property } from '../../models/listing/property.model';
 import { FlatmateRequirement } from '../../models/listing/flatmateRequirements.model';
+import { UserProfile } from '../../models/auth/userProfile.model';
+import { createNotification, notifyAdmins } from '../../services/notification/notification.service';
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
 import { Types } from 'mongoose';
@@ -39,13 +41,24 @@ export const createReport = async (req: Request, res: Response): Promise<Respons
       return sendError(res, 'Invalid targetId', 400);
     }
 
-    const targetExists = await verifyTargetExists(targetType, targetId);
-    if (!targetExists) {
+    let targetDoc: any = null;
+    if (targetType === 'property') {
+      targetDoc = await Property.findById(targetId).select('userId title slug status');
+    } else if (targetType === 'flatmaterequirement') {
+      targetDoc = await FlatmateRequirement.findById(targetId).select('userId title slug status postType');
+    }
+
+    if (!targetDoc) {
       return sendError(
         res,
         `${targetType === 'property' ? 'Property' : 'Flatmate Requirement'} not found`,
         404
       );
+    }
+
+    // User / owner cannot report their own listing
+    if (targetDoc.userId && targetDoc.userId.toString() === userId.toString()) {
+      return sendError(res, 'You cannot report your own listing', 400);
     }
 
     const existingPending = await Report.findOne({
@@ -76,6 +89,54 @@ export const createReport = async (req: Request, res: Response): Promise<Respons
     });
 
     logger.info(`User ${userId} reported ${targetType} ${targetId} for reason: ${reason}`);
+
+    const listingTitle = targetDoc.title || (targetType === 'property' ? 'Property Listing' : 'Flatmate Requirement');
+    const reporterProfile = await UserProfile.findOne({ userId }).select('firstName lastName').lean();
+    const reporterFullName = reporterProfile
+      ? `${reporterProfile.firstName || ''} ${reporterProfile.lastName || ''}`.trim()
+      : '';
+    const reporterName = reporterFullName || req.user?.email || req.user?.mobile || 'A user';
+
+    // 1. Dispatch Admin Notification for listing report
+    notifyAdmins({
+      eventType: 'ADMIN_REPORT_SUBMITTED',
+      category: 'ADMINISTRATIVE',
+      title: 'New Listing Report Submitted',
+      message: `${reporterName} reported "${listingTitle}" for reason: "${reason}".`,
+      actionUrl: '/admin/reports',
+      data: {
+        reportId: report._id.toString(),
+        targetType,
+        targetId: targetId.toString(),
+        targetTitle: targetDoc.title,
+        targetSlug: targetDoc.slug,
+        reporterId: userId.toString(),
+        ownerId: targetDoc.userId ? targetDoc.userId.toString() : undefined,
+        reason,
+        description: description?.trim() || undefined,
+      },
+      priority: 'HIGH',
+    }).catch((err) => logger.warn('[ReportController] Failed to notify admins of listing report', err));
+
+    // 2. Send confirmation notification to reporting user
+    createNotification({
+      recipientType: 'USER',
+      recipientId: userId,
+      eventType: 'REPORT_SUBMITTED_CONFIRMATION',
+      category: 'REPORTS_AND_REVIEWS',
+      title: 'Report Received',
+      message: `Thank you for reporting "${listingTitle}". Our moderation team is reviewing this listing to maintain platform safety.`,
+      // actionUrl: '/notifications',
+      actionUrl: `/listing/${targetDoc.slug || targetDoc._id}`,
+      data: {
+        reportId: report._id.toString(),
+        targetType,
+        targetId: targetId.toString(),
+        reason,
+      },
+      priority: 'NORMAL',
+    }).catch((err) => logger.warn('[ReportController] Failed to send report confirmation to user', err));
+
     return sendSuccess(res, 'Report submitted successfully', report, 201);
   } catch (error: any) {
     logger.error('[Report] create error:', error);
@@ -544,6 +605,27 @@ export const updateReportStatus = async (req: Request, res: Response): Promise<R
     await report.save();
 
     logger.info(`Report ${reportId} status updated to ${status} by ${resolverId}`);
+
+    // Notify user of report status update
+    // if (report.userId) {
+    //   createNotification({
+    //     recipientType: 'USER',
+    //     recipientId: report.userId,
+    //     eventType: 'REPORT_STATUS_UPDATED',
+    //     category: 'REPORTS_AND_REVIEWS',
+    //     title: 'Report Status Updated',
+    //     message: `Your report has been marked as ${status}.${resolutionNotes ? ` Resolution note: ${resolutionNotes.trim()}` : ''}`,
+    //     actionUrl: '/notifications',
+    //     data: {
+    //       reportId: report._id.toString(),
+    //       targetType: report.targetType,
+    //       targetId: report.targetId.toString(),
+    //       status,
+    //     },
+    //     priority: 'NORMAL',
+    //   }).catch((err) => logger.warn('[ReportController] Failed to notify user of report status update', err));
+    // }
+
     return sendSuccess(res, 'Report status updated successfully', report);
   } catch (error: any) {
     logger.error('[Report] updateStatus error:', error);

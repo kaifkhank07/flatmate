@@ -9,6 +9,11 @@ export interface User {
   profileVerified: boolean;
   verificationStatus: 'not_submitted' | 'pending' | 'approved' | 'rejected';
   lastLoginAt?: string;
+  isDeleted?: boolean;
+  deletedAt?: string;
+  deletedBy?: string;
+  deactiveAt?: string;
+  deactiveBy?: string;
   createdAt?: string;
   updatedAt?: string;
 }

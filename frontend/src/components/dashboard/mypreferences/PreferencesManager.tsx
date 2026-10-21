@@ -11,10 +11,10 @@ import {
   Sparkles,
   RefreshCw,
 } from "lucide-react";
-import SectionHeading from "../utils/SectionHeading";
-import LoadingState from "../utils/LoadingState";
-import EmptyState from "../utils/EmptyState";
-import { ViewReveal } from "../animation";
+import SectionHeading from "../../utils/SectionHeading";
+import LoadingState from "../../utils/LoadingState";
+import EmptyState from "../../utils/EmptyState";
+import { ViewReveal } from "../../animation";
 
 export default function PreferencesManager() {
   const router = useRouter();

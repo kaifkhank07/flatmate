@@ -16,6 +16,7 @@ import {
 } from '../../utils/cookie.util';
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
+import { createNotification, notifyAdmins } from '../../services/notification/notification.service';
 
 /**
  * Generate a random 6-digit numeric OTP string
@@ -73,6 +74,29 @@ export const registerWithMobileOTP = async (req: Request, res: Response): Promis
       lastName: lastName.trim(),
       profileCompletion: 0,
     });
+
+    // Send welcome notification to user
+    createNotification({
+      recipientType: 'USER',
+      recipientId: user._id,
+      eventType: 'USER_REGISTERED',
+      category: 'ACCOUNT_AND_VERIFICATION',
+      title: 'Welcome to FlatMate!',
+      message: 'Your account has been successfully created. Explore properties and find ideal flatmates today.',
+      actionUrl: '/profile',
+      priority: 'NORMAL',
+    }).catch((err) => logger.warn('[MobileAuthController] Failed to create welcome notification for user', err));
+
+    // Notify admins of new user registration
+    notifyAdmins({
+      eventType: 'ADMIN_NEW_USER_REGISTERED',
+      category: 'ADMINISTRATIVE',
+      title: 'New User Registered',
+      message: `${firstName.trim()} ${lastName.trim()} (${normalizedMobile || cleanEmail}) has registered on FlatMate.`,
+      data: { userId: user._id.toString(), email: cleanEmail, mobile: normalizedMobile },
+      actionUrl: '/admin/users',
+      priority: 'NORMAL',
+    }).catch((err) => logger.warn('[MobileAuthController] Failed to notify admins of registration', err));
 
     // Generate & Hash Mobile OTP
     const rawOtp = generateRandomOTP();

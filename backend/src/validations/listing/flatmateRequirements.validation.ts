@@ -78,6 +78,7 @@ export const createFlatmateRequirementSchema = z.object({
       status: z
         .enum(['draft', 'pending', 'approved', 'rejected', 'blocked', 'closed', 'expired'])
         .optional(),
+      rejectionReason: z.string().trim().nullable().optional(),
     })
     .superRefine((data, ctx) => {
       // Conditional postType validations
@@ -180,6 +181,7 @@ export const updateFlatmateRequirementSchema = z.object({
           'expired',
         ])
         .optional(),
+      rejectionReason: z.string().trim().nullable().optional(),
     })
     .superRefine((data, ctx) => {
       if (data.postType === 'property') {

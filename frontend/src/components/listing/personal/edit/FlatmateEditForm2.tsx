@@ -145,9 +145,9 @@ export default function FlatmateEditForm2({
   const [photoItems, setPhotoItems] = useState<PhotoStateItem[]>(
     Array.isArray(initialData?.images)
       ? initialData.images.map((img: any) => ({
-        id: img._id || img.url || `existing-img-${Math.random()}`,
-        previewUrl: img.url || (typeof img === "string" ? img : ""),
-        imageId: img._id,
+        id: (typeof img === "object" ? img._id : img) || `existing-img-${Math.random()}`,
+        previewUrl: typeof img === "object" ? img.url || "" : img,
+        imageId: typeof img === "object" ? img._id : img,
       }))
       : []
   );
@@ -409,6 +409,11 @@ export default function FlatmateEditForm2({
         images: createdImageIds,
       };
 
+      if (initialData?.status === "rejected") {
+        payload.status = "pending";
+        payload.rejectionReason = null;
+      }
+
       const result = await updateFlatmateRequirement(initialData._id, payload);
 
       if (!result) {
@@ -458,7 +463,7 @@ export default function FlatmateEditForm2({
             {/* Location Autocomplete Field */}
             <div className="space-y-2 relative" ref={locationDropdownRef}>
               <label className="block text-sm sm:text-base font-regular text-black">
-                Preferred Location <span className="text-rose-500">*</span>
+                Location <span className="text-rose-500">*</span>
               </label>
 
               {selectedGooglePlace ? (
@@ -552,7 +557,7 @@ export default function FlatmateEditForm2({
               {/* Title */}
               <div className="space-y-2">
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  Headline Title <span className="text-rose-500">*</span>
+                  Title <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -567,13 +572,13 @@ export default function FlatmateEditForm2({
               {/* Description */}
               <div className="space-y-2">
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  Detailed Description & Expectations <span className="text-rose-500">*</span>
+                  Description <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe your preference for a roommate, lifestyle expectations, rent split…"
+                  placeholder="e.g. I am looking for a flatmate."
                   className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none resize-none"
                   required
                 />
@@ -872,7 +877,7 @@ export default function FlatmateEditForm2({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Requirement Photos ({photoItems.length}) <span className="text-rose-500">*</span>
+                    Photos ({photoItems.length}) <span className="text-rose-500">*</span>
                   </label>
                   <label className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-regular rounded-xl bg-brand-blue hover:bg-brand-blue/90 text-white cursor-pointer transition-all shadow-xs">
                     <Plus className="w-3.5 h-3.5 stroke-0.5" />

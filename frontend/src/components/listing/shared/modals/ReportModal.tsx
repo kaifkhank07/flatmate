@@ -11,9 +11,10 @@ export interface ReportModalProps {
   onClose: () => void;
   targetType?: ReportTargetType;
   targetId?: string;
+  ownerId?: string;
 }
 
-export default function ReportModal({ isOpen, onClose, targetType, targetId }: ReportModalProps) {
+export default function ReportModal({ isOpen, onClose, targetType, targetId, ownerId }: ReportModalProps) {
   const { user } = useAuthStore();
   const isAuthenticated = Boolean(user);
 
@@ -29,6 +30,11 @@ export default function ReportModal({ isOpen, onClose, targetType, targetId }: R
 
     if (!isAuthenticated) {
       setReportError("Authentication required. Please log in to report listings.");
+      return;
+    }
+
+    if (ownerId && user?._id && String(user._id) === String(ownerId)) {
+      setReportError("You cannot report your own listing.");
       return;
     }
 
@@ -62,7 +68,9 @@ export default function ReportModal({ isOpen, onClose, targetType, targetId }: R
     } catch (err: any) {
       const status = err.response?.status;
       const apiMessage = err.response?.data?.message || err.message;
-      if (status === 409 || (apiMessage && apiMessage.toLowerCase().includes("pending"))) {
+      if (apiMessage && apiMessage.toLowerCase().includes("own listing")) {
+        setReportError("You cannot report your own listing.");
+      } else if (status === 409 || (apiMessage && apiMessage.toLowerCase().includes("pending"))) {
         setReportError("You have already submitted a pending report for this listing.");
       } else if (status === 401) {
         setReportError("Authentication required. Please log in to report listings.");

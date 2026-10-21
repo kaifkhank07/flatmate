@@ -25,6 +25,9 @@ export interface UserItem {
   isOnline: boolean;
   isDeleted: boolean;
   deletedAt?: string;
+  deletedBy?: string;
+  deactiveAt?: string;
+  deactiveBy?: string;
   createdAt: string;
   updatedAt: string;
   firstName?: string;
@@ -2039,4 +2042,67 @@ export async function updateRentalGuideApi(
 
 export async function deleteRentalGuideApi(rentalGuideId: string) {
   return apiFetch(`/rental-guides/${rentalGuideId}`, { method: "DELETE" });
+}
+
+// ==========================================
+// Admin Notification Services
+// ==========================================
+import type {
+  INotificationItem,
+  INotificationPreferences,
+  GetNotificationsFilters,
+  GetNotificationsResponseData,
+  UpdateNotificationPreferencesPayload,
+} from "@/types/notification.types";
+
+export * from "@/types/notification.types";
+
+export async function fetchAdminNotifications(filters: GetNotificationsFilters = {}) {
+  const query = new URLSearchParams();
+  if (filters.page) query.append("page", filters.page.toString());
+  if (filters.limit) query.append("limit", filters.limit.toString());
+  if (filters.category) query.append("category", filters.category);
+  if (filters.eventType) query.append("eventType", filters.eventType);
+  if (filters.priority) query.append("priority", filters.priority);
+  if (typeof filters.isRead === "boolean") query.append("isRead", filters.isRead.toString());
+
+  const queryString = query.toString();
+  const endpoint = queryString ? `/notifications?${queryString}` : "/notifications";
+
+  return apiFetch<GetNotificationsResponseData>(endpoint);
+}
+
+export async function fetchAdminUnreadCount() {
+  return apiFetch<{ unreadCount: number }>("/notifications/unread-count");
+}
+
+export async function markAdminNotificationAsRead(notificationId: string) {
+  return apiFetch<INotificationItem>(`/notifications/${notificationId}/read`, {
+    method: "PATCH",
+  });
+}
+
+export async function markAllAdminNotificationsAsRead() {
+  return apiFetch<{ updatedCount: number; readAt: string }>("/notifications/read-all", {
+    method: "PATCH",
+  });
+}
+
+export async function deleteAdminNotification(notificationId: string) {
+  return apiFetch(`/notifications/${notificationId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function fetchAdminNotificationPreferences() {
+  return apiFetch<INotificationPreferences>("/notifications/preferences");
+}
+
+export async function updateAdminNotificationPreferences(
+  payload: UpdateNotificationPreferencesPayload
+) {
+  return apiFetch<INotificationPreferences>("/notifications/preferences", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }

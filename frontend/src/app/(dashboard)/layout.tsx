@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useNotificationStore } from "@/store/useNotificationStore";
 import { Loader2 } from "lucide-react";
 
 export default function DashboardLayout({
@@ -18,6 +19,11 @@ export default function DashboardLayout({
         isInitialized,
     } = useAuthStore();
 
+    // Notification Prefetch
+    const {
+        fetchPreferences,
+    } = useNotificationStore();
+
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
     useEffect(() => {
@@ -32,6 +38,13 @@ export default function DashboardLayout({
 
         setIsCheckingAuth(false);
     }, [isInitialized, isAuthenticated, pathname, router]);
+
+    // Load notification preferences after authentication
+    useEffect(() => {
+        if (!isInitialized || !isAuthenticated) return;
+
+        fetchPreferences();
+    }, [isInitialized, isAuthenticated, fetchPreferences]);
 
     if (!isInitialized || isCheckingAuth) {
         return (

@@ -83,9 +83,13 @@ export const getOrCreateConversation = async (
   }
 
   const normalizedParticipants = normalizeParticipants(userObj, receiverObj);
+  const conversationKey = `${normalizedParticipants[0].toString()}_${normalizedParticipants[1].toString()}`;
 
   let conversation = await ChatConversation.findOne({
-    participants: normalizedParticipants,
+    $or: [
+      { conversationKey },
+      { participants: normalizedParticipants },
+    ],
   }).populate({
     path: 'lastMessageId',
     select: 'senderId receiverId type text attachment property flatmate status createdAt',
@@ -93,12 +97,33 @@ export const getOrCreateConversation = async (
 
   let isNew = false;
   if (!conversation) {
-    conversation = await ChatConversation.create({
-      participants: normalizedParticipants,
-      unreadCounts: new Map<string, number>(),
-      isActive: true,
-    });
-    isNew = true;
+    try {
+      conversation = await ChatConversation.create({
+        participants: normalizedParticipants,
+        conversationKey,
+        unreadCounts: new Map<string, number>(),
+        isActive: true,
+      });
+      isNew = true;
+    } catch (createError: any) {
+      // Handle concurrent creation race condition gracefully
+      if (createError.code === 11000) {
+        conversation = await ChatConversation.findOne({
+          $or: [
+            { conversationKey },
+            { participants: normalizedParticipants },
+          ],
+        }).populate({
+          path: 'lastMessageId',
+          select: 'senderId receiverId type text attachment property flatmate status createdAt',
+        });
+        if (!conversation) {
+          throw createError;
+        }
+      } else {
+        throw createError;
+      }
+    }
   }
 
   // Format response with participant summaries

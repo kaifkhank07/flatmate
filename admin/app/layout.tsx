@@ -8,6 +8,9 @@ import "quill/dist/quill.snow.css";
 export const metadata: Metadata = {
   title: `${brand.name} — Admin`,
   description: brand.tagline,
+  icons: {
+    icon: brand.logo.dark, 
+  },
 };
 
 export const viewport = {

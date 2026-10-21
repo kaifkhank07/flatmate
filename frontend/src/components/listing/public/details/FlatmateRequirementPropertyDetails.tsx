@@ -76,7 +76,7 @@ export default function FlatmateRequirementPropertyDetails({
 }: FlatmateRequirementPropertyDetailsProps) {
   const assets = useAssets();
   const { options } = useListingStore();
-  const { isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const resolveImageUrl = (url?: string) => getMediaUrl(url);
 
   const [showCallModal, setShowCallModal] = useState(false);
@@ -138,6 +138,8 @@ export default function FlatmateRequirementPropertyDetails({
   };
 
   const userObj = listing.userId;
+  const ownerId = typeof userObj === "object" ? userObj?._id : userObj;
+  const isOwner = Boolean(user?._id && ownerId && String(user._id) === String(ownerId));
   const name = listingData?.name || userObj?.name || "Requirement Creator";
   const userMobile = listingData?.userMobile || userObj?.mobile || userObj?.contact || "+91 98765 43210";
   const uAny = userObj as any;
@@ -255,25 +257,27 @@ export default function FlatmateRequirementPropertyDetails({
               {name}
             </h2>
 
-            <div className="flex flex-row lg:flex-col justify-center gap-3 w-full items-center">
-              <button
-                type="button"
-                onClick={() => setShowCallModal(true)}
-                className="w-28 py-2 px-3 bg-blue-700 hover:bg-accent text-white font-light text-sm sm:text-base md:text-lg rounded-full flex items-center justify-center gap-2.5 transition-all cursor-pointer"
-              >
-                <Phone size={20} />
-                <span>Call</span>
-              </button>
+            {isAuthenticated && !isOwner && (
+              <div className="flex flex-row lg:flex-col justify-center gap-3 w-full items-center">
+                <button
+                  type="button"
+                  onClick={() => setShowCallModal(true)}
+                  className="w-28 py-2 px-3 bg-blue-700 hover:bg-accent text-white font-light text-sm sm:text-base md:text-lg rounded-full flex items-center justify-center gap-2.5 transition-all cursor-pointer"
+                >
+                  <Phone size={20} />
+                  <span>Call</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setShowChatModal(true)}
-                className="w-28 py-2 px-3 bg-accent hover:bg-blue-700 text-white font-light text-sm sm:text-base md:text-lg rounded-full flex items-center justify-center gap-2.5 transition-all cursor-pointer"
-              >
-                <MessageSquare size={20} />
-                <span>Chat</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setShowChatModal(true)}
+                  className="w-28 py-2 px-3 bg-accent hover:bg-blue-700 text-white font-light text-sm sm:text-base md:text-lg rounded-full flex items-center justify-center gap-2.5 transition-all cursor-pointer"
+                >
+                  <MessageSquare size={20} />
+                  <span>Chat</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* RIGHT SIDE: Flatmate Requirement Info */}
@@ -281,9 +285,6 @@ export default function FlatmateRequirementPropertyDetails({
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
-                {/* <span className="inline-block px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold rounded-full mb-2">
-                  Flatmate Requirement — Property Post
-                </span> */}
                 <h2 className="text-black text-xl sm:text-2xl md:text-3xl font-regular">
                   {postTitle}
                 </h2>
@@ -293,30 +294,32 @@ export default function FlatmateRequirementPropertyDetails({
               </div>
 
               {/* Wishlist Button */}
-              <div className="relative shrink-0 pt-1">
-                <button
-                  type="button"
-                  onClick={handleToggleWishlist}
-                  disabled={wishlistLoading}
-                  className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer ${isWishlisted
-                    ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100"
-                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-rose-600"
-                    }`}
-                  title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-                >
-                  {wishlistLoading ? (
-                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-rose-500" />
-                  ) : (
-                    <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isWishlisted ? "fill-rose-500 text-rose-500" : "text-gray-400 group-hover:text-rose-500"}`} />
+              {isAuthenticated && !isOwner && (
+                <div className="relative shrink-0 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleToggleWishlist}
+                    disabled={wishlistLoading}
+                    className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer ${isWishlisted
+                      ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100"
+                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-rose-600"
+                      }`}
+                    title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                  >
+                    {wishlistLoading ? (
+                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-rose-500" />
+                    ) : (
+                      <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isWishlisted ? "fill-rose-500 text-rose-500" : "text-gray-400 group-hover:text-rose-500"}`} />
+                    )}
+                    <span className="hidden sm:inline">{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
+                  </button>
+                  {wishlistMessage && (
+                    <div className="absolute right-0 top-full mt-1.5 px-3 py-1 bg-slate-800 text-white text-xs rounded-md shadow-md whitespace-nowrap z-10 animate-in fade-in duration-200">
+                      {wishlistMessage}
+                    </div>
                   )}
-                  <span className="hidden sm:inline">{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
-                </button>
-                {wishlistMessage && (
-                  <div className="absolute right-0 top-full mt-1.5 px-3 py-1 bg-slate-800 text-white text-xs rounded-md shadow-md whitespace-nowrap z-10 animate-in fade-in duration-200">
-                    {wishlistMessage}
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Location */}
@@ -440,16 +443,18 @@ export default function FlatmateRequirementPropertyDetails({
             </div>
 
             {/* Report Footer */}
-            <div className="pt-3 text-base sm:text-lg lg:text-xl font-semibold text-gray-900 flex items-center gap-1.5 flex-wrap">
-              <span>Found Wrong Information?</span>
-              <button
-                type="button"
-                onClick={() => setShowReportModal(true)}
-                className="text-[#0066FF] cursor-pointer font-semibold transition-all"
-              >
-                <LineRoll text="Report Listing" lineClassName="bg-[#0066FF]" />
-              </button>
-            </div>
+            {isAuthenticated && !isOwner && (
+              <div className="pt-3 text-base sm:text-lg lg:text-xl font-semibold text-gray-900 flex items-center gap-1.5 flex-wrap">
+                <span>Found Wrong Information?</span>
+                <button
+                  type="button"
+                  onClick={() => setShowReportModal(true)}
+                  className="text-[#0066FF] cursor-pointer font-semibold transition-all"
+                >
+                  <LineRoll text="Report Listing" lineClassName="bg-[#0066FF]" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -477,8 +482,9 @@ export default function FlatmateRequirementPropertyDetails({
         onClose={() => setShowReportModal(false)}
         targetType="flatmaterequirement"
         targetId={listing._id}
+        ownerId={ownerId ? String(ownerId) : undefined}
       />
-      
+
       <ImageGalleryModal
         isOpen={selectedImageIndex !== null && selectedImageIndex !== undefined && imageList.length > 0}
         onClose={() => setSelectedImageIndex(null)}

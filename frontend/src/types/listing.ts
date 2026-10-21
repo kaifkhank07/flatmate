@@ -142,6 +142,7 @@ export interface PropertyListingItem {
   images?: MediaItem[];
   videos?: MediaItem[];
   status: string;
+  rejectionReason?: string;
   favoriteCount?: number;
   distance?: number;
   distanceUnit?: string;
@@ -177,6 +178,7 @@ export interface FlatmateRequirementItem {
   images?: MediaItem[];
   videos?: MediaItem[];
   status: string;
+  rejectionReason?: string;
   favoriteCount?: number;
   distance?: number;
   distanceUnit?: string;
@@ -300,6 +302,7 @@ export interface FlatmateListingItem {
   name: string;
   gender: "Male" | "Female";
   userImage?: string;
+  propertyImage?: string;
   location: string;
   city: string;
   distance: string;
@@ -373,7 +376,8 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
     const avatarType: "male1" | "female1" | "female2" | "female3" | "male2" | "female4" =
       gender === "Male" ? "male1" : "female1";
 
-    const displayImage = getFirstMediaUrl(property.images) || getUserAvatarUrl(userObj);
+    const propertyImage = getFirstMediaUrl(property.images);
+    const userAvatar = getUserAvatarUrl(userObj);
 
     const status = property.status || "status";
 
@@ -382,7 +386,8 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       sourceType: "property",
       name: ownerName,
       gender,
-      userImage: displayImage,
+      userImage: userAvatar,
+      propertyImage: propertyImage,
       location: locString,
       city: cityName,
       distance: itemDistanceStr,
@@ -443,9 +448,8 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
     const avatarType: "male1" | "female1" | "female2" | "female3" | "male2" | "female4" =
       gender === "Male" ? "male1" : "female1";
 
-    const displayImage = isPropertyPost
-      ? getFirstMediaUrl(flatmate.images) || getUserAvatarUrl(flatmate.userId)
-      : getUserAvatarUrl(flatmate.userId) || getFirstMediaUrl(flatmate.images);
+    const propertyImage = getFirstMediaUrl(flatmate.images);
+    const userAvatar = getUserAvatarUrl(flatmate.userId);
 
     const status = flatmate.status || "status";
 
@@ -455,7 +459,8 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       postType: flatmate.postType,
       name: titleOrName,
       gender,
-      userImage: displayImage,
+      userImage: userAvatar,
+      propertyImage: propertyImage,
       location: locString,
       city: cityName,
       distance: itemDistanceStr,

@@ -104,7 +104,7 @@ export const metadata: Metadata = {
   description: "Flatmate - Find your perfect flatmate.",
   keywords: ["Flatmate", "India"],
   icons: {
-    icon: "/assets/Images/logo.png",
+    icon: "/assets/Images/favicon.png",
   },
 };
 

@@ -203,6 +203,26 @@ export default function ListingManager() {
     resetFilters();
   };
 
+
+  useEffect(() => {
+    // Reset to default filters when opening the listing page
+    if (!cityParam && !categoryParam && !propertyTypeParam) {
+      setSelectedCategory("All");
+      setSelectedGender("All");
+      setSearchQuery("");
+      setSelectedPlace(null);
+
+      resetFilters();
+      fetchListings();
+    }
+  }, [
+    cityParam,
+    categoryParam,
+    propertyTypeParam,
+    resetFilters,
+    fetchListings,
+  ]);
+
   return (
     <section className="w-full">
       {/* Category Tabs, Gender Filter & Search Bar */}

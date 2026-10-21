@@ -948,7 +948,8 @@ export const getUserDashboardData = async (userObjectId: Types.ObjectId) => {
       isDeletedFor: { $ne: userObjectId },
     }),
     Notification.countDocuments({
-      user: userObjectId,
+      recipientType: 'USER',
+      recipientId: userObjectId,
       isRead: false,
     }),
     Report.countDocuments({ userId: userObjectId }),
@@ -982,8 +983,8 @@ export const getUserDashboardData = async (userObjectId: Types.ObjectId) => {
       .sort({ viewedAt: -1 })
       .limit(5)
       .lean(),
-    Notification.find({ user: userObjectId })
-      .select('title message type isRead createdAt')
+    Notification.find({ recipientType: 'USER', recipientId: userObjectId })
+      .select('title message eventType category priority isRead createdAt')
       .sort({ createdAt: -1 })
       .limit(5)
       .lean(),

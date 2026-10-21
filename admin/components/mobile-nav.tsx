@@ -7,13 +7,18 @@ import Icon from "./icons";
 import Logo from "./logo";
 
 export function MobileBar({ title, onMenu, onSearch }: { title: string; onMenu: () => void; onSearch: () => void }) {
+  const path = usePathname();
+  const baseRoute = path.startsWith("/super-admin") ? "/super-admin" : "/admin";
+
   return (
     <div className="mobile-bar">
       <button className="icon-btn" onClick={onMenu} aria-label="Menu"><Icon name="menu" size={17} /></button>
       <span className="mtitle">{title}</span>
       <div className="right">
         <button className="icon-btn" onClick={onSearch} aria-label="Search"><Icon name="search" size={15} /></button>
-        <button className="icon-btn notif" aria-label="Notifications"><Icon name="bell" size={15} /></button>
+        <Link href={`${baseRoute}/notifications`} className="icon-btn notif" aria-label="Notifications">
+          <Icon name="bell" size={15} />
+        </Link>
       </div>
     </div>
   );

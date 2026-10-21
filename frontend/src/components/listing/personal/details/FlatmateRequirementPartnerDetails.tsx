@@ -31,6 +31,7 @@ import {
   Pencil,
   Trash2,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { FlatmateRequirementItem } from "@/types/listing";
 import { useListingStore } from "@/store/useListingStore";
@@ -98,7 +99,12 @@ export default function FlatmateRequirementPartnerDetails({
 
   const partnerType = listing.partnerType ? listing.partnerType.toUpperCase() : "FLATMATE";
   const postTitle = listing.title || `Looking for a ${partnerType} Partner`;
-  const categoryHeader = `LOOKING FOR ${partnerType}`;
+  const furnishing = listing.furnishing ? listing.furnishing.replace(/_/g, " ").toUpperCase() : "";
+  const categoryHeader = furnishing ? `LOOKING FOR ${partnerType} | ${furnishing}` : `LOOKING FOR ${partnerType}`;
+
+  const status = listing?.status || listingData?.status;
+  const rejectionReason = listing?.rejectionReason || listingData?.rejectionReason;
+  const isRejected = status === "rejected";
 
   let locationText = "Location N/A";
   if (typeof listing.location === "object" && listing.location) {
@@ -146,7 +152,7 @@ export default function FlatmateRequirementPartnerDetails({
     : "Immediate";
 
   // Photos if uploaded
-  const backendImages = listing.images?.map((i) => i.url) || [];
+  const backendImages = listing.images?.map((i: any) => (typeof i === "string" ? i : i.url)).filter(Boolean) || [];
   const imageList = backendImages.length > 0 ? backendImages : listingData?.images || [];
 
   // User Preferences
@@ -247,9 +253,26 @@ export default function FlatmateRequirementPartnerDetails({
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <h2 className="text-black text-xl sm:text-2xl md:text-3xl font-regular">
-                  {postTitle}
-                </h2>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h2 className="text-black text-xl sm:text-2xl md:text-3xl font-regular">
+                    {postTitle}
+                  </h2>
+                  {status && (
+                    <span
+                      className={`px-3 py-0.5 rounded-full text-xs font-medium capitalize border ${
+                        status === "approved"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : status === "rejected"
+                          ? "bg-red-50 text-red-700 border-red-200"
+                          : status === "pending"
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : "bg-gray-100 text-gray-700 border-gray-200"
+                      }`}
+                    >
+                      {status}
+                    </span>
+                  )}
+                </div>
                 <p className="text-gray-500 text-sm sm:text-base font-regular">
                   {categoryHeader}
                 </p>
@@ -257,7 +280,8 @@ export default function FlatmateRequirementPartnerDetails({
 
               {/* Edit & Delete Buttons */}
               <div className="flex items-center gap-2 shrink-0 pt-1">
-                {(listing?.status === "pending" || listing?.status === "rejected") && (
+                {/* {(listing?.status === "pending" || listing?.status === "rejected") && ( */}
+                {(listing?.status === "pending") && (
                   <Link
                     href={`/my-listings/edit/${listing._id}`}
                     className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer shadow-sm"
@@ -278,6 +302,48 @@ export default function FlatmateRequirementPartnerDetails({
                 </button>
               </div>
             </div>
+
+            {/* Rejection Alert Banner */}
+            {isRejected && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-red-50/90 border border-red-200 text-red-900 shadow-xs space-y-3">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <AlertCircle className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-sm sm:text-base font-semibold text-red-900">
+                        Listing Rejected by Moderation
+                      </h4>
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-200/80 text-red-800 uppercase tracking-wide">
+                        Action Required
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-white/80 border border-red-200/70 text-xs sm:text-sm text-red-900">
+                      <span className="font-semibold text-red-800 block mb-0.5">Reason for rejection:</span>
+                      <p className="leading-relaxed text-red-950 font-medium">
+                        {rejectionReason || "This listing was reviewed and rejected because it did not meet our community posting guidelines. Please update your details and re-submit."}
+                      </p>
+                    </div>
+
+                    <p className="text-xs text-red-700 leading-relaxed">
+                      You can modify your listing details and submit it again for approval.
+                    </p>
+
+                    <div className="pt-1">
+                      <Link
+                        href={`/my-listings/edit/${listing._id}`}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-medium transition-all active:scale-95 shadow-sm"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        <span>Update & Re-submit Listing</span>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Location */}
             <div className="space-y-1.5">
@@ -338,6 +404,12 @@ export default function FlatmateRequirementPartnerDetails({
                   <span className="block text-gray-500 text-sm sm:text-lg font-regular">Maintenance Frequency</span>
                   <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{maintenanceFrequencyText}</p>
                 </div>
+                <div>
+                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Furnishing</span>
+                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1 capitalize">
+                    {listing.furnishing ? listing.furnishing.replace(/_/g, " ") : "N/A"}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -366,24 +438,27 @@ export default function FlatmateRequirementPartnerDetails({
                 <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Photos</h3>
                 <div className="w-full overflow-x-auto pb-3 pt-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
                   <div className="flex items-center gap-3 sm:gap-4 min-w-max">
-                    {imageList.map((imgSrc: string, idx: number) => (
-                      <div
-                        key={idx}
-                        onClick={() => setSelectedImageIndex(idx)}
-                        className="relative group h-36 sm:h-44 md:h-52 w-48 sm:w-60 md:w-72 rounded-[20px] sm:rounded-[24px] overflow-hidden border border-gray-200 shadow-sm bg-gray-100 cursor-pointer shrink-0 transition-all hover:shadow-md hover:scale-[1.01]"
-                      >
-                        <img
-                          src={imgSrc}
-                          alt={`${postTitle} ${idx + 1}`}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-all flex items-center justify-center">
-                          <div className="w-10 h-10 rounded-full bg-white/80 backdrop-blur-md text-gray-900 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:scale-100 scale-95 shadow-md">
-                            <Maximize2 className="w-5 h-5" />
+                    {imageList.map((imgSrc: string, idx: number) => {
+                      const displaySrc = imgSrc.startsWith("http") || imgSrc.startsWith("blob:") || imgSrc.startsWith("data:") ? imgSrc : resolveImageUrl(imgSrc);
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => setSelectedImageIndex(idx)}
+                          className="relative group h-36 sm:h-44 md:h-52 w-48 sm:w-60 md:w-72 rounded-[20px] sm:rounded-[24px] overflow-hidden border border-gray-200 shadow-sm bg-gray-100 cursor-pointer shrink-0 transition-all hover:shadow-md hover:scale-[1.01]"
+                        >
+                          <img
+                            src={displaySrc}
+                            alt={`${postTitle} ${idx + 1}`}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-all flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-full bg-white/80 backdrop-blur-md text-gray-900 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:scale-100 scale-95 shadow-md">
+                              <Maximize2 className="w-5 h-5" />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -453,7 +528,7 @@ export default function FlatmateRequirementPartnerDetails({
       <ImageGalleryModal
         isOpen={selectedImageIndex !== null && selectedImageIndex !== undefined && imageList.length > 0}
         onClose={() => setSelectedImageIndex(null)}
-        images={imageList}
+        images={imageList.map((img: string) => img.startsWith("http") || img.startsWith("blob:") || img.startsWith("data:") ? img : resolveImageUrl(img))}
         selectedIndex={selectedImageIndex ?? 0}
         onSelectIndex={(idx) => setSelectedImageIndex(idx)}
         title={postTitle}

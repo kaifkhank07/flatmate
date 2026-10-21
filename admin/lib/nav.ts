@@ -27,6 +27,7 @@ export const adminNav: NavItem[] = [
   { href: "/admin/faqs", label: "FAQs", icon: "fileText", mobile: true },
   { href: "/admin/rental-guides", label: "Rental Guides", icon: "fileText", mobile: true },
   { href: "/admin/cities", label: "City", icon: "building2", mobile: true },
+  // { href: "/admin/notifications", label: "Notifications", icon: "bell", section: "System", mobile: true },
 ];
 
 /** Navigation for Super Admin Panel (/super-admin/*) */
@@ -47,6 +48,7 @@ export const superAdminNav: NavItem[] = [
   { href: "/super-admin/faqs", label: "FAQs", icon: "fileText", mobile: true },
   { href: "/super-admin/rental-guides", label: "Rental Guides", icon: "fileText", mobile: true },
   { href: "/super-admin/cities", label: "City", icon: "building2", mobile: true },
+  // { href: "/super-admin/notifications", label: "Notifications", icon: "bell", section: "System", mobile: true },
 ];
 
 /** Template Panel Navigation (kept for reference) */

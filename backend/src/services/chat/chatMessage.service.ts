@@ -3,8 +3,6 @@ import { ChatMessage, IChatMessage, ChatMessageType } from '../../models/chats/C
 import { ChatConversation } from '../../models/chats/ChatConversation';
 import { checkBlockStatus } from './chatBlock.service';
 import { verifyConversationParticipant, getParticipantSummary } from './chatConversation.service';
-import { createNotification } from '../notification/notification.service';
-import { logger } from '../../utils/logger.util';
 
 export interface SendMessagePayloadInput {
   type: ChatMessageType;
@@ -102,21 +100,6 @@ export const sendMessage = async (
     $inc: {
       [unreadCountKey]: 1,
     },
-  });
-
-  // Dispatch CHAT notification asynchronously
-  createNotification({
-    user: receiverObj,
-    type: 'CHAT',
-    title: 'New Chat Message',
-    message: payload.text ? (payload.text.length > 50 ? `${payload.text.substring(0, 50)}...` : payload.text) : 'You received a new message',
-    data: {
-      conversationId: convObj.toString(),
-      senderId: senderObj.toString(),
-      messageId: message._id.toString(),
-    },
-  }).catch((err) => {
-    logger.error('Failed to create chat notification', err);
   });
 
   return message;

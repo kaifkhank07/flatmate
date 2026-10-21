@@ -1,25 +1,47 @@
 import { Request, Response } from 'express';
 import * as notificationService from '../../services/notification/notification.service';
+import {
+  NotificationCategory,
+  NotificationEventType,
+  NotificationPriority,
+  RecipientType,
+} from '../../models/notification/notification.model';
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
-import { NotificationType } from '../../models/notification/notification.model';
 
 /**
- * Get paginated notifications for the logged-in user
+ * Helper to extract recipient/owner auth context from either User or Admin session
+ */
+const getAuthContext = (
+  req: Request
+): { id: string; type: RecipientType } => {
+  if (req.admin && req.admin._id) {
+    return { id: req.admin._id.toString(), type: 'ADMIN' };
+  }
+  if (req.user && req.user._id) {
+    return { id: req.user._id.toString(), type: 'USER' };
+  }
+  throw new Error('Authentication required');
+};
+
+/**
+ * Get paginated notifications for the authenticated user or admin
  */
 export const getNotifications = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const userId = req.user!._id;
-    const { page, limit, type, isRead } = req.query;
+    const { id, type } = getAuthContext(req);
+    const { page, limit, category, eventType, priority, isRead } = req.query;
 
     const filters: notificationService.GetNotificationsFilters = {
       page: page ? parseInt(page as string, 10) : 1,
       limit: limit ? parseInt(limit as string, 10) : 20,
-      type: type as NotificationType,
+      category: category as NotificationCategory,
+      eventType: eventType as NotificationEventType,
+      priority: priority as NotificationPriority,
       isRead: isRead !== undefined ? String(isRead) === 'true' : undefined,
     };
 
-    const data = await notificationService.getUserNotifications(userId, filters);
+    const data = await notificationService.getUserNotifications(id, filters, type);
     return sendSuccess(res, 'Notifications retrieved successfully', data);
   } catch (error) {
     logger.error('Failed to get notifications', error);
@@ -32,15 +54,15 @@ export const getNotifications = async (req: Request, res: Response): Promise<Res
 };
 
 /**
- * Get unread notification count for the logged-in user
+ * Get unread notification count for the authenticated user or admin
  */
 export const getUnreadNotificationCount = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
   try {
-    const userId = req.user!._id;
-    const unreadCount = await notificationService.getUnreadNotificationCount(userId);
+    const { id, type } = getAuthContext(req);
+    const unreadCount = await notificationService.getUnreadNotificationCount(id, type);
     return sendSuccess(res, 'Unread notification count retrieved successfully', { unreadCount });
   } catch (error) {
     logger.error('Failed to get unread notification count', error);
@@ -60,12 +82,13 @@ export const markNotificationAsRead = async (
   res: Response
 ): Promise<Response> => {
   try {
-    const userId = req.user!._id;
+    const { id, type } = getAuthContext(req);
     const { notificationId } = req.params;
 
     const notification = await notificationService.markNotificationAsRead(
-      userId,
-      notificationId
+      id,
+      notificationId,
+      type
     );
     return sendSuccess(res, 'Notification marked as read', notification);
   } catch (error) {
@@ -79,15 +102,15 @@ export const markNotificationAsRead = async (
 };
 
 /**
- * Mark all notifications as read for the logged-in user
+ * Mark all notifications as read for the authenticated user or admin
  */
 export const markAllNotificationsAsRead = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
   try {
-    const userId = req.user!._id;
-    const result = await notificationService.markAllNotificationsAsRead(userId);
+    const { id, type } = getAuthContext(req);
+    const result = await notificationService.markAllNotificationsAsRead(id, type);
     return sendSuccess(res, 'All notifications marked as read', result);
   } catch (error) {
     logger.error('Failed to mark all notifications as read', error);
@@ -104,10 +127,10 @@ export const markAllNotificationsAsRead = async (
  */
 export const deleteNotification = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const userId = req.user!._id;
+    const { id, type } = getAuthContext(req);
     const { notificationId } = req.params;
 
-    await notificationService.deleteNotification(userId, notificationId);
+    await notificationService.deleteNotification(id, notificationId, type);
     return sendSuccess(res, 'Notification deleted successfully');
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete notification';
@@ -120,15 +143,15 @@ export const deleteNotification = async (req: Request, res: Response): Promise<R
 };
 
 /**
- * Get notification preferences for the logged-in user
+ * Get notification preferences for the authenticated user or admin
  */
 export const getNotificationPreferences = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
   try {
-    const userId = req.user!._id;
-    const preferences = await notificationService.getOrCreateNotificationPreferences(userId);
+    const { id, type } = getAuthContext(req);
+    const preferences = await notificationService.getOrCreateNotificationPreferences(id, type);
     return sendSuccess(res, 'Notification preferences retrieved successfully', preferences);
   } catch (error) {
     logger.error('Failed to get notification preferences', error);
@@ -141,17 +164,18 @@ export const getNotificationPreferences = async (
 };
 
 /**
- * Update notification preferences for the logged-in user
+ * Update notification preferences for the authenticated user or admin
  */
 export const updateNotificationPreferences = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
   try {
-    const userId = req.user!._id;
+    const { id, type } = getAuthContext(req);
     const preferences = await notificationService.updateNotificationPreferences(
-      userId,
-      req.body
+      id,
+      req.body,
+      type
     );
     return sendSuccess(res, 'Notification preferences updated successfully', preferences);
   } catch (error) {
@@ -165,13 +189,42 @@ export const updateNotificationPreferences = async (
 };
 
 /**
- * Create notification (Admin / System usage)
+ * Update smart property-match criteria (User only)
+ */
+export const updatePropertyMatchPreferences = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const { id, type } = getAuthContext(req);
+    if (type !== 'USER') {
+      return sendError(res, 'Property match preferences are only configurable for users', 403);
+    }
+
+    const preferences = await notificationService.updatePropertyMatchPreferences(id, req.body);
+    return sendSuccess(
+      res,
+      'Property match preferences updated successfully',
+      preferences.propertyMatch
+    );
+  } catch (error) {
+    logger.error('Failed to update property match preferences', error);
+    return sendError(
+      res,
+      error instanceof Error ? error.message : 'Failed to update property match preferences',
+      500
+    );
+  }
+};
+
+/**
+ * Create notification (Admin / System / Inter-service usage)
  */
 export const createNotification = async (req: Request, res: Response): Promise<Response> => {
   try {
     const notification = await notificationService.createNotification(req.body);
     if (!notification) {
-      return sendSuccess(res, 'Notification creation skipped based on user preferences', null);
+      return sendSuccess(res, 'Notification creation skipped based on preferences', null);
     }
     return sendSuccess(res, 'Notification created successfully', notification, 201);
   } catch (error) {

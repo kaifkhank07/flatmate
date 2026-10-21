@@ -63,7 +63,14 @@ export default function DashboardCharts({
   }, [listingStatusDistribution]);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16 }}>
+    // <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16 }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: window.innerWidth < 640 ? "1fr" : "1.4fr 1fr",
+        gap: 16,
+      }}
+    >
       {/* 6-Month User Trend Area Chart */}
       <Card>
         <CardHead
@@ -102,10 +109,10 @@ export default function DashboardCharts({
               item.status === "approved"
                 ? "var(--mint-ink)"
                 : item.status === "pending"
-                ? "var(--sand-ink)"
-                : item.status === "rejected"
-                ? "var(--rose-ink)"
-                : "var(--lav-ink)";
+                  ? "var(--sand-ink)"
+                  : item.status === "rejected"
+                    ? "var(--rose-ink)"
+                    : "var(--lav-ink)";
 
             return (
               <div key={item.status} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
