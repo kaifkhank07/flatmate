@@ -383,7 +383,7 @@ export default function Navbar({ activeItem }: NavbarProps) {
               </Link>
 
               {/* Mobile Chat Bell */}
-              <ChatBell className="p-1" />
+              {/* <ChatBell className="p-1" /> */}
 
               {/* Mobile Notification Bell */}
               <NotificationBell className="p-1" />

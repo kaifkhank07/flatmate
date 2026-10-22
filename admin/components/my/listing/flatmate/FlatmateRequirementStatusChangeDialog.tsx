@@ -24,23 +24,21 @@ export default function FlatmateRequirementStatusChangeDialog({
   const toast = useToast();
   const [rejectionReason, setRejectionReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [targetStatus, setTargetStatus] = useState(newStatus);
 
   useEffect(() => {
     if (requirement) {
       setRejectionReason(requirement.rejectionReason || "");
-      setTargetStatus(newStatus || "active");
     } else {
       setRejectionReason("");
     }
-  }, [requirement, newStatus]);
+  }, [requirement]);
 
   if (!requirement) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (targetStatus === "rejected" && !rejectionReason.trim()) {
+    if (newStatus === "rejected" && !rejectionReason.trim()) {
       toast("Rejection reason is required when rejecting a flatmate requirement.");
       return;
     }
@@ -48,13 +46,13 @@ export default function FlatmateRequirementStatusChangeDialog({
     setSubmitting(true);
     const res = await updateFlatmateRequirementStatusApi(
       requirement._id,
-      targetStatus,
-      targetStatus === "rejected" ? rejectionReason.trim() : undefined
+      newStatus,
+      newStatus === "rejected" ? rejectionReason.trim() : undefined
     );
     setSubmitting(false);
 
     if (res.success) {
-      toast(`Requirement status updated to "${targetStatus.toUpperCase()}".`);
+      toast(`Requirement status updated to "${newStatus.toUpperCase()}".`);
       onSuccess(requirement._id);
       onClose();
     } else {
@@ -67,7 +65,7 @@ export default function FlatmateRequirementStatusChangeDialog({
       <div className="w-full max-w-[440px] bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl space-y-4 text-slate-900">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <h3 className="text-base font-semibold text-slate-900">
-            Change Status: <span className="uppercase text-amber-600">{targetStatus}</span>
+            Change Status: <span className="uppercase text-amber-600">{newStatus}</span>
           </h3>
           <button
             type="button"
@@ -84,26 +82,7 @@ export default function FlatmateRequirementStatusChangeDialog({
             Target Requirement: <strong className="text-slate-900 font-semibold">&quot;{requirement.title}&quot;</strong>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
-              Select Target Status *
-            </label>
-            <select
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-              value={targetStatus}
-              onChange={(e) => setTargetStatus(e.target.value)}
-            >
-              <option value="approved">Approved</option>
-              <option value="pending">Pending</option>
-              <option value="draft">Draft</option>
-              <option value="rejected">Rejected</option>
-              <option value="blocked">Blocked</option>
-              <option value="closed">Closed</option>
-              <option value="expired">Expired</option>
-            </select>
-          </div>
-
-          {targetStatus === "rejected" && (
+          {newStatus === "rejected" && (
             <div>
               <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
                 Rejection Reason *
@@ -130,10 +109,14 @@ export default function FlatmateRequirementStatusChangeDialog({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-semibold rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-md transition-all active:scale-95 disabled:opacity-50"
+              className={`px-5 py-2 text-xs font-semibold rounded-full text-white shadow-md transition-all active:scale-95 disabled:opacity-50 ${
+                newStatus === "rejected"
+                  ? "bg-rose-600 hover:bg-rose-700"
+                  : "bg-amber-500 hover:bg-amber-600"
+              }`}
               disabled={submitting}
             >
-              {submitting ? "Updating…" : `Confirm ${targetStatus.toUpperCase()}`}
+              {submitting ? "Updating…" : `Confirm ${newStatus.toUpperCase()}`}
             </button>
           </div>
         </form>

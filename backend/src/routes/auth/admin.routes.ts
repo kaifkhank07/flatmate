@@ -10,6 +10,8 @@ import {
   activateAdmin,
   deactivateAdmin,
   deleteAdmin,
+  hardDeleteAdmin,
+  restoreAdmin,
 } from '../../controllers/auth/admin.controller';
 import { authenticateAdmin, requireSuperAdmin } from '../../middlewares/admin.middleware';
 import { validate } from '../../middlewares/validate.middleware';
@@ -37,6 +39,8 @@ router.get('/admins', requireSuperAdmin, getAdmins);
 router.patch('/admins/:adminId', requireSuperAdmin, validate(updateAdminSchema), updateAdmin);
 router.patch('/admins/:adminId/activate', requireSuperAdmin, activateAdmin);
 router.patch('/admins/:adminId/deactivate', requireSuperAdmin, deactivateAdmin);
+router.delete('/admins/:adminId/hard', requireSuperAdmin, hardDeleteAdmin);
 router.delete('/admins/:adminId', requireSuperAdmin, deleteAdmin);
+router.patch('/admins/:adminId/restore', requireSuperAdmin, restoreAdmin);
 
 export default router;

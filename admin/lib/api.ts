@@ -445,7 +445,7 @@ export async function fetchUsers(params: {
   limit?: number;
   search?: string;
   accountStatus?: string;
-  isDeleted?: boolean;
+  isDeleted?: boolean | string;
   sortBy?: string;
   order?: string;
 }) {
@@ -518,6 +518,14 @@ export async function deleteUser(userId: string) {
   return apiFetch(`/users/${userId}`, { method: "DELETE" });
 }
 
+export async function softDeleteUser(userId: string) {
+  return apiFetch(`/users/${userId}`, { method: "DELETE" });
+}
+
+export async function hardDeleteUser(userId: string) {
+  return apiFetch(`/users/${userId}/hard`, { method: "DELETE" });
+}
+
 export async function restoreUser(userId: string) {
   return apiFetch(`/users/${userId}/restore`, { method: "PATCH" });
 }
@@ -539,7 +547,7 @@ export async function fetchAdmins(params?: {
   search?: string;
   status?: string;
   role?: string;
-  isDeleted?: boolean;
+  isDeleted?: boolean | string;
   sortBy?: string;
   order?: string;
 }) {
@@ -593,6 +601,18 @@ export async function deactivateAdmin(adminId: string) {
 
 export async function deleteAdmin(adminId: string) {
   return apiFetch(`/admin/admins/${adminId}`, { method: "DELETE" });
+}
+
+export async function softDeleteAdmin(adminId: string) {
+  return apiFetch(`/admin/admins/${adminId}`, { method: "DELETE" });
+}
+
+export async function hardDeleteAdmin(adminId: string) {
+  return apiFetch(`/admin/admins/${adminId}/hard`, { method: "DELETE" });
+}
+
+export async function restoreAdmin(adminId: string) {
+  return apiFetch(`/admin/admins/${adminId}/restore`, { method: "PATCH" });
 }
 
 // ==========================================

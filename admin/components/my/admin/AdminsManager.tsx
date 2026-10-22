@@ -34,6 +34,7 @@ const STATUS_OPTIONS = [
   { value: "all", label: "All Status" },
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
+  { value: "deleted", label: "Deleted" },
 ] as const;
 
 export default function AdminsManager({
@@ -61,7 +62,6 @@ export default function AdminsManager({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
-  const [showDeleted, setShowDeleted] = useState(false);
   const adminUser = getStoredAdminUser();
   const isSuperAdmin = adminUser?.role === "super_admin";
 
@@ -78,18 +78,34 @@ export default function AdminsManager({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editAdmin, setEditAdmin] = useState<AdminItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminItem | null>(null);
+  const [deleteModeTarget, setDeleteModeTarget] = useState<"soft" | "hard" | "restore">("soft");
   const [actionTarget, setActionTarget] = useState<ActionTarget>(null);
 
   // Fetch Admins List from Backend
   const loadAdmins = useCallback(async () => {
     setLoading(true);
+    let isDeletedParam: boolean | string | undefined = undefined;
+    let statusParam: string | undefined = undefined;
+
+    if (statusFilter === "deleted") {
+      isDeletedParam = true;
+      statusParam = undefined;
+    } else if (statusFilter === "active" || statusFilter === "inactive") {
+      isDeletedParam = false;
+      statusParam = statusFilter;
+    } else {
+      // "all": Normal list shows all entries (active, inactive, deleted)
+      isDeletedParam = "all";
+      statusParam = undefined;
+    }
+
     const res = await fetchAdmins({
       page,
       limit: LIMIT,
       search: search,
-      status: statusFilter,
+      status: statusParam,
       role: roleFilter,
-      isDeleted: showDeleted,
+      isDeleted: isDeletedParam,
     });
 
     if (res.success && res.data) {
@@ -99,7 +115,7 @@ export default function AdminsManager({
       toast(res.message || "Failed to load admins list");
     }
     setLoading(false);
-  }, [page, search, statusFilter, roleFilter, showDeleted, toast]);
+  }, [page, search, statusFilter, roleFilter, toast]);
 
   useEffect(() => {
     loadAdmins();
@@ -119,16 +135,6 @@ export default function AdminsManager({
             <button className="btn btn-brand sm" onClick={() => setShowCreateModal(true)}>
               <Plus size={13} /> Add New Admin
             </button>
-            {isSuperAdmin && (
-              <label className="flex items-center gap-1 ml-4">
-                <input
-                  type="checkbox"
-                  checked={showDeleted}
-                  onChange={() => setShowDeleted(!showDeleted)}
-                />
-                Show Deleted
-              </label>
-            )}
           </div>
         }
       />
@@ -221,9 +227,15 @@ export default function AdminsManager({
                         </Chip>
                       </td>
                       <td>
-                        <Chip tone={adm.status === "active" ? "mint" : "rose"} dot>
-                          {adm.status === "active" ? "Active" : "Inactive"}
-                        </Chip>
+                        {adm.isDeleted ? (
+                          <Chip tone="rose" dot>
+                            Deleted
+                          </Chip>
+                        ) : (
+                          <Chip tone={adm.status === "active" ? "mint" : "rose"} dot>
+                            {adm.status === "active" ? "Active" : "Inactive"}
+                          </Chip>
+                        )}
                       </td>
                       <td>
                         {adm.lastLoginAt
@@ -233,36 +245,68 @@ export default function AdminsManager({
                       <td>{new Date(adm.createdAt).toLocaleDateString()}</td>
                       <td>
                         <div style={{ display: "flex", gap: 6 }}>
-                          {adm.status === "inactive" ? (
-                            <button
-                              className="btn btn-ghost sm"
-                              style={{ color: "var(--mint-ink)" }}
-                              onClick={() => setActionTarget({ type: "activate", admin: adm })}
-                            >
-                              Activate
-                            </button>
+                          {adm.isDeleted ? (
+                            <>
+                              <button
+                                className="btn btn-ghost sm"
+                                style={{ color: "var(--mint-ink)" }}
+                                onClick={() => {
+                                  setDeleteModeTarget("restore");
+                                  setDeleteTarget(adm);
+                                }}
+                                title="Restore soft-deleted admin staff account"
+                              >
+                                Restore
+                              </button>
+                              <button
+                                className="btn btn-ghost sm"
+                                style={{ color: "var(--rose-ink)" }}
+                                onClick={() => {
+                                  setDeleteModeTarget("hard");
+                                  setDeleteTarget(adm);
+                                }}
+                                title="Permanently delete admin account"
+                              >
+                                Hard Delete
+                              </button>
+                            </>
                           ) : (
-                            <button
-                              className="btn btn-ghost sm"
-                              style={{ color: "var(--rose-ink)" }}
-                              onClick={() => setActionTarget({ type: "deactivate", admin: adm })}
-                            >
-                              Deactivate
-                            </button>
+                            <>
+                              {adm.status === "inactive" ? (
+                                <button
+                                  className="btn btn-ghost sm"
+                                  style={{ color: "var(--mint-ink)" }}
+                                  onClick={() => setActionTarget({ type: "activate", admin: adm })}
+                                >
+                                  Activate
+                                </button>
+                              ) : (
+                                <button
+                                  className="btn btn-ghost sm"
+                                  style={{ color: "var(--rose-ink)" }}
+                                  onClick={() => setActionTarget({ type: "deactivate", admin: adm })}
+                                >
+                                  Deactivate
+                                </button>
+                              )}
+                              <button
+                                className="btn btn-ghost sm"
+                                onClick={() => setEditAdmin(adm)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="btn btn-ghost sm"
+                                style={{ color: "var(--rose-ink)" }}
+                                onClick={() => {
+                                  setDeleteModeTarget("soft");
+                                  setDeleteTarget(adm);
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </>
                           )}
-                          <button
-                            className="btn btn-ghost sm"
-                            onClick={() => setEditAdmin(adm)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="btn btn-ghost sm"
-                            style={{ color: "var(--rose-ink)" }}
-                            onClick={() => setDeleteTarget(adm)}
-                          >
-                            Delete
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -296,6 +340,7 @@ export default function AdminsManager({
 
       <DeleteAdminDialog
         admin={deleteTarget}
+        initialMode={deleteModeTarget}
         onClose={() => setDeleteTarget(null)}
         onSuccess={loadAdmins}
       />

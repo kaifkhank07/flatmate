@@ -10,6 +10,7 @@ import { cleanupUnreferencedImages, cleanupUnreferencedVideos } from '../../util
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
 import { createNotification, notifyAdmins } from '../../services/notification/notification.service';
+import { propertyDeletionService } from '../../services/deletion';
 
 /** Helper function to convert text into a URL-friendly slug */
 export const slugify = (text: string): string => {
@@ -640,7 +641,7 @@ export const updateProperty = async (req: Request, res: Response): Promise<Respo
 };
 
 /**
- * Delete property listing
+ * Delete property listing with cascading cleanup
  * DELETE /api/properties/:propertyId or /api/property/:id
  */
 export const deleteProperty = async (req: Request, res: Response): Promise<Response> => {
@@ -650,42 +651,21 @@ export const deleteProperty = async (req: Request, res: Response): Promise<Respo
       return sendError(res, 'Invalid property ID format', 400);
     }
 
-    const property = await Property.findById(id);
-    if (!property) {
-      return sendError(res, 'Property listing not found', 404);
-    }
+    const callerUserId = req.user?._id;
+    const isAdmin = Boolean((req as any).admin);
 
-    const attachedImages = [...(property.images || [])];
-    const attachedVideos = [...(property.videos || [])];
-    const attachedLocationId = property.location ? property.location.toString() : null;
+    await propertyDeletionService.deletePropertyCascade(id, callerUserId, isAdmin);
 
-    await Property.deleteOne({ _id: id });
-
-    // Clean up unreferenced media documents & S3 objects
-    if (attachedImages.length > 0) {
-      cleanupUnreferencedImages(attachedImages).catch((err) =>
-        logger.error('[PropertyController] Delete property image cleanup error:', err)
-      );
-    }
-
-    if (attachedVideos.length > 0) {
-      cleanupUnreferencedVideos(attachedVideos).catch((err) =>
-        logger.error('[PropertyController] Delete property video cleanup error:', err)
-      );
-    }
-
-    // Clean up associated Location document if unreferenced
-    if (attachedLocationId) {
-      await locationService.deleteLocationIfUnreferenced(attachedLocationId).catch((err) =>
-        logger.error('[PropertyController] Delete property location cleanup error:', err)
-      );
-    }
-
-    logger.info(`Property deleted: ${id} (Location ${attachedLocationId || 'none'} cleaned up)`);
     return sendSuccess(res, 'Property deleted successfully');
   } catch (error: any) {
+    if (error.message === 'Property listing not found') {
+      return sendError(res, 'Property listing not found', 404);
+    }
+    if (error.statusCode === 403 || error.message === 'Not authorized to delete this property') {
+      return sendError(res, 'Not authorized to delete this property', 403);
+    }
     logger.error('[PropertyController] deleteProperty error:', error);
-    return sendError(res, 'Failed to delete property', 500);
+    return sendError(res, error.message || 'Failed to delete property', 500);
   }
 };
 

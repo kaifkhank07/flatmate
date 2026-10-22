@@ -9,6 +9,7 @@ import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
 import { Types } from 'mongoose';
 import { createNotification, notifyAdmins } from '../../services/notification/notification.service';
+import { flatmateRequirementDeletionService } from '../../services/deletion';
 
 /** Helper to populate standard flatmate requirement fields */
 const populateFlatmateRequirementFields = (query: any) => {
@@ -720,49 +721,21 @@ export const deleteFlatmateRequirement = async (req: Request, res: Response): Pr
       return sendError(res, 'Invalid requirement ID', 400);
     }
 
-    const existingRequirement = await FlatmateRequirement.findById(id);
-    if (!existingRequirement) {
-      return sendError(res, 'Flatmate requirement not found', 404);
-    }
-
-    const isOwner = req.user && existingRequirement.userId.toString() === req.user._id.toString();
+    const callerUserId = req.user?._id;
     const isAdmin = Boolean((req as any).admin);
 
-    if (!isOwner && !isAdmin) {
-      return sendError(res, 'Not authorized to delete this flatmate requirement', 403);
-    }
+    await flatmateRequirementDeletionService.deleteFlatmateRequirementCascade(id, callerUserId, isAdmin);
 
-    const attachedImages = [...(existingRequirement.images || [])];
-    const attachedVideos = [...(existingRequirement.videos || [])];
-    const attachedLocationId = existingRequirement.location ? existingRequirement.location.toString() : null;
-
-    await FlatmateRequirement.deleteOne({ _id: id });
-
-    // Clean up unreferenced media documents & S3 objects
-    if (attachedImages.length > 0) {
-      cleanupUnreferencedImages(attachedImages).catch((err) =>
-        logger.error('[FlatmateRequirementController] Delete requirement image cleanup error:', err)
-      );
-    }
-
-    if (attachedVideos.length > 0) {
-      cleanupUnreferencedVideos(attachedVideos).catch((err) =>
-        logger.error('[FlatmateRequirementController] Delete requirement video cleanup error:', err)
-      );
-    }
-
-    // Clean up associated Location document if unreferenced
-    if (attachedLocationId) {
-      await locationService.deleteLocationIfUnreferenced(attachedLocationId).catch((err) =>
-        logger.error('[FlatmateRequirementController] Delete requirement location cleanup error:', err)
-      );
-    }
-
-    logger.info(`Flatmate requirement deleted: ${id} (Location ${attachedLocationId || 'none'} cleaned up)`);
     return sendSuccess(res, 'Flatmate requirement deleted successfully');
   } catch (error: any) {
+    if (error.message === 'Flatmate requirement not found') {
+      return sendError(res, 'Flatmate requirement not found', 404);
+    }
+    if (error.statusCode === 403 || error.message === 'Not authorized to delete this flatmate requirement') {
+      return sendError(res, 'Not authorized to delete this flatmate requirement', 403);
+    }
     logger.error('[FlatmateRequirementController] delete error:', error);
-    return sendError(res, 'Failed to delete flatmate requirement', 500);
+    return sendError(res, error.message || 'Failed to delete flatmate requirement', 500);
   }
 };
 

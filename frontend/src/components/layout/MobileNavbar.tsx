@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import gsap from "gsap";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CircleEllipsis, CircleUser, HousePlus, LucideIcon, MessageCircle, Search } from "lucide-react";
+import ChatBell from "@/components/dashboard/chat/ChatBell";
 
 export default function MobileNavbar() {
   const pathname = usePathname();
@@ -122,13 +123,17 @@ export default function MobileNavbar() {
                 : "text-gray-600 hover:text-brand-dark"
                 }`}
             >
-              <div className="flex items-center justify-center h-7">
-
+              <div className="relative flex items-center justify-center h-7">
                 <Icon
                   className="w-6 h-6"
                   strokeWidth={isActive ? 2 : 1.8}
                 />
-
+                {item.id === "chat" && (
+                  <ChatBell
+                    showBadgeOnly
+                    className="absolute -top-0.5 -right-1 min-w-[17px] h-[17px] px-1 text-[10px] font-bold text-white bg-[#0066F9] rounded-full border-2 border-white flex items-center justify-center shadow-xs"
+                  />
+                )}
               </div>
               <span className="text-[11px] leading-tight font-medium tracking-tight whitespace-nowrap">
                 {item.label}

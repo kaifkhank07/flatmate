@@ -99,7 +99,7 @@ export default function FlatmateRequirementsManager({
 
   // Status Change Modal State
   const [statusModalTarget, setStatusModalTarget] = useState<FlatmateRequirementItem | null>(null);
-  const [targetNewStatus, setTargetNewStatus] = useState<string>("active");
+  const [targetNewStatus, setTargetNewStatus] = useState<string>("approved");
 
   // Delete Confirm Modal State
   const [deleteTarget, setDeleteTarget] = useState<FlatmateRequirementItem | null>(null);

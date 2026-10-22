@@ -14,6 +14,7 @@ import {
   Utensils,
   PawPrint,
   Wine,
+  Check,
 } from "lucide-react";
 import SectionHeading from "@/components/utils/SectionHeading";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -172,19 +173,19 @@ export default function PropertyCreationForm({
   const renderAmenityImage = (amenity: PropertyAmenityItem) => {
     if (amenity.image?.url) {
       return (
-        <div className="relative w-12 h-12 sm:w-14 sm:h-14">
+        <div className="relative w-8 h-8 sm:w-11 sm:h-11 md:w-13 md:h-13 flex-shrink-0">
           <Image
             src={amenity.image.url}
             alt={amenity.name}
             fill
             unoptimized
-            className="object-contain p-1"
+            className="object-contain"
           />
         </div>
       );
     }
 
-    return <Sparkles className="w-8 h-8 text-[#0066F9]" />;
+    return <Sparkles className="w-7 h-7 sm:w-9 sm:h-9 text-[#0066F9] flex-shrink-0" />;
   };
 
   // Photo Upload Handler
@@ -770,28 +771,45 @@ export default function PropertyCreationForm({
                     Loading amenities…
                   </div>
                 ) : amenityOptions.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-x-4 gap-y-6 justify-items-center p-4 sm:p-6 bg-[#F8FAFC] border border-gray-100 rounded-3xl">
+                  <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-3.5 md:gap-4 justify-items-center p-3 sm:p-5 md:p-6 bg-[#F8FAFC] border border-gray-100 rounded-2xl sm:rounded-3xl">
                     {amenityOptions.map((am) => {
                       const isSelected = selectedAmenities.includes(am._id);
-                      return (
-                        <div key={am._id} className="flex flex-col items-center">
-                          <button
-                            type="button"
-                            onClick={() => toggleAmenity(am._id)}
-                            aria-label={`Select ${am.name}`}
-                            title={am.name}
-                            className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${isSelected
-                              ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
-                              : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
-                              }`}
-                          >
-                            {renderAmenityImage(am)}
-                          </button>
 
-                          <span className="text-gray-800 text-xs sm:text-sm font-medium mt-2.5 text-center tracking-tight max-w-[110px] truncate">
+                      return (
+                        <button
+                          key={am._id}
+                          type="button"
+                          onClick={() => toggleAmenity(am._id)}
+                          aria-label={`Select ${am.name}`}
+                          aria-pressed={isSelected}
+                          title={am.name}
+                          className={`group relative flex aspect-square w-full flex-col items-center justify-center p-1.5 sm:p-2.5 md:p-3 rounded-xl sm:rounded-2xl transition-all duration-200 cursor-pointer select-none active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0066F9]/40 ${
+                            isSelected
+                              ? "bg-[#F0F7FF] border-2 border-[#0066F9] shadow-xs"
+                              : "bg-white border border-gray-200/90 hover:bg-slate-50/70 hover:border-gray-300 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+                          }`}
+                        >
+                          {/* Blue circular check badge in top-right when selected */}
+                          {isSelected && (
+                            <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-[#0066F9] text-white shadow-xs animate-in zoom-in-75 duration-150">
+                              <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 stroke-[3]" />
+                            </span>
+                          )}
+
+                          {/* Centered amenity icon */}
+                          <div className="flex items-center justify-center">
+                            {renderAmenityImage(am)}
+                          </div>
+
+                          {/* Amenity label inside the card */}
+                          <span
+                            className={`mt-1 sm:mt-1.5 w-full text-center text-[10px] sm:text-xs md:text-sm font-medium leading-tight tracking-tight line-clamp-1 break-words px-0.5 transition-colors ${
+                              isSelected ? "text-slate-900" : "text-slate-700"
+                            }`}
+                          >
                             {am.name}
                           </span>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>

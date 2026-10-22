@@ -94,8 +94,8 @@ export default function ManageProfile() {
   // Status & Modal States
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [isDeactivating, setIsDeactivating] = useState(false);
-  const [showDeactivateModal, setShowDeactivateModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{
     type: "success" | "error";
@@ -293,10 +293,10 @@ export default function ManageProfile() {
     }
   };
 
-  const handleDeactivateAccount = async () => {
-    setIsDeactivating(true);
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
     try {
-      await apiClient.patch("/users/me/deactivate");
+      await apiClient.delete("/users/me");
       await logout();
       router.push("/");
     } catch (err: any) {
@@ -304,10 +304,10 @@ export default function ManageProfile() {
         type: "error",
         text:
           err?.response?.data?.message ||
-          "Failed to deactivate account. Please try again.",
+          "Failed to delete account. Please try again.",
       });
-      setShowDeactivateModal(false);
-      setIsDeactivating(false);
+      setShowDeleteModal(false);
+      setIsDeleting(false);
     }
   };
 
@@ -707,7 +707,7 @@ export default function ManageProfile() {
         {/* Divider */}
         <hr className="my-10 border-[#ECEFF3]" />
 
-        {/* Deactivate Account Section */}
+        {/* Delete Account Section */}
         <ViewReveal duration={900}>
           <div className="mt-14">
             <p className="text-sm text-gray-500 font-regular mb-3">
@@ -716,7 +716,7 @@ export default function ManageProfile() {
             </p>
             <button
               type="button"
-              onClick={() => setShowDeactivateModal(true)}
+              onClick={() => setShowDeleteModal(true)}
               className="px-6 py-3 rounded-full bg-[#FF0000] hover:bg-[#DE0000] text-white text-sm sm:text-base font-regular transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
             >
               <span>Delete account</span>
@@ -725,8 +725,8 @@ export default function ManageProfile() {
           </div>
         </ViewReveal>
 
-        {/* Deactivate Account Confirmation Modal */}
-        {showDeactivateModal && (
+        {/* Delete Account Confirmation Modal */}
+        {showDeleteModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in-50">
             <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-gray-100">
               <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-4">
@@ -742,19 +742,19 @@ export default function ManageProfile() {
               <div className="flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  disabled={isDeactivating}
-                  onClick={() => setShowDeactivateModal(false)}
+                  disabled={isDeleting}
+                  onClick={() => setShowDeleteModal(false)}
                   className="px-5 py-2.5 rounded-full border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  disabled={isDeactivating}
-                  onClick={handleDeactivateAccount}
+                  disabled={isDeleting}
+                  onClick={handleDeleteAccount}
                   className="px-5 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition flex items-center gap-2 cursor-pointer disabled:opacity-60"
                 >
-                  {isDeactivating ? (
+                  {isDeleting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span>Deleting...</span>

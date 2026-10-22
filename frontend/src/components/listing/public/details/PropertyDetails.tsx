@@ -416,21 +416,33 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
             {/* Amenities */}
             {amenitiesList.length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Amenities</h3>
-                <div className="flex flex-wrap items-center gap-6 sm:gap-8 pt-1">
+                <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">
+                  Amenities
+                </h3>
+
+                <div className="flex flex-wrap items-start gap-x-3 gap-y-5 sm:gap-x-6 sm:gap-y-8 pt-1">
                   {amenitiesList.map((am, idx) => (
-                    <div key={am._id || idx} className="flex flex-col items-center min-w-[72px]">
-                      <div className="relative w-20 sm:w-24 md:w-28 h-14 sm:h-16">
-                        <div className="absolute bottom-0 left-0 w-full h-10 sm:h-11 md:h-12 bg-accent rounded-full" />
+                    <div
+                      key={am._id || idx}
+                      className="flex min-w-0 flex-col items-center w-[64px] sm:w-20 md:w-24"
+                    >
+                      <div className="relative w-14 h-10 sm:w-20 sm:h-14 md:w-24 md:h-16">
+                        <div className="absolute bottom-0 left-0 w-full h-7 sm:h-10 md:h-11 bg-accent rounded-full" />
+
                         <div className="absolute left-1/2 -translate-x-1/2 -top-1 sm:-top-2 z-10">
                           {am.image ? (
-                            <img src={am.image} alt={am.name} className="w-12 h-12 sm:w-14 sm:h-14 object-contain" />
+                            <img
+                              src={am.image}
+                              alt={am.name}
+                              className="w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain"
+                            />
                           ) : (
                             getAmenityIcon(am.name)
                           )}
                         </div>
                       </div>
-                      <span className="text-gray-500 text-sm sm:text-base md:text-lg font-regular mt-1 capitalize">
+
+                      <span className="text-gray-500 text-[11px] sm:text-sm md:text-base font-regular mt-1.5 text-center leading-tight capitalize break-words">
                         {am.name}
                       </span>
                     </div>

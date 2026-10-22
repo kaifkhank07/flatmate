@@ -61,7 +61,9 @@ export default function ChatBell({
   if (showBadgeOnly) {
     if (unreadCount <= 0) return null;
     return (
-      <span className="bg-[#0066F9] text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+      <span
+        className={`bg-[#0066F9] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ${className}`}
+      >
         {unreadCount > 99 ? '99+' : unreadCount}
       </span>
     );

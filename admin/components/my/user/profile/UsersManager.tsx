@@ -33,6 +33,7 @@ const STATUS_OPTIONS = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
+  { value: "deleted", label: "Deleted" },
 ] as const;
 
 export default function UsersManager({
@@ -59,7 +60,6 @@ export default function UsersManager({
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
-  const [showDeleted, setShowDeleted] = useState(false);
   const adminUser = getStoredAdminUser();
   const isSuperAdmin = adminUser?.role === "super_admin";
 
@@ -71,6 +71,7 @@ export default function UsersManager({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editUser, setEditUser] = useState<UserItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserItem | null>(null);
+  const [deleteModeTarget, setDeleteModeTarget] = useState<"soft" | "hard" | "restore">("soft");
   const [statusTarget, setStatusTarget] = useState<UserItem | null>(null);
   const [editProfileUser, setEditProfileUser] = useState<UserItem | null>(null);
   const [editProfileData, setEditProfileData] = useState<UserProfileItem | null>(null);
@@ -101,14 +102,27 @@ export default function UsersManager({
   // Fetch Users List
   const loadUsers = useCallback(async () => {
     setLoading(true);
-    const accountStatusFilter = filter === "all" ? undefined : filter;
+    let isDeletedParam: boolean | string | undefined = undefined;
+    let accountStatusParam: string | undefined = undefined;
+
+    if (filter === "deleted") {
+      isDeletedParam = true;
+      accountStatusParam = undefined;
+    } else if (filter === "active" || filter === "inactive") {
+      isDeletedParam = false;
+      accountStatusParam = filter;
+    } else {
+      // "all": Normal list shows all entries (active, inactive, deleted)
+      isDeletedParam = "all";
+      accountStatusParam = undefined;
+    }
 
     const res = await fetchUsers({
       page,
       limit: LIMIT,
       search: search,
-      accountStatus: accountStatusFilter,
-      isDeleted: showDeleted,
+      accountStatus: accountStatusParam,
+      isDeleted: isDeletedParam,
     });
 
     if (res.success && res.data) {
@@ -118,7 +132,7 @@ export default function UsersManager({
       toast(res.message || "Failed to load users");
     }
     setLoading(false);
-  }, [page, search, filter, showDeleted, toast]);
+  }, [page, search, filter, toast]);
 
   const handleUserUpdated = useCallback(() => {
     loadUsers();
@@ -170,16 +184,6 @@ export default function UsersManager({
             <button className="btn btn-brand sm" onClick={() => setShowCreateModal(true)}>
               <Plus size={13} /> Add New User
             </button>
-            {isSuperAdmin && (
-              <label className="flex items-center gap-1 ml-4">
-                <input
-                  type="checkbox"
-                  checked={showDeleted}
-                  onChange={() => setShowDeleted(!showDeleted)}
-                />
-                Show Deleted
-              </label>
-            )}
           </div>
         }
       />
@@ -273,9 +277,15 @@ export default function UsersManager({
                           </div>
                         </td>
                         <td>
-                          <Chip tone={getStatusTone(u.accountStatus)} dot>
-                            {u.accountStatus === "active" ? "Active" : "Inactive"}
-                          </Chip>
+                          {u.isDeleted ? (
+                            <Chip tone="rose" dot>
+                              Deleted
+                            </Chip>
+                          ) : (
+                            <Chip tone={getStatusTone(u.accountStatus)} dot>
+                              {u.accountStatus === "active" ? "Active" : "Inactive"}
+                            </Chip>
+                          )}
                         </td>
                         <td>
                           <Chip tone={u.profileCompletion && u.profileCompletion >= 80 ? "mint" : u.profileCompletion && u.profileCompletion >= 50 ? "amber" : "sand"}>
@@ -305,40 +315,62 @@ export default function UsersManager({
                               Edit
                             </button>
 
-                            {u.accountStatus === "inactive" ? (
-                              <button
-                                className="btn btn-ghost sm"
-                                style={{ color: "var(--mint-ink)" }}
-                                onClick={() => setStatusTarget(u)}
-                              >
-                                Activate
-                              </button>
-                            ) : (
-                              <button
-                                className="btn btn-ghost sm"
-                                style={{ color: "var(--rose-ink)" }}
-                                onClick={() => setStatusTarget(u)}
-                              >
-                                Deactivate
-                              </button>
-                            )}
-
                             {u.isDeleted ? (
-                              <button
-                                className="btn btn-ghost sm"
-                                style={{ color: "var(--mint-ink)" }}
-                                onClick={() => setDeleteTarget(u)}
-                              >
-                                Restore
-                              </button>
+                              <div style={{ display: "flex", gap: 4 }}>
+                                <button
+                                  className="btn btn-ghost sm"
+                                  style={{ color: "var(--mint-ink)" }}
+                                  onClick={() => {
+                                    setDeleteModeTarget("restore");
+                                    setDeleteTarget(u);
+                                  }}
+                                  title="Restore soft-deleted user account"
+                                >
+                                  Restore
+                                </button>
+                                <button
+                                  className="btn btn-ghost sm"
+                                  style={{ color: "var(--rose-ink)" }}
+                                  onClick={() => {
+                                    setDeleteModeTarget("hard");
+                                    setDeleteTarget(u);
+                                  }}
+                                  title="Permanently hard-delete user and cascade all data"
+                                >
+                                  Hard Delete
+                                </button>
+                              </div>
                             ) : (
-                              <button
-                                className="btn btn-ghost sm"
-                                style={{ color: "var(--rose-ink)" }}
-                                onClick={() => setDeleteTarget(u)}
-                              >
-                                Delete
-                              </button>
+                              <>
+                                {u.accountStatus === "inactive" ? (
+                                  <button
+                                    className="btn btn-ghost sm"
+                                    style={{ color: "var(--mint-ink)" }}
+                                    onClick={() => setStatusTarget(u)}
+                                  >
+                                    Activate
+                                  </button>
+                                ) : (
+                                  <button
+                                    className="btn btn-ghost sm"
+                                    style={{ color: "var(--rose-ink)" }}
+                                    onClick={() => setStatusTarget(u)}
+                                  >
+                                    Deactivate
+                                  </button>
+                                )}
+                                <button
+                                  className="btn btn-ghost sm"
+                                  style={{ color: "var(--rose-ink)" }}
+                                  onClick={() => {
+                                    setDeleteModeTarget("soft");
+                                    setDeleteTarget(u);
+                                  }}
+                                  title="Delete user account"
+                                >
+                                  Delete
+                                </button>
+                              </>
                             )}
                           </div>
                         </td>
@@ -382,6 +414,8 @@ export default function UsersManager({
 
       <DeleteUserDialog
         user={deleteTarget}
+        initialMode={deleteModeTarget}
+        isSuperAdmin={isSuperAdmin}
         onClose={() => setDeleteTarget(null)}
         onSuccess={handleUserUpdated}
       />

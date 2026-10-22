@@ -8,6 +8,7 @@ import { comparePassword, hashPassword, hashSecret } from '../../utils/password.
 import { generateAccessToken, generateRefreshToken } from '../../utils/token.util';
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
+import { adminDeletionService } from '../../services/deletion';
 
 /**
  * Admin Login
@@ -225,15 +226,18 @@ export const getAdmins = async (req: Request, res: Response): Promise<Response> 
 
     const query: any = {};
 
-    if (isDeleted !== undefined) {
-      query.isDeleted = isDeleted === 'true';
-    } else {
+    if (status === 'deleted' || isDeleted === 'true') {
+      query.isDeleted = true;
+    } else if (status === 'active') {
+      query.status = 'active';
+      query.isDeleted = false;
+    } else if (status === 'inactive') {
+      query.status = 'inactive';
+      query.isDeleted = false;
+    } else if (isDeleted === 'false') {
       query.isDeleted = false;
     }
-
-    if (status && status !== 'all') {
-      query.status = status;
-    }
+    // When status is 'all' or isDeleted is 'all', all entries (active, inactive, deleted) are included in normal list!
 
     if (role && role !== 'all') {
       query.role = role;
@@ -327,11 +331,13 @@ export const activateAdmin = async (req: Request, res: Response): Promise<Respon
     const { adminId } = req.params;
 
     const adminToUpdate = await Admin.findById(adminId);
-    if (!adminToUpdate || adminToUpdate.isDeleted) {
+    if (!adminToUpdate) {
       return sendError(res, 'Admin account not found', 404);
     }
 
     adminToUpdate.status = 'active';
+    adminToUpdate.isDeleted = false;
+    adminToUpdate.deletedAt = undefined;
     await adminToUpdate.save();
 
     logger.info(`Admin account ${adminId} activated by ${req.admin?._id}`);
@@ -412,11 +418,60 @@ export const deleteAdmin = async (req: Request, res: Response): Promise<Response
 
     await AdminSession.updateMany({ adminId }, { isRevoked: true });
 
-    logger.info(`Admin account ${adminId} deleted by ${req.admin?._id}`);
+    logger.info(`Admin account ${adminId} soft-deleted by ${req.admin?._id}`);
 
     return sendSuccess(res, 'Admin account deleted successfully');
   } catch (error) {
     logger.error('[AdminController] Failed to delete admin account:', error);
     return sendError(res, 'Failed to delete admin account', 500);
+  }
+};
+
+/**
+ * Hard delete Admin staff user (Super Admin restricted)
+ * DELETE /api/admin/admins/:adminId/hard
+ */
+export const hardDeleteAdmin = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { adminId } = req.params;
+
+    await adminDeletionService.hardDeleteAdminCascade(adminId, req.admin?._id);
+
+    logger.info(`Admin account ${adminId} permanently hard-deleted by ${req.admin?._id}`);
+
+    return sendSuccess(res, 'Admin staff account permanently deleted successfully');
+  } catch (error: any) {
+    if (error.statusCode === 400 || error.statusCode === 404) {
+      return sendError(res, error.message, error.statusCode);
+    }
+    logger.error('[AdminController] Failed to hard delete admin account:', error);
+    return sendError(res, error.message || 'Failed to hard delete admin account', 500);
+  }
+};
+
+/**
+ * Restore soft-deleted Admin staff user (Super Admin restricted)
+ * PATCH /api/admin/admins/:adminId/restore
+ */
+export const restoreAdmin = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { adminId } = req.params;
+
+    const adminToRestore = await Admin.findById(adminId);
+    if (!adminToRestore) {
+      return sendError(res, 'Admin account not found', 404);
+    }
+
+    adminToRestore.isDeleted = false;
+    adminToRestore.status = 'active';
+    adminToRestore.deletedAt = undefined;
+    await adminToRestore.save();
+
+    logger.info(`Admin account ${adminId} restored by ${req.admin?._id}`);
+
+    return sendSuccess(res, 'Admin account restored successfully');
+  } catch (error) {
+    logger.error('[AdminController] Failed to restore admin account:', error);
+    return sendError(res, 'Failed to restore admin account', 500);
   }
 };

@@ -16,10 +16,11 @@ import {
   blockUser,
   unblockUser,
   deleteUserByAdmin,
+  hardDeleteUserByAdmin,
   restoreUser,
 } from '../../controllers/auth/user.controller';
 import { authenticateUser } from '../../middlewares/auth.middleware';
-import { authenticateAdmin } from '../../middlewares/admin.middleware';
+import { authenticateAdmin, requireSuperAdmin } from '../../middlewares/admin.middleware';
 import { validate } from '../../middlewares/validate.middleware';
 import { uploadSingleImage } from '../../middlewares/upload.middleware';
 import {
@@ -66,6 +67,7 @@ router.put(
 router.patch('/:userId', authenticateAdmin, validate(updateUserByAdminSchema), updateUserByAdmin);
 router.patch('/:userId/block', authenticateAdmin, blockUser);
 router.patch('/:userId/unblock', authenticateAdmin, unblockUser);
+router.delete('/:userId/hard', authenticateAdmin, hardDeleteUserByAdmin);
 router.delete('/:userId', authenticateAdmin, deleteUserByAdmin);
 router.patch('/:userId/restore', authenticateAdmin, restoreUser);
 

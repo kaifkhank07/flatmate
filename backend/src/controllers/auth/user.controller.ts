@@ -22,6 +22,7 @@ import {
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
 import { createNotification, notifyAdmins } from '../../services/notification/notification.service';
+import { userDeletionService } from '../../services/deletion';
 
 /**
  * Register a new user
@@ -391,23 +392,6 @@ export const deactivateCurrentUser = async (req: Request, res: Response): Promis
       : '';
     const userName = userFullName || req.user.email || req.user.mobile || req.user._id.toString();
 
-    // Dispatch notification to admins when user deactivates account by itself
-    notifyAdmins({
-      eventType: 'ADMIN_USER_DEACTIVATED',
-      category: 'ADMINISTRATIVE',
-      title: 'User Account Deactivated',
-      message: `User ${userName} (${req.user.email || req.user.mobile || 'No email/mobile'}) has deactivated their own account.`,
-      actionUrl: '/admin/users',
-      data: {
-        userId: req.user._id.toString(),
-        email: req.user.email,
-        mobile: req.user.mobile,
-        deactivatedBy: 'self',
-        deactiveAt: req.user.deactiveAt,
-      },
-      priority: 'NORMAL',
-    }).catch((err) => logger.warn('[UserController] Failed to notify admins of user deactivation', err));
-
     return sendSuccess(res, 'Account deactivated successfully');
   } catch (error) {
     logger.error('[UserController] Failed to deactivate current user:', error);
@@ -425,22 +409,40 @@ export const deleteCurrentUser = async (req: Request, res: Response): Promise<Re
       return sendError(res, 'Authentication required', 401);
     }
 
-    req.user.isDeleted = true;
-    req.user.deletedAt = new Date();
-    req.user.deletedBy = req.user._id;
-    await req.user.save();
+    // Fetch user profile / name for notification before cascading soft delete
+    const userProfile = await UserProfile.findOne({ userId: req.user._id }).select('firstName lastName').lean();
+    const userFullName = userProfile
+      ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim()
+      : '';
+    const userName = userFullName || req.user.email || req.user.mobile || req.user._id.toString();
 
-    // Revoke all sessions for user
-    await UserSession.updateMany({ userId: req.user._id }, { isRevoked: true });
+    await userDeletionService.softDeleteUserCascade(req.user._id, req.user._id);
 
     clearAuthCookies(res);
 
-    logger.info(`User soft-deleted: ${req.user._id}`);
+    logger.info(`User soft-deleted with cascading cleanup: ${req.user._id}`);
+
+    // Dispatch notification to admins when user deletes account by itself
+    notifyAdmins({
+      eventType: 'ADMIN_USER_DELETED',
+      category: 'ADMINISTRATIVE',
+      title: 'User Account Deleted',
+      message: `User ${userName} (${req.user.email || req.user.mobile || 'No email/mobile'}) has deleted their own account.`,
+      actionUrl: '/admin/users',
+      data: {
+        userId: req.user._id.toString(),
+        email: req.user.email,
+        mobile: req.user.mobile,
+        deletedBy: 'self',
+        deletedAt: new Date(),
+      },
+      priority: 'NORMAL',
+    }).catch((err) => logger.warn('[UserController] Failed to notify admins of user deletion', err));
 
     return sendSuccess(res, 'User account deleted successfully');
-  } catch (error) {
+  } catch (error: any) {
     logger.error('[UserController] Failed to delete current user:', error);
-    return sendError(res, 'Failed to delete user account', 500);
+    return sendError(res, error.message || 'Failed to delete user account', 500);
   }
 };
 
@@ -462,15 +464,18 @@ export const getUsers = async (req: Request, res: Response): Promise<Response> =
 
     const query: any = {};
 
-    if (isDeleted !== undefined) {
-      query.isDeleted = isDeleted === 'true';
-    } else {
+    if (accountStatus === 'deleted' || isDeleted === 'true') {
+      query.isDeleted = true;
+    } else if (accountStatus === 'active') {
+      query.accountStatus = 'active';
+      query.isDeleted = false;
+    } else if (accountStatus === 'inactive') {
+      query.accountStatus = 'inactive';
+      query.isDeleted = false;
+    } else if (isDeleted === 'false') {
       query.isDeleted = false;
     }
-
-    if (accountStatus) {
-      query.accountStatus = accountStatus;
-    }
+    // Note: When isDeleted is 'all' or filter is 'all', all entries (active, inactive, deleted) are included in normal list!
 
     if (search) {
       const searchRegex = new RegExp(search as string, 'i');
@@ -907,24 +912,39 @@ export const deleteUserByAdmin = async (req: Request, res: Response): Promise<Re
   try {
     const { userId } = req.params;
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return sendError(res, 'User not found', 404);
-    }
+    await userDeletionService.softDeleteUserCascade(userId, req.admin?._id);
 
-    user.isDeleted = true;
-    user.deletedAt = new Date();
-    user.deletedBy = req.admin?._id;
-    await user.save();
-
-    await UserSession.updateMany({ userId }, { isRevoked: true });
-
-    logger.info(`User ${userId} soft-deleted by admin ${req.admin?._id}`);
+    logger.info(`User ${userId} soft-deleted with cascading cleanup by admin ${req.admin?._id}`);
 
     return sendSuccess(res, 'User deleted successfully');
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === 'User not found') {
+      return sendError(res, 'User not found', 404);
+    }
     logger.error('[UserController] Failed to delete user:', error);
-    return sendError(res, 'Failed to delete user', 500);
+    return sendError(res, error.message || 'Failed to delete user', 500);
+  }
+};
+
+/**
+ * Hard delete user by Admin (Permanently purges user account and all cascading listings/media)
+ * DELETE /api/users/:userId/hard
+ */
+export const hardDeleteUserByAdmin = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { userId } = req.params;
+
+    await userDeletionService.hardDeleteUserCascade(userId);
+
+    logger.info(`User ${userId} permanently hard-deleted with cascading cleanup by admin ${req.admin?._id}`);
+
+    return sendSuccess(res, 'User permanently deleted successfully');
+  } catch (error: any) {
+    if (error.message === 'User not found') {
+      return sendError(res, 'User not found', 404);
+    }
+    logger.error('[UserController] Failed to hard delete user:', error);
+    return sendError(res, error.message || 'Failed to hard delete user', 500);
   }
 };
 

@@ -10,6 +10,7 @@ import {
   Loader2,
   Sparkles,
   RefreshCw,
+  Check,
 } from "lucide-react";
 import SectionHeading from "../../utils/SectionHeading";
 import LoadingState from "../../utils/LoadingState";
@@ -119,19 +120,19 @@ export default function PreferencesManager() {
   const renderPreferenceImage = (pref: UserPreferenceItem) => {
     if (pref.image?.url) {
       return (
-        <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20">
+        <div className="relative w-8 h-8 sm:w-11 sm:h-11 md:w-13 md:h-13 flex-shrink-0">
           <Image
             src={pref.image.url}
             alt={pref.name}
             fill
             unoptimized
-            className="object-contain p-1"
+            className="object-contain"
           />
         </div>
       );
     }
 
-    return <Sparkles className="w-10 h-10 text-[#0066F9]" />;
+    return <Sparkles className="w-7 h-7 sm:w-9 sm:h-9 text-[#0066F9] flex-shrink-0" />;
   };
 
   if (!isInitialized || (isProfileLoading && !profile)) {
@@ -182,38 +183,55 @@ export default function PreferencesManager() {
             />
           ) : (
             <form onSubmit={handleUpdatePreferences}>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10 justify-items-center">
-                {masterPreferences.map((pref) => {
-                  const isSelected = selectedPreferenceIds.includes(pref._id);
+              <div className="max-w-4xl mx-auto">
+                <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3.5 md:gap-4 lg:gap-5 justify-items-center">
+                  {masterPreferences.map((pref) => {
+                    const isSelected = selectedPreferenceIds.includes(pref._id);
 
-                  return (
-                    <div key={pref._id} className="flex flex-col items-center">
+                    return (
                       <button
+                        key={pref._id}
                         type="button"
                         onClick={() => handleTogglePreference(pref._id)}
                         aria-label={`Select ${pref.name}`}
-                        className={`w-28 h-28 sm:w-32 sm:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${isSelected
-                          ? "bg-[#E3F2FD] border-2 border-[#0066F9] ring-4 ring-[#0066F9]/15 shadow-sm scale-102"
-                          : "bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7]"
+                        aria-pressed={isSelected}
+                        title={pref.name}
+                        className={`group relative flex aspect-square w-full flex-col items-center justify-center p-1.5 sm:p-2.5 md:p-3 rounded-xl sm:rounded-2xl transition-all duration-200 cursor-pointer select-none active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0066F9]/40 ${isSelected
+                            ? "bg-[#F0F7FF] border-2 border-[#0066F9] shadow-xs"
+                            : "bg-white border border-gray-200/90 hover:bg-slate-50/70 hover:border-gray-300 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                           }`}
                       >
-                        {renderPreferenceImage(pref)}
-                      </button>
+                        {/* Blue circular check badge in top-right when selected */}
+                        {isSelected && (
+                          <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-[#0066F9] text-white shadow-xs animate-in zoom-in-75 duration-150">
+                            <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 stroke-[3]" />
+                          </span>
+                        )}
 
-                      <span className="text-gray-800 text-sm sm:text-base md:text-lg font-regular mt-3 text-center tracking-tight">
-                        {pref.name}
-                      </span>
-                    </div>
-                  );
-                })}
+                        {/* Centered preference icon */}
+                        <div className="flex items-center justify-center">
+                          {renderPreferenceImage(pref)}
+                        </div>
+
+                        {/* Preference label inside the card */}
+                        <span
+                          className={`mt-1 sm:mt-1.5 w-full text-center text-[10px] sm:text-xs md:text-sm font-medium leading-tight tracking-tight line-clamp-1 break-words px-0.5 transition-colors ${isSelected ? "text-slate-900" : "text-slate-700"
+                            }`}
+                        >
+                          {pref.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Bottom Update Preferences Button */}
-              <div className="mt-12 sm:mt-16 text-center flex flex-col items-center">
+              <div className="mt-10 sm:mt-14 text-center flex flex-col items-center">
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-10 py-3 rounded-full bg-[#0066F9] hover:bg-[#0055D4] text-white text-sm font-medium shadow-sm transition-all active:scale-95 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="px-8 sm:px-10 py-3 rounded-full bg-[#0066F9] hover:bg-[#0055D4] text-white text-sm font-medium shadow-sm transition-all active:scale-95 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isSaving ? (
                     <span className="flex items-center gap-2">
