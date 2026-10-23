@@ -22,6 +22,7 @@ import FlatmateRequirementCreateDialog from "./FlatmateRequirementCreateDialog";
 import FlatmateRequirementEditDialog from "./FlatmateRequirementEditDialog";
 import FlatmateRequirementDetailsDialog from "./FlatmateRequirementDetailsDialog";
 import FlatmateRequirementStatusChangeDialog from "./FlatmateRequirementStatusChangeDialog";
+import FlatmateRequirementBulkStatusDialog from "./FlatmateRequirementBulkStatusDialog";
 import DeleteFlatmateRequirementDialog from "./DeleteFlatmateRequirementDialog";
 
 const LIMIT = 10;
@@ -104,6 +105,40 @@ export default function FlatmateRequirementsManager({
   // Delete Confirm Modal State
   const [deleteTarget, setDeleteTarget] = useState<FlatmateRequirementItem | null>(null);
 
+  // Bulk Selection States
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkStatusModalOpen, setIsBulkStatusModalOpen] = useState(false);
+  const [bulkTargetStatus, setBulkTargetStatus] = useState<string>("approved");
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === items.length && items.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(items.map((it) => it._id)));
+    }
+  };
+
+  const handleOpenBulkStatusModal = (status: string) => {
+    if (selectedIds.size === 0) {
+      toast("Please select at least one flatmate requirement first.");
+      return;
+    }
+    setBulkTargetStatus(status);
+    setIsBulkStatusModalOpen(true);
+  };
+
   // Load Requirements Callback
   const loadFlatmateRequirements = useCallback(async () => {
     setLoading(true);
@@ -152,6 +187,7 @@ export default function FlatmateRequirementsManager({
     setSelectedPartnerTypeFilter("all");
     setQ("");
     setPage(1);
+    setSelectedIds(new Set());
   };
 
   // Open Details Drawer
@@ -287,7 +323,10 @@ export default function FlatmateRequirementsManager({
                 className="px-3 py-1.5 bg-[var(--canvas-2)] border border-[var(--hair-2)] rounded-lg text-xs font-semibold text-[var(--ink-2)] focus:outline-none focus:border-[var(--ember)]"
                 value={selectedPostTypeFilter}
                 onChange={(e) => {
-                  setSelectedPostTypeFilter(e.target.value);
+                  const val = e.target.value;
+                  setSelectedPostTypeFilter(val);
+                  if (val !== "property") setSelectedPropertyTypeFilter("all");
+                  if (val !== "partner") setSelectedPartnerTypeFilter("all");
                   setPage(1);
                 }}
               >
@@ -298,7 +337,7 @@ export default function FlatmateRequirementsManager({
                 ))}
               </select>
 
-              {(selectedPostTypeFilter === "all" || selectedPostTypeFilter === "property") && (
+              {selectedPostTypeFilter === "property" && (
                 <select
                   className="px-3 py-1.5 bg-[var(--canvas-2)] border border-[var(--hair-2)] rounded-lg text-xs font-semibold text-[var(--ink-2)] focus:outline-none focus:border-[var(--ember)]"
                   value={selectedPropertyTypeFilter}
@@ -315,7 +354,7 @@ export default function FlatmateRequirementsManager({
                 </select>
               )}
 
-              {(selectedPostTypeFilter === "all" || selectedPostTypeFilter === "partner") && (
+              {selectedPostTypeFilter === "partner" && (
                 <select
                   className="px-3 py-1.5 bg-[var(--canvas-2)] border border-[var(--hair-2)] rounded-lg text-xs font-semibold text-[var(--ink-2)] focus:outline-none focus:border-[var(--ember)]"
                   value={selectedPartnerTypeFilter}
@@ -339,10 +378,44 @@ export default function FlatmateRequirementsManager({
             </div>
           </div>
 
+          {/* Bulk Action Bar */}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center justify-between flex-wrap gap-2.5 p-3 mx-4 mb-3 bg-[var(--canvas-2)] border border-[var(--hair-2)] rounded-xl">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink-1)]">
+                <span>Total {selectedIds.size} flatmate requirement{selectedIds.size === 1 ? "" : "s"} selected</span>
+                {/* <button
+                  type="button"
+                  className="btn btn-ghost sm text-xs"
+                  onClick={() => setSelectedIds(new Set())}
+                >
+                  Deselect All
+                </button> */}
+              </div>
+              <div className="flex items-center flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  className="btn btn-brand sm"
+                  onClick={() => handleOpenBulkStatusModal("approved")}
+                >
+                  Select Status
+                </button>
+              </div>
+            </div>
+          )}
+
           <div style={{ overflowX: "auto" }}>
             <table>
               <thead>
                 <tr>
+                  <th style={{ width: 42, textAlign: "center" }}>
+                    <input
+                      type="checkbox"
+                      className="cursor-pointer rounded border-[var(--hair-2)] accent-[var(--ember)]"
+                      checked={items.length > 0 && selectedIds.size === items.length}
+                      onChange={handleSelectAll}
+                      aria-label="Select all flatmate requirements on this page"
+                    />
+                  </th>
                   <th>Requirement</th>
                   <th>User</th>
                   <th>Location</th>
@@ -359,13 +432,13 @@ export default function FlatmateRequirementsManager({
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={11} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
+                    <td colSpan={12} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
                       Loading flatmate requirements…
                     </td>
                   </tr>
                 ) : items.length === 0 ? (
                   <tr>
-                    <td colSpan={11} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
+                    <td colSpan={12} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
                       No flatmate requirements found matching parameters.
                     </td>
                   </tr>
@@ -374,6 +447,15 @@ export default function FlatmateRequirementsManager({
                     const cover = getCoverImageUrl(item);
                     return (
                       <tr key={item._id}>
+                        <td style={{ textAlign: "center", width: 42 }}>
+                          <input
+                            type="checkbox"
+                            className="cursor-pointer rounded border-[var(--hair-2)] accent-[var(--ember)]"
+                            checked={selectedIds.has(item._id)}
+                            onChange={() => handleToggleSelect(item._id)}
+                            aria-label={`Select ${item.title}`}
+                          />
+                        </td>
                         <td
                           className="td-person"
                           style={{ cursor: "pointer" }}
@@ -600,6 +682,18 @@ export default function FlatmateRequirementsManager({
           if (updatedRequirementId && selectedDetailsRequirementId === updatedRequirementId) {
             handleOpenDetails(updatedRequirementId);
           }
+        }}
+      />
+
+      {/* Flatmate Requirement Bulk Status Dialog */}
+      <FlatmateRequirementBulkStatusDialog
+        isOpen={isBulkStatusModalOpen}
+        selectedIds={Array.from(selectedIds)}
+        initialStatus={bulkTargetStatus}
+        onClose={() => setIsBulkStatusModalOpen(false)}
+        onSuccess={() => {
+          setSelectedIds(new Set());
+          loadFlatmateRequirements();
         }}
       />
 

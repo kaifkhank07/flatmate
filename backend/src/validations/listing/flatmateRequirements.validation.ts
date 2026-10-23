@@ -276,3 +276,43 @@ export const updateFlatmateRequirementStatusSchema = z.object({
     rejectionReason: z.string().trim().optional(),
   }),
 });
+
+export const bulkUpdateFlatmateRequirementStatusSchema = z.object({
+  body: z
+    .object({
+      ids: z
+        .array(objectIdString, { required_error: 'Listing IDs array is required' })
+        .min(1, 'Listing IDs array cannot be empty')
+        .refine((items) => new Set(items).size === items.length, {
+          message: 'Listing IDs must not contain duplicate values',
+        }),
+      status: z.enum(
+        [
+          'draft',
+          'pending',
+          'approved',
+          'rejected',
+          'blocked',
+          'closed',
+          'expired',
+        ],
+        {
+          required_error: 'Status is required',
+        }
+      ),
+      rejectionReason: z.string().trim().optional(),
+    })
+    .refine(
+      (data) => {
+        if (data.status === 'rejected') {
+          return Boolean(data.rejectionReason && data.rejectionReason.trim().length > 0);
+        }
+        return true;
+      },
+      {
+        message: 'Rejection reason is required when status is rejected',
+        path: ['rejectionReason'],
+      }
+    ),
+});
+

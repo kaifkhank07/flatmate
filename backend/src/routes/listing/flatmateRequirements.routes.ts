@@ -8,6 +8,7 @@ import {
   getPublicFlatmateRequirementsSchema,
   getMyFlatmateRequirementsSchema,
   updateFlatmateRequirementStatusSchema,
+  bulkUpdateFlatmateRequirementStatusSchema,
 } from '../../validations/listing/flatmateRequirements.validation';
 import {
   createFlatmateRequirement,
@@ -18,6 +19,7 @@ import {
   updateFlatmateRequirement,
   deleteFlatmateRequirement,
   updateFlatmateRequirementStatus,
+  bulkUpdateFlatmateRequirementStatus,
   getAdminFlatmateRequirements,
   addImageToFlatmateRequirement,
   removeImageFromFlatmateRequirement,
@@ -27,6 +29,9 @@ import {
 import { listingLimitMiddleware } from '../../middlewares/listingLimit.middleware';
 
 const router = Router();
+
+// Admin bulk status operations (Must precede dynamic /:id parameter routes)
+router.patch('/bulk-status', authenticateAdmin, validate(bulkUpdateFlatmateRequirementStatusSchema), bulkUpdateFlatmateRequirementStatus);
 
 // Public read-only routes
 router.get('/', validate(getPublicFlatmateRequirementsSchema), getPublicFlatmateRequirements);

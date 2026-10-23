@@ -1035,6 +1035,35 @@ export async function deletePropertyApi(id: string) {
   return apiFetch(`/properties/${id}`, { method: "DELETE" });
 }
 
+export interface BulkStatusUpdateItemResult {
+  id: string;
+  title?: string;
+  status: "updated" | "skipped" | "not_found";
+  previousStatus?: string;
+  newStatus?: string;
+  reason?: string;
+}
+
+export interface BulkStatusUpdateResponse {
+  targetStatus: string;
+  totalRequested: number;
+  updatedCount: number;
+  skippedCount: number;
+  notFoundCount: number;
+  results: BulkStatusUpdateItemResult[];
+}
+
+export async function bulkUpdatePropertyStatusApi(
+  ids: string[],
+  status: string,
+  rejectionReason?: string
+) {
+  return apiFetch<BulkStatusUpdateResponse>("/properties/bulk-status", {
+    method: "PATCH",
+    body: JSON.stringify({ ids, status, rejectionReason }),
+  });
+}
+
 // ==========================================
 // Flatmate Requirement Management Services
 // ==========================================
@@ -1201,6 +1230,17 @@ export async function updateFlatmateRequirementStatusApi(requirementId: string, 
   return apiFetch<FlatmateRequirementItem>(`/flatmate-requirements/admin/${requirementId}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status, rejectionReason }),
+  });
+}
+
+export async function bulkUpdateFlatmateRequirementStatusApi(
+  ids: string[],
+  status: string,
+  rejectionReason?: string
+) {
+  return apiFetch<BulkStatusUpdateResponse>("/flatmate-requirements/bulk-status", {
+    method: "PATCH",
+    body: JSON.stringify({ ids, status, rejectionReason }),
   });
 }
 

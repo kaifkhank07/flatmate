@@ -21,6 +21,7 @@ import PropertyCreateDialog from "./PropertyCreateDialog";
 import PropertyEditDialog from "./PropertyEditDialog";
 import PropertyDetailsDialog from "./PropertyDetailsDialog";
 import PropertyStatusChangeDialog from "./PropertyStatusChangeDialog";
+import PropertyBulkStatusDialog from "./PropertyBulkStatusDialog";
 import DeletePropertyDialog from "./DeletePropertyDialog";
 
 const LIMIT = 10;
@@ -99,6 +100,40 @@ export default function PropertyManager({
   // Delete Confirm Modal State
   const [deleteTarget, setDeleteTarget] = useState<PropertyItem | null>(null);
 
+  // Bulk Selection States
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkStatusModalOpen, setIsBulkStatusModalOpen] = useState(false);
+  const [bulkTargetStatus, setBulkTargetStatus] = useState<string>("approved");
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === items.length && items.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(items.map((it) => it._id)));
+    }
+  };
+
+  const handleOpenBulkStatusModal = (status: string) => {
+    if (selectedIds.size === 0) {
+      toast("Please select at least one property listing first.");
+      return;
+    }
+    setBulkTargetStatus(status);
+    setIsBulkStatusModalOpen(true);
+  };
+
   // Load Properties
   const loadProperties = useCallback(async () => {
     setLoading(true);
@@ -148,6 +183,7 @@ export default function PropertyManager({
     setSelectedLocationFilter("all");
     setQ("");
     setPage(1);
+    setSelectedIds(new Set());
   };
 
   // Open Details Drawer
@@ -317,10 +353,44 @@ export default function PropertyManager({
             </div>
           </div>
 
+          {/* Bulk Action Bar */}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center justify-between flex-wrap gap-2.5 p-3 mx-4 mb-3 bg-[var(--canvas-2)] border border-[var(--hair-2)] rounded-xl">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink-1)]">
+                <span>Total {selectedIds.size} propert{selectedIds.size === 1 ? "y" : "ies"} selected</span>
+                {/* <button
+                  type="button"
+                  className="btn btn-ghost sm text-xs"
+                  onClick={() => setSelectedIds(new Set())}
+                >
+                  Unselect All
+                </button> */}
+              </div>
+              <div className="flex items-center flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  className="btn btn-brand sm"
+                  onClick={() => handleOpenBulkStatusModal("approved")}
+                >
+                  Select Status
+                </button>
+              </div>
+            </div>
+          )}
+
           <div style={{ overflowX: "auto" }}>
             <table>
               <thead>
                 <tr>
+                  <th style={{ width: 42, textAlign: "center" }}>
+                    <input
+                      type="checkbox"
+                      className="cursor-pointer rounded border-[var(--hair-2)] accent-[var(--ember)]"
+                      checked={items.length > 0 && selectedIds.size === items.length}
+                      onChange={handleSelectAll}
+                      aria-label="Select all properties on this page"
+                    />
+                  </th>
                   <th>Property</th>
                   <th>Owner</th>
                   <th>Location</th>
@@ -336,13 +406,13 @@ export default function PropertyManager({
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={10} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
+                    <td colSpan={11} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
                       Loading property listings…
                     </td>
                   </tr>
                 ) : items.length === 0 ? (
                   <tr>
-                    <td colSpan={10} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
+                    <td colSpan={11} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
                       No property listings found matching parameters.
                     </td>
                   </tr>
@@ -351,6 +421,15 @@ export default function PropertyManager({
                     const cover = getCoverImageUrl(item);
                     return (
                       <tr key={item._id}>
+                        <td style={{ textAlign: "center", width: 42 }}>
+                          <input
+                            type="checkbox"
+                            className="cursor-pointer rounded border-[var(--hair-2)] accent-[var(--ember)]"
+                            checked={selectedIds.has(item._id)}
+                            onChange={() => handleToggleSelect(item._id)}
+                            aria-label={`Select ${item.title}`}
+                          />
+                        </td>
                         <td
                           className="td-person"
                           style={{ cursor: "pointer" }}
@@ -566,6 +645,18 @@ export default function PropertyManager({
           if (updatedPropertyId && selectedDetailsPropertyId === updatedPropertyId) {
             handleOpenDetails(updatedPropertyId);
           }
+        }}
+      />
+
+      {/* Property Bulk Status Dialog */}
+      <PropertyBulkStatusDialog
+        isOpen={isBulkStatusModalOpen}
+        selectedIds={Array.from(selectedIds)}
+        initialStatus={bulkTargetStatus}
+        onClose={() => setIsBulkStatusModalOpen(false)}
+        onSuccess={() => {
+          setSelectedIds(new Set());
+          loadProperties();
         }}
       />
 

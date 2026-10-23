@@ -710,12 +710,23 @@ export const updatePropertyStatus = async (req: Request, res: Response): Promise
 
     if (status === 'rejected') {
       property.rejectionReason = rejectionReason.trim();
+      property.set('approvedAt', undefined);
+      property.approvedAt = undefined;
+      property.set('publishedAt', undefined);
+      property.publishedAt = undefined;
     } else if (status === 'approved') {
       if (!property.approvedAt) property.approvedAt = now;
       if (!property.publishedAt) property.publishedAt = now;
       property.set('rejectionReason', undefined);
       property.rejectionReason = undefined;
-    } else if (status === 'pending') {
+    } else if (status === 'pending' || status === 'draft') {
+      property.set('rejectionReason', undefined);
+      property.rejectionReason = undefined;
+      property.set('approvedAt', undefined);
+      property.approvedAt = undefined;
+      property.set('publishedAt', undefined);
+      property.publishedAt = undefined;
+    } else {
       property.set('rejectionReason', undefined);
       property.rejectionReason = undefined;
     }
@@ -928,3 +939,232 @@ export const removeVideoFromProperty = async (req: Request, res: Response): Prom
     return sendError(res, 'Failed to remove video from property', 500);
   }
 };
+
+/**
+ * Bulk update property listing statuses (Admin)
+ * PATCH /api/properties/admin/bulk-status
+ */
+export const bulkUpdatePropertyStatus = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const rawIds = req.body.ids || req.body.listingIds;
+    const { status, rejectionReason } = req.body;
+
+    if (!Array.isArray(rawIds) || rawIds.length === 0) {
+      return sendError(res, 'Listing IDs array cannot be empty', 400);
+    }
+
+    const validStatuses: PropertyStatus[] = [
+      'draft',
+      'pending',
+      'approved',
+      'rejected',
+      'blocked',
+      'closed',
+      'expired',
+    ];
+
+    if (!status || !validStatuses.includes(status)) {
+      return sendError(res, `Invalid status value. Must be one of: ${validStatuses.join(', ')}`, 400);
+    }
+
+    if (status === 'rejected' && (!rejectionReason || !rejectionReason.trim())) {
+      return sendError(res, 'Rejection reason is required when status is set to rejected', 400);
+    }
+
+    const invalidIds = rawIds.filter((id: any) => typeof id !== 'string' || !Types.ObjectId.isValid(id));
+    if (invalidIds.length > 0) {
+      return sendError(res, 'One or more listing IDs are invalid ObjectIds', 400, { invalidIds });
+    }
+
+    const uniqueIds = Array.from(new Set(rawIds as string[]));
+    if (uniqueIds.length !== rawIds.length) {
+      return sendError(res, 'Listing IDs must not contain duplicate values', 400);
+    }
+
+    const objectIds = uniqueIds.map((id) => new Types.ObjectId(id));
+    const properties = await Property.find({ _id: { $in: objectIds } });
+
+    if (properties.length === 0) {
+      return sendError(res, 'No property listings found for the provided IDs', 404);
+    }
+
+    const propertyMap = new Map<string, IProperty>();
+    for (const p of properties) {
+      propertyMap.set(p._id.toString(), p);
+    }
+
+    const now = new Date();
+    const bulkOps: any[] = [];
+    const perListingResults: Array<{
+      id: string;
+      title?: string;
+      status: 'updated' | 'skipped' | 'not_found';
+      previousStatus?: string;
+      newStatus?: string;
+      reason?: string;
+    }> = [];
+
+    const updatedPropertiesToNotify: Array<{
+      property: IProperty;
+      oldStatus: string;
+    }> = [];
+
+    for (const idStr of uniqueIds) {
+      const prop = propertyMap.get(idStr);
+      if (!prop) {
+        perListingResults.push({
+          id: idStr,
+          status: 'not_found',
+          reason: 'Property listing not found',
+        });
+        continue;
+      }
+
+      if (prop.status === status) {
+        perListingResults.push({
+          id: idStr,
+          title: prop.title,
+          status: 'skipped',
+          previousStatus: prop.status,
+          newStatus: status,
+          reason: `Listing is already ${status}`,
+        });
+        continue;
+      }
+
+      const updateDoc: any = {
+        $set: {
+          status,
+          updatedAt: now,
+        },
+      };
+
+      if ((Property.schema.paths as any).updatedBy && (req as any).admin?._id) {
+        updateDoc.$set.updatedBy = (req as any).admin._id;
+      }
+
+      if (status === 'approved') {
+        if (!prop.approvedAt) updateDoc.$set.approvedAt = now;
+        if (!prop.publishedAt) updateDoc.$set.publishedAt = now;
+        updateDoc.$unset = { rejectionReason: 1 };
+      } else if (status === 'rejected') {
+        updateDoc.$set.rejectionReason = rejectionReason.trim();
+        updateDoc.$unset = {
+          approvedAt: 1,
+          publishedAt: 1,
+        };
+      } else if (status === 'pending' || status === 'draft') {
+        updateDoc.$unset = {
+          rejectionReason: 1,
+          approvedAt: 1,
+          publishedAt: 1,
+        };
+      } else {
+        updateDoc.$unset = { rejectionReason: 1 };
+      }
+
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: prop._id },
+          update: updateDoc,
+        },
+      });
+
+      updatedPropertiesToNotify.push({
+        property: prop,
+        oldStatus: prop.status,
+      });
+
+      perListingResults.push({
+        id: idStr,
+        title: prop.title,
+        status: 'updated',
+        previousStatus: prop.status,
+        newStatus: status,
+      });
+    }
+
+    if (bulkOps.length > 0) {
+      await Property.bulkWrite(bulkOps);
+    }
+
+    for (const { property } of updatedPropertiesToNotify) {
+      if (status === 'approved') {
+        createNotification({
+          recipientType: 'USER',
+          recipientId: property.userId,
+          eventType: 'LISTING_APPROVED',
+          category: 'LISTING_UPDATES',
+          title: 'Listing Approved!',
+          message: `Great news! Your property listing "${property.title}" has been approved and is now live on FlatMate.`,
+          actionUrl: `/my-listings/${property.slug || property._id}`,
+          data: { listingId: property._id.toString(), listingType: 'property' },
+          priority: 'HIGH',
+        }).catch((err) =>
+          logger.warn(`[PropertyController] Failed to notify user of bulk approval for ${property._id}`, err)
+        );
+      } else if (status === 'rejected') {
+        createNotification({
+          recipientType: 'USER',
+          recipientId: property.userId,
+          eventType: 'LISTING_REJECTED',
+          category: 'LISTING_UPDATES',
+          title: 'Listing Needs Revision',
+          message: rejectionReason
+            ? `Your property listing "${property.title}" was not approved. Reason: ${rejectionReason.trim()}`
+            : `Your property listing "${property.title}" was not approved. Please review our guidelines, update your details, and re-submit.`,
+          actionUrl: `/my-listings/${property.slug || property._id}`,
+          data: {
+            listingId: property._id.toString(),
+            listingType: 'property',
+            rejectionReason: rejectionReason?.trim(),
+          },
+          priority: 'HIGH',
+        }).catch((err) =>
+          logger.warn(`[PropertyController] Failed to notify user of bulk rejection for ${property._id}`, err)
+        );
+      } else if (status === 'blocked' || status === 'closed') {
+        createNotification({
+          recipientType: 'USER',
+          recipientId: property.userId,
+          eventType: 'LISTING_UNPUBLISHED',
+          category: 'LISTING_UPDATES',
+          title: status === 'blocked' ? 'Listing Blocked' : 'Listing Closed',
+          message: `Your property listing "${property.title}" has been ${
+            status === 'blocked' ? 'blocked by moderation' : 'closed'
+          }.`,
+          actionUrl: `/my-listings/${property.slug || property._id}`,
+          data: { listingId: property._id.toString(), listingType: 'property', status },
+          priority: 'NORMAL',
+        }).catch((err) =>
+          logger.warn(`[PropertyController] Failed to notify user of bulk unpublished for ${property._id}`, err)
+        );
+      }
+    }
+
+    const updatedCount = bulkOps.length;
+    const skippedCount = perListingResults.filter((r) => r.status === 'skipped').length;
+    const notFoundCount = perListingResults.filter((r) => r.status === 'not_found').length;
+
+    logger.info(
+      `[PropertyController] Bulk status update completed: ${updatedCount} updated, ${skippedCount} skipped, ${notFoundCount} not found to ${status}`
+    );
+
+    return sendSuccess(
+      res,
+      `Bulk status update completed. ${updatedCount} property listing(s) updated to ${status}.`,
+      {
+        targetStatus: status,
+        totalRequested: uniqueIds.length,
+        updatedCount,
+        skippedCount,
+        notFoundCount,
+        results: perListingResults,
+      }
+    );
+  } catch (error: any) {
+    logger.error('[PropertyController] bulkUpdatePropertyStatus error:', error);
+    return sendError(res, error.message || 'Failed to perform bulk status update on properties', 500);
+  }
+};
+

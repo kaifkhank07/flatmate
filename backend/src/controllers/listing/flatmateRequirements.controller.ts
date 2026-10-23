@@ -784,13 +784,24 @@ export const updateFlatmateRequirementStatus = async (req: Request, res: Respons
     existingRequirement.status = status;
     if (status === 'rejected' && rejectionReason) {
       existingRequirement.rejectionReason = rejectionReason.trim();
+      existingRequirement.set('approvedAt', undefined);
+      existingRequirement.approvedAt = undefined;
+      existingRequirement.set('publishedAt', undefined);
+      existingRequirement.publishedAt = undefined;
     } else if (status === 'approved') {
       const now = new Date();
       if (!existingRequirement.approvedAt) existingRequirement.approvedAt = now;
       if (!existingRequirement.publishedAt) existingRequirement.publishedAt = now;
       existingRequirement.set('rejectionReason', undefined);
       existingRequirement.rejectionReason = undefined;
-    } else if (status === 'pending') {
+    } else if (status === 'pending' || status === 'draft') {
+      existingRequirement.set('rejectionReason', undefined);
+      existingRequirement.rejectionReason = undefined;
+      existingRequirement.set('approvedAt', undefined);
+      existingRequirement.approvedAt = undefined;
+      existingRequirement.set('publishedAt', undefined);
+      existingRequirement.publishedAt = undefined;
+    } else {
       existingRequirement.set('rejectionReason', undefined);
       existingRequirement.rejectionReason = undefined;
     }
@@ -1072,4 +1083,233 @@ export const removeVideoFromFlatmateRequirement = async (req: Request, res: Resp
     return sendError(res, 'Failed to remove video from flatmate requirement', 500);
   }
 };
+
+/**
+ * 14. Bulk update flatmate requirement statuses (Admin)
+ * PATCH /api/flatmate-requirements/admin/bulk-status
+ */
+export const bulkUpdateFlatmateRequirementStatus = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const rawIds = req.body.ids || req.body.listingIds;
+    const { status, rejectionReason } = req.body;
+
+    if (!Array.isArray(rawIds) || rawIds.length === 0) {
+      return sendError(res, 'Listing IDs array cannot be empty', 400);
+    }
+
+    const validStatuses: PostStatus[] = [
+      'draft',
+      'pending',
+      'approved',
+      'rejected',
+      'blocked',
+      'closed',
+      'expired',
+    ];
+
+    if (!status || !validStatuses.includes(status)) {
+      return sendError(res, `Invalid status value. Must be one of: ${validStatuses.join(', ')}`, 400);
+    }
+
+    if (status === 'rejected' && (!rejectionReason || !rejectionReason.trim())) {
+      return sendError(res, 'Rejection reason is required when status is set to rejected', 400);
+    }
+
+    const invalidIds = rawIds.filter((id: any) => typeof id !== 'string' || !Types.ObjectId.isValid(id));
+    if (invalidIds.length > 0) {
+      return sendError(res, 'One or more listing IDs are invalid ObjectIds', 400, { invalidIds });
+    }
+
+    const uniqueIds = Array.from(new Set(rawIds as string[]));
+    if (uniqueIds.length !== rawIds.length) {
+      return sendError(res, 'Listing IDs must not contain duplicate values', 400);
+    }
+
+    const objectIds = uniqueIds.map((id) => new Types.ObjectId(id));
+    const requirements = await FlatmateRequirement.find({ _id: { $in: objectIds } });
+
+    if (requirements.length === 0) {
+      return sendError(res, 'No flatmate requirements found for the provided IDs', 404);
+    }
+
+    const requirementMap = new Map<string, IFlatmateRequirement>();
+    for (const r of requirements) {
+      requirementMap.set(r._id.toString(), r);
+    }
+
+    const now = new Date();
+    const bulkOps: any[] = [];
+    const perListingResults: Array<{
+      id: string;
+      title?: string;
+      status: 'updated' | 'skipped' | 'not_found';
+      previousStatus?: string;
+      newStatus?: string;
+      reason?: string;
+    }> = [];
+
+    const updatedRequirementsToNotify: Array<{
+      requirement: IFlatmateRequirement;
+      oldStatus: string;
+    }> = [];
+
+    for (const idStr of uniqueIds) {
+      const reqDoc = requirementMap.get(idStr);
+      if (!reqDoc) {
+        perListingResults.push({
+          id: idStr,
+          status: 'not_found',
+          reason: 'Flatmate requirement not found',
+        });
+        continue;
+      }
+
+      if (reqDoc.status === status) {
+        perListingResults.push({
+          id: idStr,
+          title: reqDoc.title,
+          status: 'skipped',
+          previousStatus: reqDoc.status,
+          newStatus: status,
+          reason: `Listing is already ${status}`,
+        });
+        continue;
+      }
+
+      const updateDoc: any = {
+        $set: {
+          status,
+          updatedAt: now,
+        },
+      };
+
+      if ((FlatmateRequirement.schema.paths as any).updatedBy && (req as any).admin?._id) {
+        updateDoc.$set.updatedBy = (req as any).admin._id;
+      }
+
+      if (status === 'approved') {
+        if (!reqDoc.approvedAt) updateDoc.$set.approvedAt = now;
+        if (!reqDoc.publishedAt) updateDoc.$set.publishedAt = now;
+        updateDoc.$unset = { rejectionReason: 1 };
+      } else if (status === 'rejected') {
+        updateDoc.$set.rejectionReason = rejectionReason.trim();
+        updateDoc.$unset = {
+          approvedAt: 1,
+          publishedAt: 1,
+        };
+      } else if (status === 'pending' || status === 'draft') {
+        updateDoc.$unset = {
+          rejectionReason: 1,
+          approvedAt: 1,
+          publishedAt: 1,
+        };
+      } else {
+        updateDoc.$unset = { rejectionReason: 1 };
+      }
+
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: reqDoc._id },
+          update: updateDoc,
+        },
+      });
+
+      updatedRequirementsToNotify.push({
+        requirement: reqDoc,
+        oldStatus: reqDoc.status,
+      });
+
+      perListingResults.push({
+        id: idStr,
+        title: reqDoc.title,
+        status: 'updated',
+        previousStatus: reqDoc.status,
+        newStatus: status,
+      });
+    }
+
+    if (bulkOps.length > 0) {
+      await FlatmateRequirement.bulkWrite(bulkOps);
+    }
+
+    for (const { requirement } of updatedRequirementsToNotify) {
+      if (status === 'approved') {
+        createNotification({
+          recipientType: 'USER',
+          recipientId: requirement.userId,
+          eventType: 'LISTING_APPROVED',
+          category: 'LISTING_UPDATES',
+          title: 'Listing Approved!',
+          message: `Great news! Your flatmate requirement listing "${requirement.title}" has been approved and is now live on FlatMate.`,
+          actionUrl: `/my-listings/${requirement.slug || requirement._id}`,
+          data: { listingId: requirement._id.toString(), listingType: 'flatmate_requirement' },
+          priority: 'HIGH',
+        }).catch((err) =>
+          logger.warn(`[FlatmateRequirementController] Failed to notify user of bulk approval for ${requirement._id}`, err)
+        );
+      } else if (status === 'rejected') {
+        createNotification({
+          recipientType: 'USER',
+          recipientId: requirement.userId,
+          eventType: 'LISTING_REJECTED',
+          category: 'LISTING_UPDATES',
+          title: 'Listing Needs Revision',
+          message: rejectionReason
+            ? `Your flatmate requirement listing "${requirement.title}" was not approved. Reason: ${rejectionReason.trim()}`
+            : `Your flatmate requirement listing "${requirement.title}" was not approved. Please review our guidelines, update your details, and re-submit.`,
+          actionUrl: `/my-listings/${requirement.slug || requirement._id}`,
+          data: {
+            listingId: requirement._id.toString(),
+            listingType: 'flatmate_requirement',
+            rejectionReason: rejectionReason?.trim(),
+          },
+          priority: 'HIGH',
+        }).catch((err) =>
+          logger.warn(`[FlatmateRequirementController] Failed to notify user of bulk rejection for ${requirement._id}`, err)
+        );
+      } else if (status === 'blocked' || status === 'closed') {
+        createNotification({
+          recipientType: 'USER',
+          recipientId: requirement.userId,
+          eventType: 'LISTING_UNPUBLISHED',
+          category: 'LISTING_UPDATES',
+          title: status === 'blocked' ? 'Listing Blocked' : 'Listing Closed',
+          message: `Your flatmate requirement listing "${requirement.title}" has been ${
+            status === 'blocked' ? 'blocked by moderation' : 'closed'
+          }.`,
+          actionUrl: `/my-listings/${requirement.slug || requirement._id}`,
+          data: { listingId: requirement._id.toString(), listingType: 'flatmate_requirement', status },
+          priority: 'NORMAL',
+        }).catch((err) =>
+          logger.warn(`[FlatmateRequirementController] Failed to notify user of bulk status update for ${requirement._id}`, err)
+        );
+      }
+    }
+
+    const updatedCount = bulkOps.length;
+    const skippedCount = perListingResults.filter((r) => r.status === 'skipped').length;
+    const notFoundCount = perListingResults.filter((r) => r.status === 'not_found').length;
+
+    logger.info(
+      `[FlatmateRequirementController] Bulk status update completed: ${updatedCount} updated, ${skippedCount} skipped, ${notFoundCount} not found to ${status}`
+    );
+
+    return sendSuccess(
+      res,
+      `Bulk status update completed. ${updatedCount} flatmate requirement(s) updated to ${status}.`,
+      {
+        targetStatus: status,
+        totalRequested: uniqueIds.length,
+        updatedCount,
+        skippedCount,
+        notFoundCount,
+        results: perListingResults,
+      }
+    );
+  } catch (error: any) {
+    logger.error('[FlatmateRequirementController] bulkUpdateFlatmateRequirementStatus error:', error);
+    return sendError(res, error.message || 'Failed to perform bulk status update on flatmate requirements', 500);
+  }
+};
+
 

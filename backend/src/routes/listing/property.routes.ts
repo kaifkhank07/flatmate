@@ -6,6 +6,7 @@ import {
   createPropertySchema,
   updatePropertySchema,
   updatePropertyStatusSchema,
+  bulkUpdatePropertyStatusSchema,
   rejectPropertySchema,
   attachImageSchema,
   attachVideoSchema,
@@ -18,6 +19,7 @@ import {
   updateProperty,
   deleteProperty,
   updatePropertyStatus,
+  bulkUpdatePropertyStatus,
   approveProperty,
   rejectProperty,
   blockProperty,
@@ -30,6 +32,9 @@ import {
 import { listingLimitMiddleware } from '../../middlewares/listingLimit.middleware';
 
 const router = Router();
+
+// Admin Bulk Status Operations (Must precede dynamic /:id parameter routes)
+router.patch('/bulk-status', authenticateAdmin, validate(bulkUpdatePropertyStatusSchema), bulkUpdatePropertyStatus);
 
 // Public Read Operations
 router.get('/', getProperties);
