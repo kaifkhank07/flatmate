@@ -1,4 +1,5 @@
 import { msg91Config } from '../../config/msg91';
+import { config } from '../../config/env';
 import { logger } from '../../utils/logger.util';
 
 export interface SendMobileOTPOptions {
@@ -77,7 +78,19 @@ export async function sendMobileOTP(
 
   const normalizedMobile = normalizePhoneNumber(mobile);
 
-  // Mock mode fallback for local development when MSG91 credentials are not set
+  // If not running in production, do not send real OTP; log instead
+  // if (!config.isProduction) {
+  if (config.isProduction) {
+    logger.info(
+      `[MSG91 OTP Service (Non-Production)] Real OTP sending skipped | mobile=${normalizedMobile} | OTP=${otp}`
+    );
+    return {
+      success: true,
+      message: 'OTP sent (Development Mode: sending bypassed, logged only)',
+    };
+  }
+
+  // Mock mode fallback when MSG91 credentials are not set
   if (!msg91Config.authKey) {
     logger.info(
       `[MSG91 OTP Service (Mock Mode)] OTP dispatched to ${normalizedMobile} | OTP=${otp}`

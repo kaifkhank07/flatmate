@@ -40,7 +40,11 @@ export const parseDurationToMs = (duration: string | number, fallbackMs: number)
 };
 
 const isProduction = (): boolean => {
-  return config.isProduction;
+  return (
+    config.isProduction ||
+    process.env.NODE_ENV === 'production' ||
+    process.env.NODE_MODE === 'production'
+  );
 };
 
 /**

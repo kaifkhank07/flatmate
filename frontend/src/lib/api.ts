@@ -39,6 +39,7 @@ const AUTH_ENDPOINTS_TO_SKIP_REFRESH = [
   '/users/login',
   '/users/register',
   '/users/refresh-token',
+  '/users/me',
   '/auth/mobile/login',
   '/auth/mobile/register',
   '/auth/mobile/register/verify-otp',
@@ -73,6 +74,23 @@ apiClient.interceptors.response.use(
     // If 401 received on a protected request and we haven't retried yet
     if (status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
+
+      // If user is already known to be unauthenticated, skip triggering refresh
+      if (typeof window !== 'undefined') {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { useAuthStore } = require('@/store/useAuthStore');
+          if (!useAuthStore.getState().isAuthenticated) {
+            const message =
+              error.response?.data?.message ||
+              error.message ||
+              'Unauthorized';
+            return Promise.reject(new Error(message));
+          }
+        } catch {
+          // ignore
+        }
+      }
 
       try {
         if (!refreshPromise) {

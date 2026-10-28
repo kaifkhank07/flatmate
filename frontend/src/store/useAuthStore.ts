@@ -315,6 +315,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    * GET /api/profile
    */
   fetchProfile: async () => {
+    if (!get().isAuthenticated) {
+      return null;
+    }
     set({ isProfileLoading: true, profileError: null });
     try {
       const response = await apiClient.get<AuthApiResponse<UserProfile>>('/profile');
@@ -537,6 +540,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    * GET /api/profile/check-preferences
    */
   checkPreferencesStatus: async () => {
+    if (!get().isAuthenticated) {
+      return { hasFivePreferences: false, preferencesCount: 0 };
+    }
     try {
       const response = await apiClient.get<
         AuthApiResponse<{
@@ -595,12 +601,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   /**
    * Check profile completion status of current user
-   * GET /api/users/profile/completion-status
+   * GET /api/profile/completion-status
    */
   checkProfileCompletionStatus: async (): Promise<boolean> => {
+    if (!get().isAuthenticated) {
+      return false;
+    }
     try {
       const response = await apiClient.get<AuthApiResponse<{ completedOnce: boolean }>>(
-        '/users/profile/completion-status'
+        '/profile/completion-status'
       );
       if (response.data?.success && response.data?.data) {
         const completedOnce = response.data.data.completedOnce === true;
@@ -617,38 +626,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       return false;
     } catch {
-      try {
-        const fallbackRes = await apiClient.get<AuthApiResponse<{ completedOnce: boolean }>>(
-          '/profile/completion-status'
-        );
-        if (fallbackRes.data?.success && fallbackRes.data?.data) {
-          const completedOnce = fallbackRes.data.data.completedOnce === true;
-          const currentProfile = get().profile;
-          if (currentProfile && currentProfile.completedOnce !== completedOnce) {
-            set({
-              profile: {
-                ...currentProfile,
-                completedOnce,
-              },
-            });
-          }
-          return completedOnce;
-        }
-      } catch {
-        // Ignore fallback error
-      }
       return false;
     }
   },
 
   /**
    * Mark profile as completed once for current user
-   * PATCH /api/users/profile/complete
+   * PATCH /api/profile/complete
    */
   completeProfile: async (): Promise<boolean> => {
+    if (!get().isAuthenticated) {
+      return false;
+    }
     try {
       const response = await apiClient.patch<AuthApiResponse<{ completedOnce: boolean }>>(
-        '/users/profile/complete'
+        '/profile/complete'
       );
       if (response.data?.success) {
         if (get().profile) {
@@ -663,24 +655,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       return false;
     } catch {
-      try {
-        const fallbackRes = await apiClient.patch<AuthApiResponse<{ completedOnce: boolean }>>(
-          '/profile/complete'
-        );
-        if (fallbackRes.data?.success) {
-          if (get().profile) {
-            set({
-              profile: {
-                ...get().profile!,
-                completedOnce: true,
-              },
-            });
-          }
-          return true;
-        }
-      } catch {
-        // Ignore fallback error
-      }
       return false;
     }
   },

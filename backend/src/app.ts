@@ -9,10 +9,27 @@ import { connectDB } from './config/db';
 
 const app: Express = express();
 
+// Trust the immediate reverse-proxy hop (e.g. Hostinger Nginx / LiteSpeed reverse proxy)
+app.set('trust proxy', 1);
+
 // Middlewares
 app.use(
   cors({
-    origin: config.clientUrls || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. server-to-server, mobile apps, curl)
+      if (!origin) return callback(null, true);
+
+      const normalizedOrigin = origin.replace(/\/+$/, '');
+      const allowedOrigins = (config.clientUrls || ['http://localhost:3000']).map((url) =>
+        url.replace(/\/+$/, '')
+      );
+
+      if (allowedOrigins.includes(normalizedOrigin)) {
+        return callback(null, true);
+      }
+
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
     credentials: true,
   })
 );
