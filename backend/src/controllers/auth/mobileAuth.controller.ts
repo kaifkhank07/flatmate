@@ -17,6 +17,7 @@ import {
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
 import { createNotification, notifyAdmins } from '../../services/notification/notification.service';
+import { config } from '../../config/env';
 
 /**
  * Generate a random 6-digit numeric OTP string
@@ -120,7 +121,7 @@ export const registerWithMobileOTP = async (req: Request, res: Response): Promis
         otp: rawOtp,
       });
 
-      if (process.env.NODE_ENV !== 'production') {
+      if (!config.isProduction) {
         logger.info(
           `[MobileAuth] Registration OTP dispatched | mobile=${normalizedMobile} | OTP=${rawOtp}`
         );
@@ -276,7 +277,7 @@ export const sendMobileLoginOTP = async (req: Request, res: Response): Promise<R
       createdAt: { $gte: oneMinuteAgo },
     });
 
-    if (recentOtp && process.env.NODE_ENV === 'production') {
+    if (recentOtp && config.isProduction) {
       return sendError(res, 'Please wait a minute before requesting another OTP', 429);
     }
 
@@ -300,7 +301,7 @@ export const sendMobileLoginOTP = async (req: Request, res: Response): Promise<R
         otp: rawOtp,
       });
 
-      if (process.env.NODE_ENV !== 'production') {
+      if (!config.isProduction) {
         logger.info(
           `[MobileAuth] Mobile Login OTP dispatched | mobile=${normalizedMobile} | OTP=${rawOtp}`
         );

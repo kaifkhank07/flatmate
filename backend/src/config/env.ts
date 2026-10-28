@@ -5,6 +5,9 @@ export type NodeMode = 'development' | 'production' | 'test';
 
 export interface AppConfig {
   nodeMode: NodeMode;
+  isProduction: boolean;
+  isDevelopment: boolean;
+  isTest: boolean;
   port: number;
   mongodbUri: string;
   mongodbDbName: string;
@@ -19,7 +22,7 @@ export interface AppConfig {
 }
 
 const getNodeMode = (): NodeMode => {
-  const mode = process.env.NODE_MODE?.toLowerCase();
+  const mode = (process.env.NODE_MODE || process.env.NODE_ENV)?.toLowerCase().trim();
   if (mode === 'production' || mode === 'test') {
     return mode;
   }
@@ -39,18 +42,14 @@ const getMongoUri = (): string => {
 };
 
 const getDbName = (mode: NodeMode): string => {
-  if (process.env.MONGODB_DB_NAME && process.env.MONGODB_DB_NAME.trim() !== '') {
-    return process.env.MONGODB_DB_NAME.trim();
-  }
-
   switch (mode) {
     case 'test':
-      return 'flatmate_test';
+      return process.env.MONGODB_TEST_NAME?.trim() || 'test';
     case 'production':
-      return 'flatmate_production';
+      return process.env.MONGODB_PROD_NAME?.trim() || 'production';
     case 'development':
     default:
-      return 'flatmate_dev';
+      return process.env.MONGODB_DEVE_NAME?.trim() || 'development';
   }
 };
 
@@ -66,10 +65,18 @@ const getClientUrls = (): string[] => {
 };
 
 const currentMode = getNodeMode();
+
+// Synchronize both environment variables so third-party libraries (Express, Mongoose) and internal code stay aligned
+process.env.NODE_MODE = currentMode;
+process.env.NODE_ENV = currentMode;
+
 const clientUrls = getClientUrls();
 
 export const config: AppConfig = {
   nodeMode: currentMode,
+  isProduction: currentMode === 'production',
+  isDevelopment: currentMode === 'development',
+  isTest: currentMode === 'test',
   port: parseInt(process.env.PORT || '5000', 10),
   mongodbUri: getMongoUri(),
   mongodbDbName: getDbName(currentMode),

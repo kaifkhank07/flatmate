@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { config } from '../config/env';
 
 export const errorHandler = (
   err: Error,
@@ -8,7 +9,7 @@ export const errorHandler = (
   _next: NextFunction
 ): void => {
   console.error('[Error Handler]:', err.message);
-  if (process.env.NODE_ENV !== 'production' && err.stack) {
+  if (!config.isProduction && err.stack) {
     console.error(err.stack);
   }
 

@@ -64,46 +64,52 @@ Copy `.env.example` to `.env` and fill in required values:
 # Application Mode (development | production | test)
 NODE_MODE=development
 PORT=5000
-CLIENT_URL=http://localhost:3000
+# Client Application URLs (comma-separated for CORS)
+CLIENT_URLS=http://localhost:3000,http://localhost:3001
 
-# MongoDB (Single URI connection with dynamic database selection)
+# MongoDB Configuration (Environment-based database name selection)
 MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net
-MONGODB_DB_NAME=
+MONGODB_DEVE_NAME=development
+MONGODB_PROD_NAME=production
+MONGODB_TEST_NAME=test
 
-# AWS S3 Storage
+# AWS S3 Storage Configuration
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 AWS_S3_BUCKET=
 AWS_CLOUDFRONT_URL=
 
-# Email / SMTP Service
+# SMTP / Email Service Configuration
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASSWORD=
 SMTP_FROM=
 
-# MSG91 OTP Service
+# MSG91 OTP Verification Service
 MSG91_AUTH_KEY=your_msg91_auth_key
 MSG91_SENDER_ID=your_msg91_sender_id
 MSG91_OTP_TEMPLATE_ID=your_msg91_otp_template_id
 
-# JWT Authentication
+# JWT Authentication Configuration
 JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=30d
+
+# Initial Super Admin Seed Credentials
+SUPER_ADMIN_NAME=
+SUPER_ADMIN_EMAIL=
+SUPER_ADMIN_PASSWORD=
 ```
 
 ### Environment-Based Database Selection
 
-A single `MONGODB_URI` connection string is used across environments. Mongoose connects using dynamic database names selected by `NODE_MODE`:
-* `development` → Database `flatmate_dev`
-* `test` → Database `flatmate_test`
-* `production` → Database `flatmate_production`
-
-Alternatively, set `MONGODB_DB_NAME` in `.env` to override the database name.
+A single `MONGODB_URI` connection string is used across environments. Mongoose connects using database names selected by `NODE_MODE`:
+* `development` → Uses `MONGODB_DEVE_NAME` (default: `development`)
+* `production` → Uses `MONGODB_PROD_NAME` (default: `production`)
+* `test` → Uses `MONGODB_TEST_NAME` (default: `test`)
 
 ## Installation
 

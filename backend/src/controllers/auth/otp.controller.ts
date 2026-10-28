@@ -13,6 +13,7 @@ import { generateAccessToken, generateRefreshToken } from '../../utils/token.uti
 import { setAuthCookies } from '../../utils/cookie.util';
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
+import { config } from '../../config/env';
 
 /**
  * Generate a random 6-digit numeric OTP string
@@ -79,7 +80,7 @@ export const sendOTP = async (req: Request, res: Response): Promise<Response> =>
           text: `Your verification code is: ${rawOtp}. This code expires in 5 minutes.`,
         });
 
-        if (process.env.NODE_ENV !== 'production') {
+        if (!config.isProduction) {
           logger.info(
             `[OTP TEST] Email OTP dispatched successfully | email=${cleanIdentifier} | OTP=${rawOtp}`
           );
@@ -98,7 +99,7 @@ export const sendOTP = async (req: Request, res: Response): Promise<Response> =>
           otp: rawOtp,
         });
 
-        if (process.env.NODE_ENV !== 'production') {
+        if (!config.isProduction) {
           logger.info(
             `[OTP TEST] MSG91 SMS dispatched successfully | mobile=${cleanIdentifier} | OTP=${rawOtp}`
           );

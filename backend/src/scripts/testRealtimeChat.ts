@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import io from 'socket.io-client';
 import { connectDB } from '../config/db';
+import { config } from '../config/env';
 import { User } from '../models/auth/user.model';
 import { UserProfile } from '../models/auth/userProfile.model';
 import { ChatConversation } from '../models/chats/ChatConversation';
@@ -67,14 +68,14 @@ const runDiagnostic = async () => {
     // ----------------------------------------------------
     await connectDB();
     const dbName = mongoose.connection.name || '';
-    const nodeEnv = process.env.NODE_ENV || 'development';
+    const nodeMode = config.nodeMode;
 
-    if (nodeEnv === 'production' || dbName.toLowerCase().includes('prod')) {
+    if (config.isProduction || dbName.toLowerCase().includes('prod')) {
       recordResult({
         name: 'Database Production Safeguard',
         category: 'Infrastructure',
         status: 'FAIL',
-        details: `Refusing to run diagnostic test suite against production database: "${dbName}" (NODE_ENV=${nodeEnv})`,
+        details: `Refusing to run diagnostic test suite against production database: "${dbName}" (NODE_MODE=${nodeMode})`,
       });
       process.exit(1);
     }
@@ -83,7 +84,7 @@ const runDiagnostic = async () => {
       name: 'MongoDB Connection & Environment Safeguard',
       category: 'Infrastructure',
       status: 'PASS',
-      details: `Connected safely to non-production database "${dbName}" (NODE_ENV=${nodeEnv}).`,
+      details: `Connected safely to non-production database "${dbName}" (NODE_MODE=${nodeMode}).`,
     });
 
     // ----------------------------------------------------
@@ -677,7 +678,7 @@ function generateMarkdownReport(passed: number, failed: number, warnings: number
   const markdown = `# Real-Time Chat Management Diagnostic & Verification Report
 
 **Generated At:** ${new Date().toISOString()}  
-**Environment:** Development / Test Database (\`NODE_ENV=${process.env.NODE_ENV || 'development'}\`)  
+**Environment:** Development / Test Database (\`NODE_MODE=${config.nodeMode}\`)  
 
 ---
 
