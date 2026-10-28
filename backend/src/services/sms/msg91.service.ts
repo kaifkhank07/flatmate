@@ -79,8 +79,7 @@ export async function sendMobileOTP(
   const normalizedMobile = normalizePhoneNumber(mobile);
 
   // If not running in production, do not send real OTP; log instead
-  // if (!config.isProduction) {
-  if (config.isProduction) {
+  if (!config.isProduction) {
     logger.info(
       `[MSG91 OTP Service (Non-Production)] Real OTP sending skipped | mobile=${normalizedMobile} | OTP=${otp}`
     );
