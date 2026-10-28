@@ -162,7 +162,8 @@ export default function Login({ onSwitchToSignUp }: LoginProps) {
               Enter the 6-digit code sent to +91 {mobileNumber}
             </p>
 
-            {tempOtp && (
+            {/* Commented: Real OTP is now dispatched via MSG91, so hiding OTP render / auto-fill banner */}
+            {/* {tempOtp && (
               <div className="mt-4 bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between gap-3 text-left">
                 <div>
                   <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider">
@@ -185,7 +186,7 @@ export default function Login({ onSwitchToSignUp }: LoginProps) {
                   Auto-fill OTP
                 </button>
               </div>
-            )}
+            )} */}
           </div>
 
           <div className="space-y-2">

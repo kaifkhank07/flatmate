@@ -100,20 +100,20 @@ export const sendOTP = async (req: Request, res: Response): Promise<Response> =>
 
         if (process.env.NODE_ENV !== 'production') {
           logger.info(
-            `[OTP TEST] Twilio SMS dispatched successfully | mobile=${cleanIdentifier} | OTP=${rawOtp}`
+            `[OTP TEST] MSG91 SMS dispatched successfully | mobile=${cleanIdentifier} | OTP=${rawOtp}`
           );
         }
 
       } catch (smsErr) {
         logger.warn(
-          `Failed to dispatch OTP SMS via Twilio to ${cleanIdentifier}:`,
+          `Failed to dispatch OTP SMS via MSG91 to ${cleanIdentifier}:`,
           smsErr instanceof Error ? smsErr.message : smsErr
         );
       }
     }
 
     return sendSuccess(res, 'OTP sent successfully', {
-      otp: rawOtp,
+      // otp: rawOtp, // Commented: Real OTP is now dispatched via MSG91
     });
   } catch (error) {
     logger.error('[OTPController] Failed to send OTP:', error);

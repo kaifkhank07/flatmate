@@ -19,7 +19,8 @@
     "seed:blog-categories": "tsx src/scripts/seed-blog-categories.ts",
     "seed:avatars": "tsx src/scripts/seed-avatars.ts",
     "test:realtime-chat": "tsx src/scripts/testRealtimeChat.ts",
-    "test:cascading-deletion": "tsx src/scripts/testCascadingDeletion.ts"
+    "test:cascading-deletion": "tsx src/scripts/testCascadingDeletion.ts",
+    "test:msg91-otp": "tsx src/scripts/test-msg91-otp.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.587.0",
@@ -37,7 +38,6 @@
     "multer": "^2.3.0",
     "nodemailer": "^6.9.13",
     "socket.io": "^4.8.3",
-    "twilio": "^6.1.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

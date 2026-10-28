@@ -26,7 +26,7 @@ import {
 import { User } from '../../models/auth/user.model';
 import { Admin } from '../../models/auth/admin.model';
 import { sendEmail } from '../email/email.service';
-import { sendSMS } from '../sms/twilio.service';
+// import { sendSMS } from '../sms/msg91.service'; // Normal SMS commented out: FlatMate uses OTP only
 import { logger } from '../../utils/logger.util';
 
 export interface CreateNotificationPayload {
@@ -345,26 +345,26 @@ export const createNotification = async (
           }
         }
 
-        // SMS Dispatch
-        const smsDelivery = notification.channels.find(
-          (c) => c.channel === 'SMS' && c.status === 'PENDING'
-        );
-        if (smsDelivery && recipientUser.mobile) {
-          try {
-            await sendSMS(recipientUser.mobile, `${payload.title}: ${payload.message}`);
-            smsDelivery.status = 'SENT';
-            smsDelivery.sentAt = new Date();
-            smsDelivery.attemptCount = (smsDelivery.attemptCount || 0) + 1;
-            await notification.save();
-          } catch (err: any) {
-            logger.error(`[Notification Service] SMS dispatch failed for user ${recipientId}:`, err);
-            smsDelivery.status = 'FAILED';
-            smsDelivery.attemptCount = (smsDelivery.attemptCount || 0) + 1;
-            smsDelivery.errorMessage = err?.message || 'SMS dispatch failed';
-            smsDelivery.lastAttemptAt = new Date();
-            await notification.save();
-          }
-        }
+        // SMS Dispatch (Normal SMS commented out: FlatMate uses OTP only)
+        // const smsDelivery = notification.channels.find(
+        //   (c) => c.channel === 'SMS' && c.status === 'PENDING'
+        // );
+        // if (smsDelivery && recipientUser.mobile) {
+        //   try {
+        //     await sendSMS(recipientUser.mobile, `${payload.title}: ${payload.message}`);
+        //     smsDelivery.status = 'SENT';
+        //     smsDelivery.sentAt = new Date();
+        //     smsDelivery.attemptCount = (smsDelivery.attemptCount || 0) + 1;
+        //     await notification.save();
+        //   } catch (err: any) {
+        //     logger.error(`[Notification Service] SMS dispatch failed for user ${recipientId}:`, err);
+        //     smsDelivery.status = 'FAILED';
+        //     smsDelivery.attemptCount = (smsDelivery.attemptCount || 0) + 1;
+        //     smsDelivery.errorMessage = err?.message || 'SMS dispatch failed';
+        //     smsDelivery.lastAttemptAt = new Date();
+        //     await notification.save();
+        //   }
+        // }
 
         // WhatsApp Dispatch Stub
         const waDelivery = notification.channels.find(

@@ -6,7 +6,7 @@ import { UserProfile } from '../../models/auth/userProfile.model';
 import { OTP } from '../../models/auth/otp.model';
 import { UserSession } from '../../models/auth/userSession.model';
 
-import { sendMobileOTP, normalizePhoneNumber } from '../../services/sms/twilio.service';
+import { sendMobileOTP, normalizePhoneNumber } from '../../services/sms/msg91.service';
 import { hashSecret } from '../../utils/password.util';
 import { generateAccessToken, generateRefreshToken } from '../../utils/token.util';
 import {
@@ -113,12 +113,12 @@ export const registerWithMobileOTP = async (req: Request, res: Response): Promis
       isUsed: false,
     });
 
-    // Dispatch OTP via Twilio
+    // Dispatch OTP via MSG91
     try {
-      // await sendMobileOTP({
-      //   mobile: normalizedMobile,
-      //   otp: rawOtp,
-      // });
+      await sendMobileOTP({
+        mobile: normalizedMobile,
+        otp: rawOtp,
+      });
 
       if (process.env.NODE_ENV !== 'production') {
         logger.info(
@@ -141,7 +141,7 @@ export const registerWithMobileOTP = async (req: Request, res: Response): Promis
       {
         user: userJson,
         requiresMobileVerification: true,
-        otp: rawOtp,  // Temparory for frontend build need to remove later
+        // otp: rawOtp, // Commented: Real OTP is now dispatched via MSG91
       },
       201
     );
@@ -295,10 +295,10 @@ export const sendMobileLoginOTP = async (req: Request, res: Response): Promise<R
     });
 
     try {
-      // await sendMobileOTP({
-      //   mobile: normalizedMobile,
-      //   otp: rawOtp,
-      // });
+      await sendMobileOTP({
+        mobile: normalizedMobile,
+        otp: rawOtp,
+      });
 
       if (process.env.NODE_ENV !== 'production') {
         logger.info(
@@ -311,7 +311,7 @@ export const sendMobileLoginOTP = async (req: Request, res: Response): Promise<R
     }
 
     return sendSuccess(res, 'OTP sent successfully to your mobile number', {
-      otp: rawOtp,
+      // otp: rawOtp, // Commented: Real OTP is now dispatched via MSG91
     });
   } catch (error) {
     logger.error('[MobileAuth] Failed to send mobile login OTP:', error);

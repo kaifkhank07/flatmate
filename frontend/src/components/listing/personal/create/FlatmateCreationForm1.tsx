@@ -764,7 +764,7 @@ export default function FlatmateCreationForm1({
                     Loading preferences…
                   </div>
                 ) : preferenceOptions.length > 0 ? (
-                  <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-3.5 md:gap-4 justify-items-center p-3 sm:p-5 md:p-6 bg-[#F8FAFC] border border-gray-100 rounded-2xl sm:rounded-3xl">
+                  <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-3.5 md:gap-4 justify-items-center">
                     {preferenceOptions.map((pref) => {
                       const isSelected = selectedPreferences.includes(pref._id);
 
@@ -776,15 +776,15 @@ export default function FlatmateCreationForm1({
                           aria-label={`Select ${pref.name}`}
                           aria-pressed={isSelected}
                           title={pref.name}
-                          className={`group relative flex aspect-square w-full flex-col items-center justify-center p-1.5 sm:p-2.5 md:p-3 rounded-xl sm:rounded-2xl transition-all duration-200 cursor-pointer select-none active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0066F9]/40 ${isSelected
-                              ? "bg-[#F0F7FF] border-2 border-[#0066F9] shadow-xs"
-                              : "bg-white border border-gray-200/90 hover:bg-slate-50/70 hover:border-gray-300 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+                          className={`group relative flex aspect-square w-full flex-col items-center justify-center p-1 sm:p-2 md:p-3 rounded-lg sm:rounded-xl lg:rounded-2xl transition-all duration-200 cursor-pointer select-none active:scale-95 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#0066F9]/40 ${isSelected
+                            ? "bg-[#F0F7FF] border-1 border-[#0066F9]"
+                            : "bg-white border border-gray-200/90 hover:bg-slate-50/70 hover:border-gray-300"
                             }`}
                         >
                           {/* Blue circular check badge in top-right when selected */}
                           {isSelected && (
-                            <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-[#0066F9] text-white shadow-xs animate-in zoom-in-75 duration-150">
-                              <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 stroke-[3]" />
+                            <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 flex h-3 w-3 sm:h-4 sm:w-4 items-center justify-center rounded-full bg-[#0066F9] text-white shadow-xs animate-in zoom-in-75 duration-150">
+                              <Check className="h-2 w-2 sm:h-3 sm:w-3 stroke-[3]" />
                             </span>
                           )}
 
@@ -795,7 +795,7 @@ export default function FlatmateCreationForm1({
 
                           {/* Preference label inside the card */}
                           <span
-                            className={`mt-1 sm:mt-1.5 w-full text-center text-[10px] sm:text-xs md:text-sm font-medium leading-tight tracking-tight line-clamp-1 break-words px-0.5 transition-colors ${isSelected ? "text-slate-900" : "text-slate-700"
+                            className={`mt-1 sm:mt-1.5 w-full text-center text-[9px] sm:text-xs md:text-sm font-medium leading-tight tracking-tight line-clamp-1 whitespace-nowrap break-words transition-colors ${isSelected ? "text-slate-900" : "text-slate-700"
                               }`}
                           >
                             {pref.name}
@@ -823,7 +823,7 @@ export default function FlatmateCreationForm1({
                     Loading amenities…
                   </div>
                 ) : amenityOptions.length > 0 ? (
-                  <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-3.5 md:gap-4 justify-items-center p-3 sm:p-5 md:p-6 bg-[#F8FAFC] border border-gray-100 rounded-2xl sm:rounded-3xl">
+                  <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-3.5 md:gap-4 justify-items-center">
                     {amenityOptions.map((amenity) => {
                       const isSelected = selectedAmenities.includes(amenity._id);
 
@@ -835,15 +835,15 @@ export default function FlatmateCreationForm1({
                           aria-label={`Select ${amenity.name}`}
                           aria-pressed={isSelected}
                           title={amenity.name}
-                          className={`group relative flex aspect-square w-full flex-col items-center justify-center p-1.5 sm:p-2.5 md:p-3 rounded-xl sm:rounded-2xl transition-all duration-200 cursor-pointer select-none active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0066F9]/40 ${
+                          className={`group relative flex aspect-square w-full flex-col items-center justify-center p-1 sm:p-2 md:p-3 rounded-lg sm:rounded-xl lg:rounded-2xl transition-all duration-200 cursor-pointer select-none active:scale-95 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#0066F9]/40 ${
                             isSelected
-                              ? "bg-[#F0F7FF] border-2 border-[#0066F9] shadow-xs"
-                              : "bg-white border border-gray-200/90 hover:bg-slate-50/70 hover:border-gray-300 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+                              ? "bg-[#F0F7FF] border-1 border-[#0066F9]"
+                              : "bg-white border border-gray-200/90 hover:bg-slate-50/70 hover:border-gray-300"
                           }`}
                         >
                           {isSelected && (
-                            <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-[#0066F9] text-white shadow-xs animate-in zoom-in-75 duration-150">
-                              <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 stroke-[3]" />
+                            <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 flex h-3 w-3 sm:h-4 sm:w-4 items-center justify-center rounded-full bg-[#0066F9] text-white shadow-xs animate-in zoom-in-75 duration-150">
+                              <Check className="h-2 w-2 sm:h-3 sm:w-3 stroke-[3]" />
                             </span>
                           )}
 

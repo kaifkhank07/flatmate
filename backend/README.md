@@ -84,11 +84,10 @@ SMTP_USER=
 SMTP_PASSWORD=
 SMTP_FROM=
 
-# Twilio SMS Verification Service
-TWILIO_ACCOUNT_SID=your_account_sid
-TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_PHONE_NUMBER=your_twilio_phone_number
-TWILIO_MESSAGING_SERVICE_SID=your_messaging_service_sid
+# MSG91 OTP Service
+MSG91_AUTH_KEY=your_msg91_auth_key
+MSG91_SENDER_ID=your_msg91_sender_id
+MSG91_OTP_TEMPLATE_ID=your_msg91_otp_template_id
 
 # JWT Authentication
 JWT_ACCESS_SECRET=
