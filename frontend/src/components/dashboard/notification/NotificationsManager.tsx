@@ -5,11 +5,10 @@ import SectionHeading from '../../utils/SectionHeading';
 import { ViewReveal } from '../../animation';
 import NotificationList from './NotificationList';
 import NotificationPreferences from './NotificationPreferences';
-import PropertyMatchPreferences from './PropertyMatchPreferences';
-import { Settings, Sliders, Sparkles, ChevronDown, ArrowLeft, Mail } from 'lucide-react';
+import { Settings, Sliders, ChevronDown, Mail } from 'lucide-react';
 import { useNotificationStore } from '@/store/useNotificationStore';
 
-type NotificationTab = 'inbox' | 'channels' | 'match_criteria';
+type NotificationTab = 'inbox' | 'channels';
 
 export default function NotificationsManager() {
   const [activeTab, setActiveTab] = useState<NotificationTab>('inbox');
@@ -51,18 +50,12 @@ export default function NotificationsManager() {
           description:
             'Configure global delivery channels and fine-tune delivery preferences by category.',
         };
-      case 'match_criteria':
-        return {
-          title: 'Smart Property Match Criteria',
-          description:
-            'Set your search filters to receive automated in-app alerts and notifications when matching listings are published.',
-        };
       case 'inbox':
       default:
         return {
           title: 'My Notifications & Alerts',
           description:
-            'Manage your incoming activity alerts, delivery channels, and smart property match preferences.',
+            'Manage your incoming activity alerts and delivery channels.',
         };
     }
   };
@@ -183,36 +176,6 @@ export default function NotificationsManager() {
                         </div>
                       </div>
                     </button>
-
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setActiveTab('match_criteria');
-                        setIsSettingsOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition cursor-pointer mt-1 ${activeTab === 'match_criteria'
-                        ? 'bg-[#F4F9FF] text-[#0066F9] font-semibold'
-                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
-                    >
-                      <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${activeTab === 'match_criteria'
-                          ? 'bg-[#0066F9] text-white'
-                          : 'bg-gray-100 text-gray-600'
-                          }`}
-                      >
-                        <Sparkles className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-gray-900 font-semibold text-xs sm:text-sm">
-                          Smart Match Criteria
-                        </div>
-                        <div className="text-gray-400 text-[11px] leading-tight mt-0.5">
-                          City, budget & lifestyle alerts
-                        </div>
-                      </div>
-                    </button>
                   </div>
                 )}
               </div>
@@ -225,9 +188,6 @@ export default function NotificationsManager() {
           {activeTab === 'inbox' && <NotificationList />}
           {activeTab === 'channels' && (
             <NotificationPreferences onBack={() => setActiveTab('inbox')} />
-          )}
-          {activeTab === 'match_criteria' && (
-            <PropertyMatchPreferences onBack={() => setActiveTab('inbox')} />
           )}
         </ViewReveal>
       </div>

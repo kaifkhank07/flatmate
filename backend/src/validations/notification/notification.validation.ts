@@ -35,40 +35,6 @@ const channelPreferencesInputSchema = z.object({
   whatsapp: z.boolean().optional(),
 });
 
-const propertyMatchPreferencesInputSchema = z.object({
-  enabled: z.boolean().optional(),
-  cities: z.array(z.string().trim()).optional(),
-  localities: z.array(z.string().trim()).optional(),
-  budget: z
-    .object({
-      min: z.number().min(0).optional(),
-      max: z.number().min(0).optional(),
-    })
-    .optional(),
-  propertyTypes: z
-    .array(z.enum(['flat', 'room', 'pg', 'shared_apartment', 'entire_property']))
-    .optional(),
-  furnishing: z
-    .array(z.enum(['fully_furnished', 'semi_furnished', 'unfurnished']))
-    .optional(),
-  availableFrom: z.coerce.date().optional(),
-  immediateOnly: z.boolean().optional(),
-  genderPreference: z.enum(['male', 'female', 'other', 'any']).optional(),
-  occupationPreference: z
-    .enum([
-      'student',
-      'working_professional',
-      'self_employed',
-      'business_owner',
-      'freelancer',
-      'other',
-      'any',
-    ])
-    .optional(),
-  amenities: z.array(z.string().regex(objectIdRegex, 'Invalid Amenity ID')).optional(),
-  postType: z.enum(['property', 'partner', 'both']).optional(),
-});
-
 /**
  * Validation schema for creating a notification
  */
@@ -154,13 +120,5 @@ export const updateNotificationPreferencesSchema = z.object({
         system: channelPreferencesInputSchema.optional(),
       })
       .optional(),
-    propertyMatch: propertyMatchPreferencesInputSchema.optional(),
   }),
-});
-
-/**
- * Dedicated schema for updating smart property match criteria
- */
-export const updatePropertyMatchPreferencesSchema = z.object({
-  body: propertyMatchPreferencesInputSchema,
 });

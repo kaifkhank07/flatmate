@@ -188,34 +188,6 @@ export const updateNotificationPreferences = async (
   }
 };
 
-/**
- * Update smart property-match criteria (User only)
- */
-export const updatePropertyMatchPreferences = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
-  try {
-    const { id, type } = getAuthContext(req);
-    if (type !== 'USER') {
-      return sendError(res, 'Property match preferences are only configurable for users', 403);
-    }
-
-    const preferences = await notificationService.updatePropertyMatchPreferences(id, req.body);
-    return sendSuccess(
-      res,
-      'Property match preferences updated successfully',
-      preferences.propertyMatch
-    );
-  } catch (error) {
-    logger.error('Failed to update property match preferences', error);
-    return sendError(
-      res,
-      error instanceof Error ? error.message : 'Failed to update property match preferences',
-      500
-    );
-  }
-};
 
 /**
  * Create notification (Admin / System / Inter-service usage)

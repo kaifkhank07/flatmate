@@ -6,10 +6,8 @@ import {
   NotificationEventType,
   IChannelPreferences,
   ICategoryPreferences,
-  IPropertyMatchPreferences,
   RECIPIENT_TYPES,
   DEFAULT_GLOBAL_CHANNEL_PREFERENCES,
-  DEFAULT_PROPERTY_MATCH_PREFERENCES,
   MANDATORY_TRANSACTIONAL_EVENTS,
 } from './notification.types';
 
@@ -25,7 +23,6 @@ export interface INotificationPreference extends Document {
   ownerId: Types.ObjectId;
   channels: IChannelPreferences;
   categories: ICategoryPreferences;
-  propertyMatch: IPropertyMatchPreferences;
   createdAt: Date;
   updatedAt: Date;
 
@@ -70,77 +67,6 @@ const channelPreferencesSchema = new Schema<IChannelPreferences>(
     email: { type: Boolean, default: true },
     sms: { type: Boolean, default: true },
     whatsapp: { type: Boolean, default: true },
-  },
-  { _id: false }
-);
-
-/**
- * Nested schema for property matching preferences
- */
-const propertyMatchPreferencesSchema = new Schema<IPropertyMatchPreferences>(
-  {
-    enabled: {
-      type: Boolean,
-      default: false,
-    },
-    cities: {
-      type: [String],
-      default: [],
-    },
-    localities: {
-      type: [String],
-      default: [],
-    },
-    budget: {
-      min: { type: Number, min: 0 },
-      max: { type: Number, min: 0 },
-    },
-    propertyTypes: {
-      type: [String],
-      enum: ['flat', 'room', 'pg', 'shared_apartment', 'entire_property'],
-      default: [],
-    },
-    furnishing: {
-      type: [String],
-      enum: ['fully_furnished', 'semi_furnished', 'unfurnished'],
-      default: [],
-    },
-    availableFrom: {
-      type: Date,
-    },
-    immediateOnly: {
-      type: Boolean,
-      default: false,
-    },
-    genderPreference: {
-      type: String,
-      enum: ['male', 'female', 'other', 'any'],
-      default: 'any',
-    },
-    occupationPreference: {
-      type: String,
-      enum: [
-        'student',
-        'working_professional',
-        'self_employed',
-        'business_owner',
-        'freelancer',
-        'other',
-        'any',
-      ],
-      default: 'any',
-    },
-    amenities: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: 'PropertyAmenity',
-      },
-    ],
-    postType: {
-      type: String,
-      enum: ['property', 'partner', 'both'],
-      default: 'both',
-    },
   },
   { _id: false }
 );
@@ -206,10 +132,6 @@ const notificationPreferenceSchema = new Schema<INotificationPreference>(
         type: channelPreferencesSchema,
         default: () => ({ inApp: true, email: true, sms: false, whatsapp: false }),
       },
-    },
-    propertyMatch: {
-      type: propertyMatchPreferencesSchema,
-      default: () => ({ ...DEFAULT_PROPERTY_MATCH_PREFERENCES }),
     },
   },
   {

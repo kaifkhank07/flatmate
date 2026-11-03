@@ -133,34 +133,6 @@ export interface ICategoryPreferences {
 }
 
 /**
- * Smart property-matching criteria filters
- */
-export interface IPropertyMatchPreferences {
-  enabled: boolean;
-  cities: string[];
-  localities: string[];
-  budget?: {
-    min?: number;
-    max?: number;
-  };
-  propertyTypes: Array<'flat' | 'room' | 'pg' | 'shared_apartment' | 'entire_property'>;
-  furnishing: Array<'fully_furnished' | 'semi_furnished' | 'unfurnished'>;
-  availableFrom?: string;
-  immediateOnly?: boolean;
-  genderPreference?: 'male' | 'female' | 'other' | 'any';
-  occupationPreference?:
-    | 'student'
-    | 'working_professional'
-    | 'self_employed'
-    | 'business_owner'
-    | 'freelancer'
-    | 'other'
-    | 'any';
-  amenities?: string[];
-  postType?: 'property' | 'partner' | 'both';
-}
-
-/**
  * Full Notification Preference Document for User or Admin
  */
 export interface INotificationPreferences {
@@ -170,7 +142,6 @@ export interface INotificationPreferences {
   ownerId: string;
   channels: IChannelPreferences;
   categories: ICategoryPreferences;
-  propertyMatch: IPropertyMatchPreferences;
   createdAt: string;
   updatedAt: string;
 }
@@ -212,7 +183,6 @@ export interface GetNotificationsFilters {
 export interface UpdateNotificationPreferencesPayload {
   channels?: Partial<IChannelPreferences>;
   categories?: Partial<Record<keyof ICategoryPreferences, Partial<IChannelPreferences>>>;
-  propertyMatch?: Partial<IPropertyMatchPreferences>;
 }
 
 /**

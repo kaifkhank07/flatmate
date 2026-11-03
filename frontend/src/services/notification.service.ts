@@ -5,7 +5,6 @@ import {
   GetNotificationsResponseData,
   INotificationItem,
   INotificationPreferences,
-  IPropertyMatchPreferences,
   UpdateNotificationPreferencesPayload,
 } from '@/types/notification.types';
 
@@ -16,7 +15,6 @@ export const NOTIFICATION_ENDPOINTS = {
   BASE: '/notifications',
   UNREAD_COUNT: '/notifications/unread-count',
   PREFERENCES: '/notifications/preferences',
-  PROPERTY_MATCH_PREFERENCES: '/notifications/preferences/property-match',
   READ_ALL: '/notifications/read-all',
   MARK_READ: (id: string) => `/notifications/${id}/read`,
   DELETE: (id: string) => `/notifications/${id}`,
@@ -76,18 +74,6 @@ export const updatePreferencesApi = async (
   return res.data.data;
 };
 
-/**
- * Update smart property-matching criteria filters
- */
-export const updatePropertyMatchPreferencesApi = async (
-  payload: Partial<IPropertyMatchPreferences>
-): Promise<IPropertyMatchPreferences> => {
-  const res = await apiClient.patch<NotificationApiResponse<IPropertyMatchPreferences>>(
-    NOTIFICATION_ENDPOINTS.PROPERTY_MATCH_PREFERENCES,
-    payload
-  );
-  return res.data.data;
-};
 
 /**
  * Mark a single notification item as read

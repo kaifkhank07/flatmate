@@ -10,18 +10,15 @@ import {
   EVENT_CATEGORY_MAP,
   DEFAULT_SUPER_ADMIN_CHANNEL_PREFERENCES,
   DEFAULT_SUPER_ADMIN_CATEGORY_PREFERENCES,
-  DEFAULT_SUPER_ADMIN_PROPERTY_MATCH_PREFERENCES,
 } from '../../models/notification/notification.model';
 import {
   NotificationPreference,
   INotificationPreference,
   IChannelPreferences,
   ICategoryPreferences,
-  IPropertyMatchPreferences,
   DEFAULT_GLOBAL_CHANNEL_PREFERENCES,
   DEFAULT_USER_CATEGORY_PREFERENCES,
   DEFAULT_ADMIN_CATEGORY_PREFERENCES,
-  DEFAULT_PROPERTY_MATCH_PREFERENCES,
 } from '../../models/notification/notificationPreference.model';
 import { User } from '../../models/auth/user.model';
 import { Admin } from '../../models/auth/admin.model';
@@ -59,38 +56,11 @@ export interface GetNotificationsFilters {
 export interface UpdatePreferencesPayload {
   channels?: Partial<IChannelPreferences>;
   categories?: Partial<Record<keyof ICategoryPreferences, Partial<IChannelPreferences>>>;
-  propertyMatch?: Partial<IPropertyMatchPreferences>;
 }
 
 /**
  * Get or create notification preferences for a user or admin
  */
-// export const getOrCreateNotificationPreferences = async (
-//   ownerId: Types.ObjectId | string,
-//   ownerType: RecipientType = 'USER'
-// ): Promise<INotificationPreference> => {
-//   const ownerObj = new Types.ObjectId(ownerId.toString());
-//   let preferences = await NotificationPreference.findOne({
-//     ownerType,
-//     ownerId: ownerObj,
-//   });
-
-//   if (!preferences) {
-//     preferences = await NotificationPreference.create({
-//       ownerType,
-//       ownerModel: ownerType === 'ADMIN' ? 'Admin' : 'User',
-//       ownerId: ownerObj,
-//       channels: { ...DEFAULT_GLOBAL_CHANNEL_PREFERENCES },
-//       categories:
-//         ownerType === 'ADMIN'
-//           ? { ...DEFAULT_ADMIN_CATEGORY_PREFERENCES }
-//           : { ...DEFAULT_USER_CATEGORY_PREFERENCES },
-//       propertyMatch: { ...DEFAULT_PROPERTY_MATCH_PREFERENCES },
-//     });
-//   }
-
-//   return preferences;
-// };
 export const getOrCreateNotificationPreferences = async (
   ownerId: Types.ObjectId | string,
   ownerType: RecipientType = 'USER'
@@ -127,10 +97,6 @@ export const getOrCreateNotificationPreferences = async (
       : ownerType === 'ADMIN'
         ? DEFAULT_ADMIN_CATEGORY_PREFERENCES
         : DEFAULT_USER_CATEGORY_PREFERENCES,
-
-    propertyMatch: isDisabled
-      ? DEFAULT_SUPER_ADMIN_PROPERTY_MATCH_PREFERENCES
-      : DEFAULT_PROPERTY_MATCH_PREFERENCES,
   });
 };
 
@@ -163,32 +129,6 @@ export const updateNotificationPreferences = async (
       }
     }
   }
-
-  if (updateData.propertyMatch) {
-    existing.propertyMatch = {
-      ...existing.propertyMatch,
-      ...updateData.propertyMatch,
-    };
-  }
-
-  await existing.save();
-  return existing;
-};
-
-/**
- * Dedicated helper to update smart property-matching criteria
- */
-export const updatePropertyMatchPreferences = async (
-  userId: Types.ObjectId | string,
-  matchData: Partial<IPropertyMatchPreferences>
-): Promise<INotificationPreference> => {
-  const userObj = new Types.ObjectId(userId.toString());
-  const existing = await getOrCreateNotificationPreferences(userObj, 'USER');
-
-  existing.propertyMatch = {
-    ...existing.propertyMatch,
-    ...matchData,
-  };
 
   await existing.save();
   return existing;

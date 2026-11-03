@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticateUser, authenticateUserOrAdmin } from '../../middlewares/auth.middleware';
+import { authenticateUserOrAdmin } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validate.middleware';
 import {
   createNotification,
@@ -10,14 +10,12 @@ import {
   markAllNotificationsAsRead,
   markNotificationAsRead,
   updateNotificationPreferences,
-  updatePropertyMatchPreferences,
 } from '../../controllers/notification/notification.controller';
 import {
   createNotificationSchema,
   getNotificationsQuerySchema,
   markAsReadSchema,
   updateNotificationPreferencesSchema,
-  updatePropertyMatchPreferencesSchema,
 } from '../../validations/notification/notification.validation';
 
 const router = Router();
@@ -40,12 +38,6 @@ router.patch(
   authenticateUserOrAdmin,
   validate(updateNotificationPreferencesSchema),
   updateNotificationPreferences
-);
-router.patch(
-  '/preferences/property-match',
-  authenticateUser,
-  validate(updatePropertyMatchPreferencesSchema),
-  updatePropertyMatchPreferences
 );
 
 // ---------------------------------------------------------------------------

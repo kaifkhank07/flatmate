@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import {
   INotificationItem,
   INotificationPreferences,
-  IPropertyMatchPreferences,
   GetNotificationsFilters,
   NotificationPagination,
   UpdateNotificationPreferencesPayload,
@@ -12,7 +11,6 @@ import {
   getUnreadCountApi,
   getPreferencesApi,
   updatePreferencesApi,
-  updatePropertyMatchPreferencesApi,
   markNotificationAsReadApi,
   markAllNotificationsAsReadApi,
   deleteNotificationApi,
@@ -45,7 +43,6 @@ interface NotificationState {
   fetchUnreadCount: () => Promise<void>;
   fetchPreferences: () => Promise<void>;
   updatePreferences: (payload: UpdateNotificationPreferencesPayload) => Promise<boolean>;
-  updatePropertyMatchPreferences: (payload: Partial<IPropertyMatchPreferences>) => Promise<boolean>;
   markAsRead: (notificationId: string) => Promise<boolean>;
   markAllAsRead: () => Promise<boolean>;
   deleteNotification: (notificationId: string) => Promise<boolean>;
@@ -214,31 +211,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }
   },
 
-  /**
-   * Update smart property-matching criteria
-   */
-  updatePropertyMatchPreferences: async (
-    payload: Partial<IPropertyMatchPreferences>
-  ): Promise<boolean> => {
-    set({ isSavingPreferences: true, preferencesError: null });
-    try {
-      const updatedMatch = await updatePropertyMatchPreferencesApi(payload);
-      set((state) => ({
-        preferences: state.preferences
-          ? { ...state.preferences, propertyMatch: updatedMatch }
-          : null,
-        isSavingPreferences: false,
-      }));
-      return true;
-    } catch (err: any) {
-      set({
-        preferencesError:
-          err?.response?.data?.message || err?.message || 'Failed to save property match preferences',
-        isSavingPreferences: false,
-      });
-      return false;
-    }
-  },
 
   /**
    * Mark a single notification item as read

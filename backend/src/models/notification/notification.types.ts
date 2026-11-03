@@ -1,11 +1,3 @@
-import { Types } from 'mongoose';
-import {
-  PropertyType,
-  FurnishingType,
-  GenderPreference,
-  OccupationPreference,
-} from '../listing/property.model';
-
 /**
  * Target recipient or owner entity type
  */
@@ -259,27 +251,6 @@ export interface ICategoryPreferences {
 }
 
 /**
- * Smart property-matching criteria stored in preferences
- */
-export interface IPropertyMatchPreferences {
-  enabled: boolean;
-  cities: string[];
-  localities: string[];
-  budget?: {
-    min?: number;
-    max?: number;
-  };
-  propertyTypes: PropertyType[];
-  furnishing: FurnishingType[];
-  availableFrom?: Date;
-  immediateOnly?: boolean;
-  genderPreference?: GenderPreference;
-  occupationPreference?: OccupationPreference;
-  amenities?: Types.ObjectId[];
-  postType?: 'property' | 'partner' | 'both';
-}
-
-/**
  * Default category preferences for super admin
  */
 export const DEFAULT_SUPER_ADMIN_CHANNEL_PREFERENCES: IChannelPreferences = {
@@ -304,20 +275,6 @@ export const DEFAULT_SUPER_ADMIN_CATEGORY_PREFERENCES: ICategoryPreferences = {
 };
 
 /**
- * Default property match criteria
- */
-export const DEFAULT_SUPER_ADMIN_PROPERTY_MATCH_PREFERENCES: IPropertyMatchPreferences = {
-  enabled: false,
-  cities: [],
-  localities: [],
-  propertyTypes: [],
-  furnishing: [],
-  immediateOnly: false,
-  postType: 'both',
-};
-
-
-/**
  * Default global channel preferences
  */
 export const DEFAULT_GLOBAL_CHANNEL_PREFERENCES: IChannelPreferences = {
@@ -326,7 +283,6 @@ export const DEFAULT_GLOBAL_CHANNEL_PREFERENCES: IChannelPreferences = {
   sms: false,
   whatsapp: false,
 };
-
 
 /**
  * Default category preferences for normal users
@@ -347,18 +303,4 @@ export const DEFAULT_USER_CATEGORY_PREFERENCES: ICategoryPreferences = {
  */
 export const DEFAULT_ADMIN_CATEGORY_PREFERENCES: ICategoryPreferences = {
   ...DEFAULT_USER_CATEGORY_PREFERENCES,
-};
-
-
-/**
- * Default property match criteria
- */
-export const DEFAULT_PROPERTY_MATCH_PREFERENCES: IPropertyMatchPreferences = {
-  enabled: false,
-  cities: [],
-  localities: [],
-  propertyTypes: [],
-  furnishing: [],
-  immediateOnly: false,
-  postType: 'both',
 };
