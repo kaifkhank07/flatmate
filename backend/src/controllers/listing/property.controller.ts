@@ -11,6 +11,7 @@ import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
 import { createNotification, notifyAdmins } from '../../services/notification/notification.service';
 import { propertyDeletionService } from '../../services/deletion';
+import { processListingMatches } from '../../services/listing/propertyMatch.service';
 
 /** Helper function to convert text into a URL-friendly slug */
 export const slugify = (text: string): string => {
@@ -182,6 +183,11 @@ export const createProperty = async (req: Request, res: Response): Promise<Respo
         data: { listingId: property._id.toString(), listingType: 'property' },
         priority: 'HIGH',
       }).catch((err) => logger.warn('[PropertyController] Failed to notify user of approved listing', err));
+
+      // Trigger automatic property matching notifications
+      processListingMatches({ listingType: 'property', listingId: property._id }).catch((err) =>
+        logger.warn(`[PropertyController] Match processing failed for property ${property._id}`, err)
+      );
     } else {
       createNotification({
         recipientType: 'USER',
@@ -576,6 +582,11 @@ export const updateProperty = async (req: Request, res: Response): Promise<Respo
           data: { listingId: property._id.toString(), listingType: 'property' },
           priority: 'HIGH',
         }).catch((err) => logger.warn('[PropertyController] Failed to notify user of listing approval', err));
+
+        // Trigger automatic property matching notifications
+        processListingMatches({ listingType: 'property', listingId: property._id }).catch((err) =>
+          logger.warn(`[PropertyController] Match processing failed for property ${property._id}`, err)
+        );
       } else if (property.status === 'rejected') {
         createNotification({
           recipientType: 'USER',
@@ -746,6 +757,11 @@ export const updatePropertyStatus = async (req: Request, res: Response): Promise
         data: { listingId: property._id.toString(), listingType: 'property' },
         priority: 'HIGH',
       }).catch((err) => logger.warn('[PropertyController] Failed to notify user of listing approval', err));
+
+      // Trigger automatic property matching notifications
+      processListingMatches({ listingType: 'property', listingId: property._id }).catch((err) =>
+        logger.warn(`[PropertyController] Match processing failed for property ${property._id}`, err)
+      );
     } else if (status === 'rejected') {
       createNotification({
         recipientType: 'USER',
@@ -1102,6 +1118,11 @@ export const bulkUpdatePropertyStatus = async (req: Request, res: Response): Pro
           priority: 'HIGH',
         }).catch((err) =>
           logger.warn(`[PropertyController] Failed to notify user of bulk approval for ${property._id}`, err)
+        );
+
+        // Trigger automatic property matching notifications
+        processListingMatches({ listingType: 'property', listingId: property._id }).catch((err) =>
+          logger.warn(`[PropertyController] Match processing failed for bulk approved property ${property._id}`, err)
         );
       } else if (status === 'rejected') {
         createNotification({

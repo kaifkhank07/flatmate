@@ -10,6 +10,7 @@ import { logger } from '../../utils/logger.util';
 import { Types } from 'mongoose';
 import { createNotification, notifyAdmins } from '../../services/notification/notification.service';
 import { flatmateRequirementDeletionService } from '../../services/deletion';
+import { processListingMatches } from '../../services/listing/propertyMatch.service';
 
 /** Helper to populate standard flatmate requirement fields */
 const populateFlatmateRequirementFields = (query: any) => {
@@ -199,6 +200,11 @@ export const createFlatmateRequirement = async (req: Request, res: Response): Pr
         data: { listingId: newRequirement._id.toString(), listingType: 'flatmate_requirement' },
         priority: 'HIGH',
       }).catch((err) => logger.warn('[FlatmateRequirementController] Failed to notify user of approved requirement', err));
+
+      // Trigger automatic matching notifications
+      processListingMatches({ listingType: 'flatmate_requirement', listingId: newRequirement._id }).catch((err) =>
+        logger.warn(`[FlatmateRequirementController] Match processing failed for requirement ${newRequirement._id}`, err)
+      );
     } else {
       createNotification({
         recipientType: 'USER',
@@ -650,6 +656,11 @@ export const updateFlatmateRequirement = async (req: Request, res: Response): Pr
           data: { listingId: updatedRequirement._id.toString(), listingType: 'flatmate_requirement' },
           priority: 'HIGH',
         }).catch((err) => logger.warn('[FlatmateRequirementController] Failed to notify user of approval', err));
+
+        // Trigger automatic matching notifications
+        processListingMatches({ listingType: 'flatmate_requirement', listingId: updatedRequirement._id }).catch((err) =>
+          logger.warn(`[FlatmateRequirementController] Match processing failed for requirement ${updatedRequirement._id}`, err)
+        );
       } else if (updatedRequirement?.status === 'rejected') {
         createNotification({
           recipientType: 'USER',
@@ -821,6 +832,11 @@ export const updateFlatmateRequirementStatus = async (req: Request, res: Respons
         data: { listingId: existingRequirement._id.toString(), listingType: 'flatmate_requirement' },
         priority: 'HIGH',
       }).catch((err) => logger.warn('[FlatmateRequirementController] Failed to notify user of listing approval', err));
+
+      // Trigger automatic matching notifications
+      processListingMatches({ listingType: 'flatmate_requirement', listingId: existingRequirement._id }).catch((err) =>
+        logger.warn(`[FlatmateRequirementController] Match processing failed for requirement ${existingRequirement._id}`, err)
+      );
     } else if (status === 'rejected') {
       createNotification({
         recipientType: 'USER',
@@ -1246,6 +1262,11 @@ export const bulkUpdateFlatmateRequirementStatus = async (req: Request, res: Res
           priority: 'HIGH',
         }).catch((err) =>
           logger.warn(`[FlatmateRequirementController] Failed to notify user of bulk approval for ${requirement._id}`, err)
+        );
+
+        // Trigger automatic matching notifications
+        processListingMatches({ listingType: 'flatmate_requirement', listingId: requirement._id }).catch((err) =>
+          logger.warn(`[FlatmateRequirementController] Match processing failed for bulk approved requirement ${requirement._id}`, err)
         );
       } else if (status === 'rejected') {
         createNotification({

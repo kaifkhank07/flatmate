@@ -385,7 +385,8 @@ export default function FlatmateCreationForm2({
       if (!result) {
         await cleanupUploadedMedia();
         setIsSubmitting(false);
-        setErrorMessage("Failed to create flatmate partner requirement. Please try again.");
+        const storeError = useListingStore.getState().error;
+        setErrorMessage(storeError || "Failed to create flatmate partner requirement. Please try again.");
         return;
       }
 

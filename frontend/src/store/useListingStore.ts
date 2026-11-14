@@ -134,7 +134,7 @@ interface ListingState {
     sortBy?: 'createdAt' | 'updatedAt' | 'distance';
 
     order?: 'asc' | 'desc' | '1' | '-1';
-  }) => Promise<void>;
+  }) => Promise<number | null | void>;
 
   fetchListingBySlug: (
     slug: string,
@@ -146,7 +146,7 @@ interface ListingState {
   createFlatmateRequirement: (payload: any) => Promise<FlatmateRequirementItem | null>;
   updateProperty: (id: string, payload: any) => Promise<PropertyListingItem | null>;
   updateFlatmateRequirement: (id: string, payload: any) => Promise<FlatmateRequirementItem | null>;
-  deleteListing: (id: string, sourceType: 'property' | 'flatmate_requirement') => Promise<boolean>;
+  deleteListing: (id: string, sourceType: 'property' | 'flatmate_requirement' | string) => Promise<boolean>;
 
   setFilters: (
     newFilters: Partial<ListingQueryParams>,
@@ -241,7 +241,13 @@ export const useListingStore = create<ListingState>((set, get) => ({
     try {
       const response = await apiClient.post<ApiResponse<PropertyListingItem>>('/properties', payload);
       if (response.data?.success && response.data.data) {
-        set({ loading: false });
+        set((state) => ({
+          loading: false,
+          myListingsPagination: {
+            ...state.myListingsPagination,
+            total: (state.myListingsPagination?.total ?? 0) + 1,
+          },
+        }));
         return response.data.data;
       } else {
         const errorMsg = response.data?.message || 'Failed to create property';
@@ -263,7 +269,13 @@ export const useListingStore = create<ListingState>((set, get) => ({
     try {
       const response = await apiClient.post<ApiResponse<FlatmateRequirementItem>>('/flatmate-requirements', payload);
       if (response.data?.success && response.data.data) {
-        set({ loading: false });
+        set((state) => ({
+          loading: false,
+          myListingsPagination: {
+            ...state.myListingsPagination,
+            total: (state.myListingsPagination?.total ?? 0) + 1,
+          },
+        }));
         return response.data.data;
       } else {
         const errorMsg = response.data?.message || 'Failed to create flatmate requirement';
@@ -324,19 +336,36 @@ export const useListingStore = create<ListingState>((set, get) => ({
   /**
    * Delete listing (Property or Flatmate Requirement)
    */
-  deleteListing: async (id: string, sourceType: 'property' | 'flatmate_requirement') => {
+  deleteListing: async (id: string, sourceType: 'property' | 'flatmate_requirement' | string) => {
     set({ loading: true, error: null });
     try {
-      if (sourceType === 'property') {
+      const normalizedType = sourceType === 'property' ? 'property' : 'flatmate_requirement';
+      if (normalizedType === 'property') {
         await deletePropertyApi(id);
       } else {
         await deleteFlatmateRequirementApi(id);
       }
-      set((state) => ({
-        myListings: state.myListings.filter((item: any) => item._id !== id),
-        selectedListing: state.selectedListing?._id === id ? null : state.selectedListing,
-        loading: false,
-      }));
+      set((state) => {
+        const updatedListings = state.myListings.filter(
+          (item: any) => (item._id || item.id) !== id
+        );
+        const currentTotal =
+          state.myListingsPagination?.total ?? state.myListings.length;
+        const newTotal = Math.max(0, currentTotal - 1);
+
+        return {
+          myListings: updatedListings,
+          selectedListing:
+            (state.selectedListing?._id || (state.selectedListing as any)?.id) === id
+              ? null
+              : state.selectedListing,
+          myListingsPagination: {
+            ...state.myListingsPagination,
+            total: newTotal,
+          },
+          loading: false,
+        };
+      });
       return true;
     } catch (err: any) {
       const errorMsg = err?.response?.data?.message || err.message || 'Failed to delete listing';
@@ -638,17 +667,37 @@ export const useListingStore = create<ListingState>((set, get) => ({
         response.data?.data;
 
       if (responseData) {
+        const rawPagination = responseData.pagination;
+        const total =
+          typeof rawPagination?.total === 'number'
+            ? rawPagination.total
+            : typeof (responseData as any).total === 'number'
+            ? (responseData as any).total
+            : (responseData.listings?.length ?? 0);
+
+        const pagination: PaginationInfo = {
+          page: rawPagination?.page ?? (responseData as any).page ?? cleanParams.page,
+          limit: rawPagination?.limit ?? (responseData as any).limit ?? cleanParams.limit,
+          total,
+          totalPages:
+            rawPagination?.totalPages ??
+            (responseData as any).totalPages ??
+            Math.max(1, Math.ceil(total / (cleanParams.limit || 10))),
+          hasNextPage: rawPagination?.hasNextPage ?? false,
+          hasPreviousPage: rawPagination?.hasPreviousPage ?? false,
+        };
+
         set({
           myListings:
-            responseData.listings || [],
+            responseData.listings || (responseData as any).items || [],
 
-          myListingsPagination:
-            responseData.pagination ||
-            initialPagination,
+          myListingsPagination: pagination,
 
           loadingMyListings: false,
           myListingsError: null,
         });
+
+        return total;
       } else {
         set({
           myListings: [],
@@ -657,6 +706,7 @@ export const useListingStore = create<ListingState>((set, get) => ({
           loadingMyListings: false,
           myListingsError: null,
         });
+        return 0;
       }
     } catch (err: any) {
       const errorMsg =
@@ -671,6 +721,7 @@ export const useListingStore = create<ListingState>((set, get) => ({
         loadingMyListings: false,
         myListingsError: errorMsg,
       });
+      return null;
     }
   },
 
