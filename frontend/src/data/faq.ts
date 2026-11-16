@@ -33,16 +33,16 @@ export const useFaqData = (): FaqItem[] => {
     {
       id: "faq-4",
       number: "4.",
-      question: "Is there any brokerage fee involved?",
-      answer:
-        "No, our platform directly connects tenants with owners or existing flatmates, eliminating hefty brokerage fees and middleman charges.",
-    },
-    {
-      id: "faq-5",
-      number: "5.",
       question: "How can I contact potential flatmates safely?",
       answer:
-        "You can use our secure in-app messaging feature to chat with potential flatmates or landlords before sharing personal contact details or scheduling room visits.",
+      "You can use our secure in-app messaging feature to chat with potential flatmates or landlords before sharing personal contact details or scheduling room visits.",
     },
+    // {
+    //   id: "faq-5",
+    //   number: "5.",
+    //   question: "Is there any brokerage fee involved?",
+    //   answer:
+    //     "No, our platform directly connects tenants with owners or existing flatmates, eliminating hefty brokerage fees and middleman charges.",
+    // },
   ];
 };

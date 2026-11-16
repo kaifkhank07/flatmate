@@ -237,19 +237,19 @@ export default function ListingOptionSelector({
 
   const selectOptions: ListingOptionItem[] = [
     {
-      title: "Need Room/Flat",
+      title: "Find a Room / Flat",
       buttonText: "With Roommate",
       type: "flatmate-room",
       image: assets.listingicon1,
     },
     {
-      title: "Have A Roommate",
+      title: "Find a Flatmate",
       buttonText: "For Your Room",
       type: "flatmate-roommate",
       image: assets.listingicon2,
     },
     {
-      title: "Add Property",
+      title: "List an Entire Property",
       buttonText: "Add Your Property",
       type: "property",
       image: assets.listingicon3,
@@ -263,7 +263,7 @@ export default function ListingOptionSelector({
         <ViewReveal duration={800}>
           <SectionHeading
             title="Post Your Requirement"
-            description="Find Your Perfect Roommate Or Room Effortlessly. Just Post Your Requirement And Let The Matching Begin!"
+            description="Find Your Perfect Flat & Flatmate Effortlessly. Just Post Your Requirement And Let The Matching Begin!"
             align="center"
           />
         </ViewReveal>

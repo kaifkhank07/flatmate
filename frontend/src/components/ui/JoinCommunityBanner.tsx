@@ -170,7 +170,7 @@ export default function JoinCommunityBanner() {
           ref={headingRef}
           className="font-roboto-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-medium text-white tracking-tight leading-tight"
         >
-          Join The <span className="font-bold">Flat & Flatmates</span>{" "}
+          Join The <span className="font-bold">Flat & Flatmate</span>{" "}
           Community
         </h2>
 

@@ -33,17 +33,8 @@ type OccupationType =
 const COMMON_LANGUAGES = [
   "English",
   "Hindi",
-  "Punjabi",
   "Marathi",
-  "Bengali",
-  "Telugu",
-  "Tamil",
-  "Kannada",
-  "Gujarati",
-  "Malayalam",
-  "French",
-  "Spanish",
-  "German",
+  "Other",
 ];
 
 const OCCUPATION_OPTIONS: { label: string; value: OccupationType }[] = [
@@ -257,37 +248,32 @@ export default function CompleteProfile() {
   const handleSubmitProfile = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Mandatory Field Validation
+    // Mandatory Field Validation (firstName, gender, occupation, and image/avatar are mandatory)
     if (!firstName.trim()) {
       setStatusMessage({ type: "error", text: "First name is required." });
-      return;
-    }
-    if (!lastName.trim()) {
-      setStatusMessage({ type: "error", text: "Last name is required." });
       return;
     }
     if (!gender) {
       setStatusMessage({ type: "error", text: "Please select your gender." });
       return;
     }
-    if (!dateOfBirth) {
-      setStatusMessage({ type: "error", text: "Date of birth is required." });
-      return;
-    }
     if (!occupation) {
       setStatusMessage({ type: "error", text: "Please select your occupation (Who You Are)." });
       return;
     }
-    if (languagesKnown.length === 0) {
-      setStatusMessage({ type: "error", text: "Please select at least one language you speak." });
-      return;
-    }
-    if (!previewUrl) {
-      setStatusMessage({ type: "error", text: "Please upload a profile image or select a preset avatar." });
-      return;
-    }
-    if (!aboutMe.trim()) {
-      setStatusMessage({ type: "error", text: "Please introduce yourself in the bio section." });
+
+    // Profile Visual Validation: Either custom image or preset avatar must be selected
+    const hasVisualSelected = Boolean(
+      selectedFile ||
+      selectedAvatarId ||
+      (!isImageRemoved && (previewUrl || profile?.image?.url || profile?.avatar))
+    );
+
+    if (!hasVisualSelected || !previewUrl) {
+      setStatusMessage({
+        type: "error",
+        text: "Please upload a profile image or select a preset avatar.",
+      });
       return;
     }
 
@@ -301,12 +287,12 @@ export default function CompleteProfile() {
         // User selected a local image file -> send as FormData with updateProfile
         const formData = new FormData();
         formData.append("firstName", firstName.trim());
-        formData.append("lastName", lastName.trim());
+        if (lastName.trim()) formData.append("lastName", lastName.trim());
         if (gender) formData.append("gender", gender);
         if (occupation) formData.append("occupation", occupation);
         if (dateOfBirth) formData.append("dateOfBirth", new Date(dateOfBirth).toISOString());
-        formData.append("languagesKnown", JSON.stringify(languagesKnown));
-        formData.append("aboutMe", aboutMe.trim());
+        if (languagesKnown.length > 0) formData.append("languagesKnown", JSON.stringify(languagesKnown));
+        if (aboutMe.trim()) formData.append("aboutMe", aboutMe.trim());
         formData.append("image", selectedFile);
 
         updateSuccess = await updateProfile(formData);
@@ -314,12 +300,12 @@ export default function CompleteProfile() {
         // Send JSON payload to updateProfile
         const payload: Record<string, any> = {
           firstName: firstName.trim(),
-          lastName: lastName.trim(),
           gender: gender || undefined,
           occupation: occupation || undefined,
+          lastName: lastName.trim() || undefined,
           dateOfBirth: dateOfBirth ? new Date(dateOfBirth).toISOString() : undefined,
           languagesKnown: languagesKnown,
-          aboutMe: aboutMe.trim(),
+          aboutMe: aboutMe.trim() || undefined,
         };
 
         if (selectedAvatarId) {
@@ -343,7 +329,39 @@ export default function CompleteProfile() {
         return;
       }
 
-      // Mark profile as completed once profile details & image/avatar are saved
+      // Verify that saved profile contains valid values for all four mandatory requirements
+      const savedProfile = useAuthStore.getState().profile;
+      const hasValidFirstName = Boolean(savedProfile?.firstName && savedProfile.firstName.trim().length > 0);
+      const hasValidGender = Boolean(savedProfile?.gender && savedProfile.gender.trim().length > 0);
+      const hasValidOccupation = Boolean(savedProfile?.occupation && savedProfile.occupation.trim().length > 0);
+
+      const hasValidImage = Boolean(
+        savedProfile?.image?.url &&
+        typeof savedProfile.image.url === "string" &&
+        savedProfile.image.url.trim().length > 0
+      );
+
+      const hasValidAvatar = Boolean(
+        savedProfile?.avatar &&
+        (typeof savedProfile.avatar === "string"
+          ? savedProfile.avatar.trim().length > 0
+          : Boolean((savedProfile.avatar as any)?._id))
+      );
+
+      const hasValidVisual = hasValidImage || hasValidAvatar;
+
+      if (!hasValidFirstName || !hasValidGender || !hasValidOccupation || !hasValidVisual) {
+        setStatusMessage({
+          type: "error",
+          text: !hasValidVisual
+            ? "Profile verification failed: Please upload a profile image or select a preset avatar."
+            : "Profile verification failed: Name, Gender, Occupation, and Image/Avatar must be saved before completing profile.",
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      // Mark profile as completed once verified
       const completeSuccess = await completeProfile();
 
       if (completeSuccess) {
@@ -355,9 +373,10 @@ export default function CompleteProfile() {
           router.push("/");
         }, 1000);
       } else {
+        const storeError = useAuthStore.getState().profileError;
         setStatusMessage({
           type: "error",
-          text: "Failed to mark profile as completed. Please try again.",
+          text: storeError || "Failed to mark profile as completed. Please try again.",
         });
         setIsSaving(false);
       }
@@ -443,7 +462,7 @@ export default function CompleteProfile() {
                   htmlFor="complete-lastName"
                   className="block text-base sm:text-lg font-regular text-gray-800 mb-2"
                 >
-                  Last Name <span className="text-red-500">*</span>
+                  Last Name
                 </label>
                 <input
                   type="text"
@@ -454,8 +473,7 @@ export default function CompleteProfile() {
                     setLastName(e.target.value);
                     if (statusMessage) setStatusMessage(null);
                   }}
-                  placeholder="e.g. Shah"
-                  required
+                  placeholder="e.g. Shah (Optional)"
                   className="w-full px-6 py-3.5 rounded-full bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9] placeholder:text-gray-400 transition-all"
                 />
               </div>
@@ -491,7 +509,7 @@ export default function CompleteProfile() {
                   htmlFor="complete-dateOfBirth"
                   className="block text-base sm:text-lg font-regular text-gray-800 mb-2"
                 >
-                  Date of Birth <span className="text-red-500">*</span>
+                  Date of Birth
                 </label>
                 <input
                   type="date"
@@ -502,7 +520,6 @@ export default function CompleteProfile() {
                     setDateOfBirth(e.target.value);
                     if (statusMessage) setStatusMessage(null);
                   }}
-                  required
                   max={new Date().toISOString().split("T")[0]}
                   className="w-full px-6 py-3.5 rounded-full bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9] transition-all"
                 />
@@ -547,7 +564,7 @@ export default function CompleteProfile() {
             {/* Languages Known */}
             <div>
               <label className="block text-base sm:text-lg font-regular text-gray-800 mb-3">
-                Languages You Speak <span className="text-red-500">*</span>
+                Languages You Speak
               </label>
               <div className="flex flex-wrap gap-2.5">
                 {COMMON_LANGUAGES.map((lang) => {
@@ -570,18 +587,18 @@ export default function CompleteProfile() {
             </div>
           </div>
 
+
           {/* SECTION 3: Image & Avatar Selection */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
               <Camera className="w-5 h-5 text-[#0066F9]" />
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
-                Upload Image/Select Avatar <span className="text-red-500">*</span>
+                Select Avatar / Upload Image <span className="text-red-500">*</span>
               </h3>
             </div>
 
             <div className="p-2">
               {previewUrl ? (
-                /* When an image or avatar IS selected -> Show ONLY the circular image with 'X' badge */
                 <div className="flex justify-center sm:justify-start py-2">
                   <div className="relative inline-block">
                     <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-2 border-[#E2EFF8] bg-white relative shadow-sm">
@@ -592,6 +609,7 @@ export default function CompleteProfile() {
                         className="object-cover"
                       />
                     </div>
+
                     <button
                       type="button"
                       onClick={handlePhotoDelete}
@@ -604,40 +622,9 @@ export default function CompleteProfile() {
                   </div>
                 </div>
               ) : (
-                /* When NO image/avatar is selected -> Show Dropzone + -- OR -- + Preset Avatars Row */
                 <div className="space-y-6">
-                  <div
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`border-2 border-dashed ${isDragging
-                      ? "border-[#0066F9] bg-blue-50/50"
-                      : "border-gray-200 hover:border-[#0066F9] bg-white hover:bg-blue-50/30"
-                      } rounded-2xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[140px] group`}
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 group-hover:bg-blue-50 text-gray-400 group-hover:text-[#0066F9] flex items-center justify-center mb-3 transition-colors">
-                      <ImageIcon className="w-6 h-6" />
-                    </div>
-                    <p className="text-sm sm:text-base font-medium text-gray-600 group-hover:text-gray-900">
-                      Click or Drop to upload profile image (jpg or png)
-                    </p>
-                  </div>
 
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/jpg"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                  />
-
-                  {/* OR Divider */}
-                  <div className="text-center text-xs sm:text-sm text-gray-400 font-medium tracking-wider">
-                    -- OR --
-                  </div>
-
-                  {/* Preset Avatars Row */}
+                  {/* Preset Avatars */}
                   <div>
                     {isAvatarsLoading ? (
                       <LoadingState message="Loading avatars..." size="sm" className="py-4" />
@@ -664,17 +651,51 @@ export default function CompleteProfile() {
                       </div>
                     )}
                   </div>
+
+                  {/* OR Divider */}
+                  <div className="text-center text-xs sm:text-sm text-gray-400 font-medium tracking-wider">
+                    -- OR --
+                  </div>
+
+                  {/* Upload Image */}
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed ${isDragging
+                        ? "border-[#0066F9] bg-blue-50/50"
+                        : "border-gray-200 hover:border-[#0066F9] bg-white hover:bg-blue-50/30"
+                      } rounded-2xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[140px] group`}
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 group-hover:bg-blue-50 text-gray-400 group-hover:text-[#0066F9] flex items-center justify-center mb-3 transition-colors">
+                      <ImageIcon className="w-6 h-6" />
+                    </div>
+
+                    <p className="text-sm sm:text-base font-medium text-gray-600 group-hover:text-gray-900">
+                      Click or Drop to upload profile image (jpg or png)
+                    </p>
+                  </div>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/jpg"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
                 </div>
               )}
             </div>
           </div>
+
 
           {/* SECTION 4: Bio / About Me */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
               <FileText className="w-5 h-5 text-[#0066F9]" />
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
-                Introduce Yourself <span className="text-red-500">*</span>
+                Introduce Yourself
               </h3>
             </div>
 
@@ -689,8 +710,7 @@ export default function CompleteProfile() {
                   setAboutMe(e.target.value);
                   if (statusMessage) setStatusMessage(null);
                 }}
-                placeholder="Tell potential flatmates about your daily routine, lifestyle, cleanliness habits, hobbies..."
-                required
+                placeholder="Tell potential flatmates about your daily routine, lifestyle, cleanliness habits, hobbies... (Optional)"
                 className="w-full px-6 py-4 rounded-3xl bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9] placeholder:text-gray-400 transition-all resize-none"
               />
               <div className="flex justify-end mt-1">

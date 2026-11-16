@@ -9,6 +9,7 @@ export const sendOtpSchema = z.object({
       'forgot_password',
       'mobile_verification',
       'email_verification',
+      'account_deletion',
     ]),
   }),
 });
@@ -23,6 +24,7 @@ export const verifyOtpSchema = z.object({
       'forgot_password',
       'mobile_verification',
       'email_verification',
+      'account_deletion',
     ]),
   }),
 });

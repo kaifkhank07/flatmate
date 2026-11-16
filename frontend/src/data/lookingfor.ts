@@ -10,21 +10,21 @@ export interface LookingFirItem {
 export const useLookingFor = (): LookingFirItem[] => {
     return [
         {
-            title: "Find A Home",
-            subtitle: "Flats • Apartments • PG • Rooms",
-            href: "/listing",
+            title: "Find a Room / Flat",
+            subtitle: "Find a Room to Share with Others",
+            href: "/listing?category=Flat",
             icon: House,
         },
         {
-            title: "Find A Flatmate",
-            subtitle: "Compatible People • Shared Living",
-            href: "/flatmates",
+            title: "Find a Flatmate",
+            subtitle: "Find Someone to Share Your Space",
+            href: "/listing?category=Flatmate",
             icon: Users,
         },
         {
-            title: "Real Estate Services",
-            subtitle: "Buy • Sell • Rent • Invest",
-            href: "/services",
+            title: "Find an Entire Flat / House",
+            subtitle: "Find a Property Available for Rent",
+            href: "/listing?category=Property",
             icon: Building2,
         },
     ]

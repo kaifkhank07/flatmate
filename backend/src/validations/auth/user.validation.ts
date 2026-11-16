@@ -51,3 +51,9 @@ export const updateUserByAdminSchema = z.object({
       .optional(),
   }),
 });
+
+export const verifyDeleteUserSchema = z.object({
+  body: z.object({
+    otp: z.string().trim().min(4, 'OTP is required').max(10, 'Invalid OTP format'),
+  }),
+});

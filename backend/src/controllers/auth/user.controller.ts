@@ -1,14 +1,19 @@
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
+import crypto from 'crypto';
 
 import { User } from '../../models/auth/user.model';
 import { UserProfile } from '../../models/auth/userProfile.model';
 import { UserPreference } from '../../models/auth/userPreference.model';
 import { Avatar } from '../../models/auth/avatar.model';
 import { UserSession } from '../../models/auth/userSession.model';
+import { OTP } from '../../models/auth/otp.model';
 
 import { calculateProfileCompletion, parseProfileImageInput } from './profile.controller';
 import { deleteFile, extractKeyFromUrl } from '../../services/aws/s3.service';
+import { sendEmail } from '../../services/email/email.service';
+import { sendMobileOTP } from '../../services/sms/msg91.service';
+import { config } from '../../config/env';
 
 import { comparePassword, hashPassword, hashSecret } from '../../utils/password.util';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../../utils/token.util';
@@ -23,6 +28,13 @@ import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
 import { createNotification, notifyAdmins } from '../../services/notification/notification.service';
 import { userDeletionService } from '../../services/deletion';
+
+/**
+ * Generate a random 6-digit numeric OTP string
+ */
+const generateRandomOTP = (): string => {
+  return crypto.randomInt(100000, 999999).toString();
+};
 
 /**
  * Register a new user
@@ -400,14 +412,165 @@ export const deactivateCurrentUser = async (req: Request, res: Response): Promis
 };
 
 /**
- * Soft delete current authenticated user
- * DELETE /api/users/me
+ * Request OTP for account soft-deletion
+ * POST /api/users/me/delete-otp
+ */
+export const requestAccountDeletionOTP = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    if (!req.user) {
+      return sendError(res, 'Authentication required', 401);
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user || user.isDeleted) {
+      return sendError(res, 'User not found or account is already deleted', 404);
+    }
+
+    const identifier = user.mobile || user.email;
+    if (!identifier) {
+      return sendError(res, 'No registered mobile or email found for your account', 400);
+    }
+
+    const cleanIdentifier = identifier.toLowerCase().trim();
+
+    // Rate limit check: 60 seconds
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+    const recentOtp = await OTP.findOne({
+      userId: user._id,
+      type: 'account_deletion',
+      createdAt: { $gte: oneMinuteAgo },
+    });
+
+    if (recentOtp && config.isProduction) {
+      return sendError(res, 'Please wait a minute before requesting another OTP', 429);
+    }
+
+    const rawOtp = generateRandomOTP();
+    const otpHash = hashSecret(rawOtp);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    await OTP.create({
+      userId: user._id,
+      identifier: cleanIdentifier,
+      type: 'account_deletion',
+      otpHash,
+      expiresAt,
+      attempts: 0,
+      isUsed: false,
+    });
+
+    let maskedDestination = '';
+    let sentViaSms = false;
+    let sentViaEmail = false;
+
+    // Send SMS if user has mobile
+    if (user.mobile) {
+      try {
+        await sendMobileOTP({
+          mobile: user.mobile,
+          otp: rawOtp,
+        });
+        sentViaSms = true;
+        const mob = user.mobile.trim();
+        maskedDestination = mob.length > 4 ? `+${mob.slice(0, 2)}******${mob.slice(-4)}` : mob;
+        if (!config.isProduction) {
+          logger.info(`[AccountDeletion] SMS OTP dispatched | mobile=${user.mobile} | OTP=${rawOtp}`);
+        }
+      } catch (smsErr) {
+        logger.error(`[AccountDeletion] Failed to send SMS to ${user.mobile}:`, smsErr);
+      }
+    }
+
+    // Send Email if user has email
+    // if (user.email) {
+    //   try {
+    //     await sendEmail({
+    //       to: user.email,
+    //       subject: 'Flatmate Marketplace - Account Deletion Verification Code',
+    //       html: `<p>You have requested to delete your FlatMate Marketplace account.</p>
+    //              <p>Your verification code is: <strong>${rawOtp}</strong></p>
+    //              <p>This code expires in 5 minutes. If you did not request this, please secure your account immediately.</p>`,
+    //       text: `You have requested to delete your FlatMate Marketplace account. Your verification code is: ${rawOtp}. This code expires in 5 minutes.`,
+    //     });
+    //     sentViaEmail = true;
+    //     if (!maskedDestination) {
+    //       const parts = user.email.split('@');
+    //       const namePart = parts[0];
+    //       const domainPart = parts[1] || '';
+    //       maskedDestination = namePart.length > 2
+    //         ? `${namePart.slice(0, 2)}****@${domainPart}`
+    //         : `${namePart}****@${domainPart}`;
+    //     }
+    //     if (!config.isProduction) {
+    //       logger.info(`[AccountDeletion] Email OTP dispatched | email=${user.email} | OTP=${rawOtp}`);
+    //     }
+    //   } catch (emailErr) {
+    //     logger.error(`[AccountDeletion] Failed to send email to ${user.email}:`, emailErr);
+    //   }
+    // }
+
+    if (!sentViaSms && !sentViaEmail) {
+      return sendError(res, 'Failed to dispatch verification code to your registered contact. Please try again.', 500);
+    }
+
+    return sendSuccess(res, 'Account deletion verification code sent successfully', {
+      destination: maskedDestination,
+      expiresIn: 300,
+    });
+  } catch (error: any) {
+    logger.error('[UserController] Failed to request account deletion OTP:', error);
+    return sendError(res, error.message || 'Failed to request deletion OTP', 500);
+  }
+};
+
+/**
+ * Soft delete current authenticated user (Requires OTP verification)
+ * DELETE /api/users/me or POST /api/users/me/verify-delete
  */
 export const deleteCurrentUser = async (req: Request, res: Response): Promise<Response> => {
   try {
     if (!req.user) {
       return sendError(res, 'Authentication required', 401);
     }
+
+    const otp = (req.body?.otp || req.headers?.['x-otp'] || req.query?.otp) as string;
+    if (!otp || typeof otp !== 'string' || !otp.trim()) {
+      return sendError(
+        res,
+        'OTP verification is required to delete your account. Please request a verification code.',
+        400
+      );
+    }
+
+    const cleanOtp = otp.trim();
+
+    // Verify OTP for this user
+    const otpRecord = await OTP.findOne({
+      userId: req.user._id,
+      type: 'account_deletion',
+      isUsed: false,
+      expiresAt: { $gt: new Date() },
+    }).sort({ createdAt: -1 });
+
+    if (!otpRecord) {
+      return sendError(res, 'Invalid or expired verification code. Please request a new OTP.', 400);
+    }
+
+    if (otpRecord.attempts >= 5) {
+      return sendError(res, 'Maximum verification attempts exceeded. Please request a new OTP.', 429);
+    }
+
+    const inputHash = hashSecret(cleanOtp);
+    if (otpRecord.otpHash !== inputHash) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      return sendError(res, 'Invalid verification code. Please check the code and try again.', 400);
+    }
+
+    // OTP is valid! Mark as used and set verifiedAt
+    otpRecord.isUsed = true;
+    otpRecord.verifiedAt = new Date();
+    await otpRecord.save();
 
     // Fetch user profile / name for notification before cascading soft delete
     const userProfile = await UserProfile.findOne({ userId: req.user._id }).select('firstName lastName').lean();
@@ -420,14 +583,14 @@ export const deleteCurrentUser = async (req: Request, res: Response): Promise<Re
 
     clearAuthCookies(res);
 
-    logger.info(`User soft-deleted with cascading cleanup: ${req.user._id}`);
+    logger.info(`User soft-deleted with OTP verification and cascading cleanup: ${req.user._id}`);
 
     // Dispatch notification to admins when user deletes account by itself
     notifyAdmins({
       eventType: 'ADMIN_USER_DELETED',
       category: 'ADMINISTRATIVE',
       title: 'User Account Deleted',
-      message: `User ${userName} (${req.user.email || req.user.mobile || 'No email/mobile'}) has deleted their own account.`,
+      message: `User ${userName} (${req.user.email || req.user.mobile || 'No email/mobile'}) has deleted their own account after OTP verification.`,
       actionUrl: '/admin/users',
       data: {
         userId: req.user._id.toString(),
@@ -439,9 +602,9 @@ export const deleteCurrentUser = async (req: Request, res: Response): Promise<Re
       priority: 'NORMAL',
     }).catch((err) => logger.warn('[UserController] Failed to notify admins of user deletion', err));
 
-    return sendSuccess(res, 'User account deleted successfully');
+    return sendSuccess(res, 'Your account has been deleted successfully.');
   } catch (error: any) {
-    logger.error('[UserController] Failed to delete current user:', error);
+    logger.error('[UserController] Failed to delete current user with OTP:', error);
     return sendError(res, error.message || 'Failed to delete user account', 500);
   }
 };
@@ -672,6 +835,7 @@ export const updateUserProfileByAdmin = async (req: Request, res: Response): Pro
     delete req.body.userId;
     delete req.body.profileCompletion;
     delete req.body._id;
+    delete req.body.completedOnce;
 
     // Parse preferences if string
     let preferencesInput = req.body.preferences;

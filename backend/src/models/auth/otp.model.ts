@@ -5,7 +5,8 @@ export type OTPType =
   | 'email_login'
   | 'forgot_password'
   | 'mobile_verification'
-  | 'email_verification';
+  | 'email_verification'
+  | 'account_deletion';
 
 export interface IOTP extends Document {
   userId?: Types.ObjectId;
@@ -41,6 +42,7 @@ const otpSchema = new Schema<IOTP>(
         'forgot_password',
         'mobile_verification',
         'email_verification',
+        'account_deletion',
       ],
       required: true,
       index: true,

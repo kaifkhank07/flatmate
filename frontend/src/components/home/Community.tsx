@@ -48,7 +48,7 @@ export default function Community() {
 
           <div className="space-y-4">
             <p className="text-black text-base md:text-xl font-regular leading-relaxed max-w-2xl">
-              Flat & Flatmates Isn't Just A Platform; It's A Community. Whether You're A Student, A Working Professional, Or A Homeowner - We Help You Find The Right Space, The Right People, And The Right Support.
+              Flat & Flatmate Isn't Just A Platform; It's A Community. Whether You're A Student, A Working Professional, Or A Homeowner - We Help You Find The Right Space, The Right People, And The Right Support.
             </p>
 
             <ArrowLink

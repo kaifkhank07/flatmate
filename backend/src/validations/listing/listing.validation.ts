@@ -92,6 +92,46 @@ export const getListingsQuerySchema = z.object({
         )
         .pipe(z.number().min(0, 'budget cannot be negative').optional()),
 
+      rent: z
+        .string()
+        .optional()
+        .transform((val) =>
+          val !== undefined && val !== '' ? parseFloat(val) : undefined
+        )
+        .pipe(z.number().min(0, 'rent cannot be negative').optional()),
+
+      minBudget: z
+        .string()
+        .optional()
+        .transform((val) =>
+          val !== undefined && val !== '' ? parseFloat(val) : undefined
+        )
+        .pipe(z.number().min(0, 'minBudget cannot be negative').optional()),
+
+      maxBudget: z
+        .string()
+        .optional()
+        .transform((val) =>
+          val !== undefined && val !== '' ? parseFloat(val) : undefined
+        )
+        .pipe(z.number().min(0, 'maxBudget cannot be negative').optional()),
+
+      minPrice: z
+        .string()
+        .optional()
+        .transform((val) =>
+          val !== undefined && val !== '' ? parseFloat(val) : undefined
+        )
+        .pipe(z.number().min(0, 'minPrice cannot be negative').optional()),
+
+      maxPrice: z
+        .string()
+        .optional()
+        .transform((val) =>
+          val !== undefined && val !== '' ? parseFloat(val) : undefined
+        )
+        .pipe(z.number().min(0, 'maxPrice cannot be negative').optional()),
+
       genderPreference: z
         .enum(['male', 'female', 'other', 'any', 'all'])
         .optional(),
@@ -148,7 +188,7 @@ export const getListingsQuerySchema = z.object({
         .transform((val) => (val ? parseInt(val, 10) : undefined))
         .pipe(z.number().int().min(1).optional()),
 
-      sortBy: z.string().optional().default('createdAt'),
+      sortBy: z.string().optional().default('relevance'),
 
       order: z.enum(['asc', 'desc', '1', '-1']).optional().default('desc'),
     })
@@ -161,6 +201,20 @@ export const getListingsQuerySchema = z.object({
       {
         message: 'Both latitude and longitude must be provided for geographic search',
         path: ['latitude'],
+      }
+    )
+    .refine(
+      (data) => {
+        const min = data.minBudget ?? data.minPrice;
+        const max = data.maxBudget ?? data.maxPrice;
+        if (min !== undefined && max !== undefined) {
+          return min <= max;
+        }
+        return true;
+      },
+      {
+        message: 'Minimum budget cannot be greater than maximum budget',
+        path: ['minBudget'],
       }
     ),
 });

@@ -36,17 +36,8 @@ type OccupationType =
 const COMMON_LANGUAGES = [
   "English",
   "Hindi",
-  "Punjabi",
   "Marathi",
-  "Bengali",
-  "Telugu",
-  "Tamil",
-  "Kannada",
-  "Gujarati",
-  "Malayalam",
-  "French",
-  "Spanish",
-  "German",
+  "Other",
 ];
 
 const OCCUPATION_OPTIONS: { label: string; value: OccupationType }[] = [
@@ -77,6 +68,8 @@ export default function ManageProfile() {
     deleteProfileImage,
     fetchAvatars,
     selectAvatar,
+    requestAccountDeletionOTP,
+    deleteAccountWithOTP,
     logout,
   } = useAuthStore();
 
@@ -96,11 +89,28 @@ export default function ManageProfile() {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteStep, setDeleteStep] = useState<"confirm" | "otp">("confirm");
+  const [deleteOtp, setDeleteOtp] = useState(["", "", "", "", "", ""]);
+  const [isSendingDeleteOtp, setIsSendingDeleteOtp] = useState(false);
+  const [deleteDestination, setDeleteDestination] = useState("");
+  const [deleteOtpError, setDeleteOtpError] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
+
+  // Deletion OTP Resend Cooldown Timer
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resendCooldown > 0) {
+      timer = setTimeout(() => {
+        setResendCooldown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   useEffect(() => {
     if (showAvatarModal && avatars.length === 0) {
@@ -293,20 +303,80 @@ export default function ManageProfile() {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    setIsDeleting(true);
-    try {
-      await apiClient.delete("/users/me");
-      await logout();
-      router.push("/");
-    } catch (err: any) {
-      setStatusMessage({
-        type: "error",
-        text:
-          err?.response?.data?.message ||
-          "Failed to delete account. Please try again.",
+  const handleOpenDeleteModal = () => {
+    setShowDeleteModal(true);
+    setDeleteStep("confirm");
+    setDeleteOtp(["", "", "", "", "", ""]);
+    setDeleteOtpError("");
+  };
+
+  const handleCloseDeleteModal = () => {
+    if (isDeleting || isSendingDeleteOtp) return;
+    setShowDeleteModal(false);
+    setDeleteStep("confirm");
+    setDeleteOtp(["", "", "", "", "", ""]);
+    setDeleteOtpError("");
+  };
+
+  const handleRequestDeleteOtp = async () => {
+    setIsSendingDeleteOtp(true);
+    setDeleteOtpError("");
+    const result = await requestAccountDeletionOTP();
+    setIsSendingDeleteOtp(false);
+    if (result.success) {
+      setDeleteDestination(result.destination || "");
+      setDeleteStep("otp");
+      setResendCooldown(60);
+      setDeleteOtp(["", "", "", "", "", ""]);
+    } else {
+      setDeleteOtpError(result.message);
+    }
+  };
+
+  const handleDeleteOtpChange = (index: number, value: string) => {
+    const cleanVal = value.replace(/[^0-9]/g, "");
+    if (cleanVal.length > 1) {
+      const digits = cleanVal.slice(0, 6).split("");
+      const newOtp = [...deleteOtp];
+      digits.forEach((d, i) => {
+        if (index + i < 6) newOtp[index + i] = d;
       });
+      setDeleteOtp(newOtp);
+      const nextIdx = Math.min(index + digits.length, 5);
+      document.getElementById(`delete-otp-input-${nextIdx}`)?.focus();
+      if (deleteOtpError) setDeleteOtpError("");
+      return;
+    }
+    const newOtp = [...deleteOtp];
+    newOtp[index] = cleanVal;
+    setDeleteOtp(newOtp);
+    if (cleanVal && index < 5) {
+      document.getElementById(`delete-otp-input-${index + 1}`)?.focus();
+    }
+    if (deleteOtpError) setDeleteOtpError("");
+  };
+
+  const handleDeleteOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !deleteOtp[index] && index > 0) {
+      document.getElementById(`delete-otp-input-${index - 1}`)?.focus();
+    }
+  };
+
+  const handleConfirmDeleteWithOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const fullOtp = deleteOtp.join("").trim();
+    if (fullOtp.length < 6) {
+      setDeleteOtpError("Please enter all 6 digits of your verification code.");
+      return;
+    }
+    setIsDeleting(true);
+    setDeleteOtpError("");
+    const result = await deleteAccountWithOTP(fullOtp);
+    if (result.success) {
       setShowDeleteModal(false);
+      router.push("/login");
+    } else {
+      setDeleteOtpError(result.message);
       setIsDeleting(false);
     }
   };
@@ -716,7 +786,7 @@ export default function ManageProfile() {
             </p>
             <button
               type="button"
-              onClick={() => setShowDeleteModal(true)}
+              onClick={handleOpenDeleteModal}
               className="px-6 py-3 rounded-full bg-[#FF0000] hover:bg-[#DE0000] text-white text-sm sm:text-base font-regular transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
             >
               <span>Delete account</span>
@@ -725,45 +795,136 @@ export default function ManageProfile() {
           </div>
         </ViewReveal>
 
-        {/* Delete Account Confirmation Modal */}
+        {/* Delete Account Modal (Step 1: Confirm -> Step 2: OTP Verification) */}
         {showDeleteModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in-50">
             <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-gray-100">
               <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-4">
                 <Trash2 className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Delete your account?
-              </h3>
-              <p className="text-sm text-gray-600 mb-6">
-                This action cannot be undone. All your listings, profile data, and preferences
-                will be permanently removed.
-              </p>
-              <div className="flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  disabled={isDeleting}
-                  onClick={() => setShowDeleteModal(false)}
-                  className="px-5 py-2.5 rounded-full border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={isDeleting}
-                  onClick={handleDeleteAccount}
-                  className="px-5 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition flex items-center gap-2 cursor-pointer disabled:opacity-60"
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Deleting...</span>
-                    </>
-                  ) : (
-                    <span>Yes, Delete Account</span>
+
+              {deleteStep === "confirm" ? (
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    Delete your account?
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-6">
+                    This action cannot be undone. All your listings, profile data, and preferences
+                    will be permanently removed. To confirm your identity, a 6-digit verification code
+                    will be sent to your registered contact details.
+                  </p>
+
+                  {deleteOtpError && (
+                    <div className="mb-4 p-3 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-700">
+                      {deleteOtpError}
+                    </div>
                   )}
-                </button>
-              </div>
+
+                  <div className="flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      disabled={isSendingDeleteOtp}
+                      onClick={handleCloseDeleteModal}
+                      className="px-5 py-2.5 rounded-full border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSendingDeleteOtp}
+                      onClick={handleRequestDeleteOtp}
+                      className="px-5 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                    >
+                      {isSendingDeleteOtp ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Sending code...</span>
+                        </>
+                      ) : (
+                        <span>Send Verification Code</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                    Verify Account Deletion
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-5">
+                    Enter the 6-digit verification code sent to your registered contact
+                    {deleteDestination ? ` (${deleteDestination})` : ""}.
+                  </p>
+
+                  <form onSubmit={handleConfirmDeleteWithOtp} className="space-y-4">
+                    <div>
+                      <div className="flex justify-between items-center gap-1.5 sm:gap-2 py-1">
+                        {deleteOtp.map((digit, index) => (
+                          <input
+                            key={index}
+                            id={`delete-otp-input-${index}`}
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={1}
+                            value={digit}
+                            disabled={isDeleting}
+                            onChange={(e) => handleDeleteOtpChange(index, e.target.value)}
+                            onKeyDown={(e) => handleDeleteOtpKeyDown(index, e)}
+                            className="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-semibold border border-gray-300 rounded-xl sm:rounded-2xl focus:border-red-600 focus:ring-2 focus:ring-red-100 outline-none transition-all bg-white text-gray-900"
+                          />
+                        ))}
+                      </div>
+
+                      {deleteOtpError && (
+                        <p className="text-xs text-red-500 text-center font-medium mt-2">
+                          {deleteOtpError}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-gray-500 pt-1">
+                      <span>Didn't receive code?</span>
+                      <button
+                        type="button"
+                        disabled={resendCooldown > 0 || isSendingDeleteOtp}
+                        onClick={handleRequestDeleteOtp}
+                        className="text-[#0066F9] hover:underline font-medium disabled:text-gray-400 disabled:no-underline cursor-pointer disabled:cursor-not-allowed"
+                      >
+                        {isSendingDeleteOtp
+                          ? "Sending..."
+                          : resendCooldown > 0
+                          ? `Resend in ${resendCooldown}s`
+                          : "Resend Code"}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                      <button
+                        type="button"
+                        disabled={isDeleting}
+                        onClick={handleCloseDeleteModal}
+                        className="px-5 py-2.5 rounded-full border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isDeleting || deleteOtp.join("").length < 6}
+                        className="px-5 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isDeleting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Deleting Account...</span>
+                          </>
+                        ) : (
+                          <span>Verify & Delete</span>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </div>
           </div>
         )}

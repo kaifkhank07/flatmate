@@ -311,7 +311,7 @@ export default function EditUserProfileDialog({
               <input
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                 type="text"
-                placeholder="e.g. English, Hindi, Spanish"
+                placeholder="e.g. English, Hindi, Marathi, Other"
                 value={profileForm.languagesKnown}
                 onChange={(e) => setProfileForm({ ...profileForm, languagesKnown: e.target.value })}
               />

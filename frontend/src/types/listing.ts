@@ -219,6 +219,10 @@ export interface ListingQueryParams {
   searchLocationName?: string;
   rent?: number;
   budget?: number;
+  minBudget?: number;
+  maxBudget?: number;
+  minPrice?: number;
+  maxPrice?: number;
   genderPreference?: GenderPreference;
   occupationPreference?: OccupationPreference;
   moveInDate?: string;
@@ -232,6 +236,12 @@ export interface ListingQueryParams {
   sortBy?: string;
   order?: 'asc' | 'desc' | '1' | '-1';
 }
+
+export type ListingSortOption =
+  | 'relevance'
+  | 'recent'
+  | 'price_low_high'
+  | 'price_high_low';
 
 export interface ListingOptions {
   amenities: AmenityItem[];
@@ -257,7 +267,7 @@ export interface GetListingsResponseData {
 }
 
 export type ListingCategory = "All" | "Flat" | "Flatmate" | "Property";
-export type GenderFilter = "All" | "Male" | "Female";
+export type GenderFilter = "Any" | "Male" | "Female" | "All";
 
 export function getCategoryFilters(cat: ListingCategory): {
   sourceType: SourceType;

@@ -13,8 +13,8 @@ export default function Home() {
   return (
     <main className="w-full min-h-screen">
       <Hero />
-      <WhyChooseUs />
       <LookingFor />
+      <WhyChooseUs />
       <Community />
       <ExploreListings />
       <Cta />

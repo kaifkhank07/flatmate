@@ -191,6 +191,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<Respon
     delete req.body.userId;
     delete req.body.profileCompletion;
     delete req.body._id;
+    delete req.body.completedOnce;
 
     // Parse stringified preferences if sent via FormData
     let preferencesInput = req.body.preferences;
@@ -475,12 +476,50 @@ export const markProfileAsCompleted = async (req: Request, res: Response): Promi
       return sendError(res, 'Authentication required', 401);
     }
 
-    let profile = await UserProfile.findOne({ userId: req.user._id });
+    const profile = await UserProfile.findOne({ userId: req.user._id });
     if (!profile) {
-      profile = new UserProfile({
-        userId: req.user._id,
-        profileCompletion: 0,
-      });
+      return sendError(res, 'User profile not found. Please save your profile details first.', 404);
+    }
+
+    // Mandatory profile completion verification: firstName, gender, occupation, and (image OR avatar)
+    const hasFirstName = Boolean(profile.firstName && profile.firstName.trim().length > 0);
+    const validGenders = ['male', 'female', 'other', 'any'];
+    const hasGender = Boolean(profile.gender && validGenders.includes(profile.gender));
+    const validOccupations = [
+      'student',
+      'working_professional',
+      'self_employed',
+      'business_owner',
+      'freelancer',
+      'other',
+    ];
+    const hasOccupation = Boolean(profile.occupation && validOccupations.includes(profile.occupation));
+
+    const hasValidImage = Boolean(
+      profile.image &&
+      typeof profile.image.url === 'string' &&
+      profile.image.url.trim().length > 0
+    );
+
+    let hasValidAvatar = false;
+    if (profile.avatar) {
+      const avatarId = (profile.avatar as any)?._id || profile.avatar;
+      if (Types.ObjectId.isValid(String(avatarId))) {
+        const avatarDoc = await Avatar.findOne({ _id: avatarId, isActive: true });
+        if (avatarDoc) {
+          hasValidAvatar = true;
+        }
+      }
+    }
+
+    const hasValidVisual = hasValidImage || hasValidAvatar;
+
+    if (!hasFirstName || !hasGender || !hasOccupation || !hasValidVisual) {
+      return sendError(
+        res,
+        'Cannot complete profile: firstName, gender, occupation, and either a valid profile image or avatar are required.',
+        400
+      );
     }
 
     profile.completedOnce = true;

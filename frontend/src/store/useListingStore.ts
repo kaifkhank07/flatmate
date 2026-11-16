@@ -169,7 +169,11 @@ const initialFilters: ListingQueryParams = {
   page: 1,
   limit: 10,
   sourceType: 'all',
-  sortBy: 'createdAt',
+  genderPreference: 'any',
+  furnishing: 'all',
+  minBudget: undefined,
+  maxBudget: undefined,
+  sortBy: 'relevance',
   order: 'desc',
 };
 
@@ -471,7 +475,7 @@ export const useListingStore = create<ListingState>((set, get) => ({
 
       cleanParams.page = activeFilters.page || 1;
       cleanParams.limit = activeFilters.limit || 10;
-      cleanParams.sortBy = activeFilters.sortBy || "createdAt";
+      cleanParams.sortBy = activeFilters.sortBy || "relevance";
       cleanParams.order = activeFilters.order || "desc";
 
       if (activeFilters.sourceType && activeFilters.sourceType !== "all") {

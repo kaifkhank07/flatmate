@@ -6,6 +6,7 @@ import {
   refreshToken,
   getCurrentUser,
   updateCurrentUser,
+  requestAccountDeletionOTP,
   deleteCurrentUser,
   deactivateCurrentUser,
   getUsers,
@@ -46,6 +47,8 @@ router.post('/logout', logoutUser);
 router.post('/refresh-token', refreshToken);
 router.get('/me', authenticateUser, getCurrentUser);
 router.patch('/me', authenticateUser, validate(updateUserSchema), updateCurrentUser);
+router.post('/me/delete-otp', authenticateUser, requestAccountDeletionOTP);
+router.post('/me/verify-delete', authenticateUser, deleteCurrentUser);
 router.delete('/me', authenticateUser, deleteCurrentUser);
 router.patch('/me/deactivate', authenticateUser, deactivateCurrentUser);
 router.get('/profile/completion-status', authenticateUser, getProfileCompletionStatus);

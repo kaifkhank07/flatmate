@@ -5,6 +5,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import {
   ListingCategory,
   GenderFilter,
+  ListingSortOption,
+  FurnishingType,
   mapUnifiedListingToCard,
   getCategoryFilters,
 } from "@/types/listing";
@@ -35,7 +37,11 @@ export default function ListingManager() {
 
   const [selectedCategory, setSelectedCategory] =
     useState<ListingCategory>("All");
-  const [selectedGender, setSelectedGender] = useState<GenderFilter>("All");
+  const [selectedGender, setSelectedGender] = useState<GenderFilter>("Any");
+  const [selectedSort, setSelectedSort] = useState<ListingSortOption>("relevance");
+  const [selectedFurnishing, setSelectedFurnishing] = useState<FurnishingType>("all");
+  const [minBudget, setMinBudget] = useState<number | undefined>(undefined);
+  const [maxBudget, setMaxBudget] = useState<number | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlace, setSelectedPlace] = useState<{
     placeId: string;
@@ -180,9 +186,37 @@ export default function ListingManager() {
   const handleSelectGender = (gender: GenderFilter) => {
     setSelectedGender(gender);
     const genderPreference =
-      gender === "Male" ? "male" : gender === "Female" ? "female" : undefined;
+      gender === "Male" ? "male" : gender === "Female" ? "female" : "any";
 
     setFilters({ genderPreference, page: 1 });
+  };
+
+  // Handle Sort Selection
+  const handleSelectSort = (sort: ListingSortOption) => {
+    setSelectedSort(sort);
+    setFilters({ sortBy: sort, page: 1 });
+  };
+
+  // Handle Furnishing Selection
+  const handleSelectFurnishing = (furnishing: FurnishingType) => {
+    setSelectedFurnishing(furnishing);
+    setFilters({
+      furnishing: furnishing === "all" ? undefined : furnishing,
+      page: 1,
+    });
+  };
+
+  // Handle Budget Range Application
+  const handleApplyBudget = (min?: number, max?: number) => {
+    setMinBudget(min);
+    setMaxBudget(max);
+    setFilters({
+      minBudget: min,
+      maxBudget: max,
+      budget: undefined,
+      rent: undefined,
+      page: 1,
+    });
   };
 
   // Handle Search Input Change
@@ -196,19 +230,36 @@ export default function ListingManager() {
   // Handle Filter Reset
   const handleResetFilters = () => {
     setSelectedCategory("All");
-    setSelectedGender("All");
+    setSelectedGender("Any");
+    setSelectedSort("relevance");
+    setSelectedFurnishing("all");
+    setMinBudget(undefined);
+    setMaxBudget(undefined);
     setSearchQuery("");
     setSelectedPlace(null);
     clearCityUrlParam();
     resetFilters();
   };
 
+  const hasActiveFilters =
+    selectedCategory !== "All" ||
+    selectedGender !== "Any" ||
+    selectedSort !== "relevance" ||
+    selectedFurnishing !== "all" ||
+    minBudget !== undefined ||
+    maxBudget !== undefined ||
+    !!searchQuery.trim() ||
+    selectedPlace !== null;
 
   useEffect(() => {
     // Reset to default filters when opening the listing page
     if (!cityParam && !categoryParam && !propertyTypeParam) {
       setSelectedCategory("All");
-      setSelectedGender("All");
+      setSelectedGender("Any");
+      setSelectedSort("relevance");
+      setSelectedFurnishing("all");
+      setMinBudget(undefined);
+      setMaxBudget(undefined);
       setSearchQuery("");
       setSelectedPlace(null);
 
@@ -225,21 +276,30 @@ export default function ListingManager() {
 
   return (
     <section className="w-full">
-      {/* Category Tabs, Gender Filter & Search Bar */}
+      {/* Category Tabs, Filters, Sort & Search Bar */}
       <ListingFilterBar
         selectedCategory={selectedCategory}
         onSelectCategory={handleSelectCategory}
         selectedGender={selectedGender}
         onSelectGender={handleSelectGender}
+        selectedSort={selectedSort}
+        onSelectSort={handleSelectSort}
+        selectedFurnishing={selectedFurnishing}
+        onSelectFurnishing={handleSelectFurnishing}
+        minBudget={minBudget}
+        maxBudget={maxBudget}
+        onApplyBudget={handleApplyBudget}
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
         selectedPlace={selectedPlace}
         onSelectPlace={handleSelectPlace}
+        onResetFilters={handleResetFilters}
+        hasActiveFilters={hasActiveFilters}
       />
 
       {/* Listing Cards Grid */}
       <ViewReveal duration={800}>
-        <div className="w-full py-6 md:py-8 lg:py-12 px-4 sm:px-6 lg:px-16">
+        <div className="w-full py-6 md:py-8 lg:py-12 px-4 sm:px-6 lg:px-16 pb-24 sm:pb-28 lg:pb-12">
           <div className="w-full max-w-8xl mx-auto">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20">

@@ -12,6 +12,7 @@ interface SlicedIndexItem {
   createdAt: Date;
   locationId?: string;
   distance?: number;
+  rent?: number;
   sourceType: 'property' | 'flatmate_requirement';
 }
 
@@ -232,20 +233,59 @@ export const getListings = async (req: Request, res: Response): Promise<Response
     }
 
     // 4. Budget / Rent Filter
-    const budgetVal =
-      query.budget !== undefined && query.budget !== ''
-        ? parseFloat(query.budget as string)
-        : undefined;
-    if (budgetVal !== undefined && !isNaN(budgetVal)) {
-      propertyFilter.rent = budgetVal;
-      flatmateFilter.rent = budgetVal;
+    const paramMinBudget =
+      query.minBudget !== undefined && query.minBudget !== ''
+        ? parseFloat(query.minBudget as string)
+        : query.minPrice !== undefined && query.minPrice !== ''
+          ? parseFloat(query.minPrice as string)
+          : undefined;
+
+    const paramMaxBudget =
+      query.maxBudget !== undefined && query.maxBudget !== ''
+        ? parseFloat(query.maxBudget as string)
+        : query.maxPrice !== undefined && query.maxPrice !== ''
+          ? parseFloat(query.maxPrice as string)
+          : undefined;
+
+    if (paramMinBudget !== undefined && (isNaN(paramMinBudget) || paramMinBudget < 0)) {
+      return sendError(res, 'minBudget must be a non-negative number', 400);
+    }
+    if (paramMaxBudget !== undefined && (isNaN(paramMaxBudget) || paramMaxBudget < 0)) {
+      return sendError(res, 'maxBudget must be a non-negative number', 400);
+    }
+    if (
+      paramMinBudget !== undefined &&
+      paramMaxBudget !== undefined &&
+      paramMinBudget > paramMaxBudget
+    ) {
+      return sendError(res, 'Minimum budget cannot be greater than maximum budget', 400);
+    }
+
+    if (paramMinBudget !== undefined || paramMaxBudget !== undefined) {
+      const rentQuery: any = {};
+      if (paramMinBudget !== undefined) rentQuery.$gte = paramMinBudget;
+      if (paramMaxBudget !== undefined) rentQuery.$lte = paramMaxBudget;
+      propertyFilter.rent = rentQuery;
+      flatmateFilter.rent = rentQuery;
+    } else {
+      const budgetVal =
+        query.budget !== undefined && query.budget !== ''
+          ? parseFloat(query.budget as string)
+          : query.rent !== undefined && query.rent !== ''
+            ? parseFloat(query.rent as string)
+            : undefined;
+      if (budgetVal !== undefined && !isNaN(budgetVal)) {
+        propertyFilter.rent = budgetVal;
+        flatmateFilter.rent = budgetVal;
+      }
     }
 
     // 5. Gender Preference Filter
-    const genderPref = query.genderPreference as string;
-    if (genderPref && genderPref !== 'all') {
-      propertyFilter.genderPreference = { $in: [genderPref, 'any'] };
-      flatmateFilter.genderPreference = { $in: [genderPref, 'any'] };
+    const rawGender = query.genderPreference as string | undefined;
+    const genderPref = rawGender ? rawGender.trim().toLowerCase() : undefined;
+    if (genderPref && genderPref !== 'all' && genderPref !== 'any') {
+      propertyFilter.genderPreference = genderPref;
+      flatmateFilter.genderPreference = genderPref;
     }
 
     // 6. Occupation Preference Filter
@@ -277,6 +317,7 @@ export const getListings = async (req: Request, res: Response): Promise<Response
     }
     if (query.furnishing && query.furnishing !== 'all') {
       propertyFilter.furnishing = query.furnishing;
+      flatmateFilter.furnishing = query.furnishing;
     }
 
     // 9. FlatmateRequirement-Specific Filters
@@ -301,7 +342,7 @@ export const getListings = async (req: Request, res: Response): Promise<Response
       flatmateFilter.partnerType = query.partnerType;
     }
 
-    // 10. Fetch index items (projections of _id, createdAt, location) based on sourceType
+    // 10. Fetch index items (projections of _id, createdAt, location, rent) based on sourceType
     let propertyItems: SlicedIndexItem[] = [];
     let flatmateItems: SlicedIndexItem[] = [];
 
@@ -315,6 +356,7 @@ export const getListings = async (req: Request, res: Response): Promise<Response
           _id: 1,
           createdAt: 1,
           location: 1,
+          rent: 1,
         }).lean()
         : [],
       fetchFlatmates
@@ -322,12 +364,13 @@ export const getListings = async (req: Request, res: Response): Promise<Response
           _id: 1,
           createdAt: 1,
           location: 1,
+          rent: 1,
         }).lean()
         : [],
     ]);
 
     if (fetchProperties) {
-      propertyItems = rawProps.map((p) => {
+      propertyItems = rawProps.map((p: any) => {
         const locIdStr = p.location ? p.location.toString() : '';
         const distance =
           isGeographicSearch && locIdStr
@@ -338,13 +381,14 @@ export const getListings = async (req: Request, res: Response): Promise<Response
           createdAt: p.createdAt,
           locationId: locIdStr,
           distance,
+          rent: typeof p.rent === 'number' && !isNaN(p.rent) ? p.rent : undefined,
           sourceType: 'property',
         };
       });
     }
 
     if (fetchFlatmates) {
-      flatmateItems = rawFlatmates.map((f) => {
+      flatmateItems = rawFlatmates.map((f: any) => {
         const locIdStr = f.location ? f.location.toString() : '';
         const distance =
           isGeographicSearch && locIdStr
@@ -355,6 +399,7 @@ export const getListings = async (req: Request, res: Response): Promise<Response
           createdAt: f.createdAt,
           locationId: locIdStr,
           distance,
+          rent: typeof f.rent === 'number' && !isNaN(f.rent) ? f.rent : undefined,
           sourceType: 'flatmate_requirement',
         };
       });
@@ -363,34 +408,97 @@ export const getListings = async (req: Request, res: Response): Promise<Response
     // 11. Combine & Sort Index Items
     const combinedIndex = [...propertyItems, ...flatmateItems];
 
-    // Whenever geographic location search is active, ALWAYS sort by nearest distance first (distance asc).
-    // When no geographic search is active, sort by requested sortBy or default to createdAt desc.
-    const effectiveSortBy = isGeographicSearch ? 'distance' : (requestedSortBy || 'createdAt');
-    const orderStr = isGeographicSearch ? 'asc' : (requestedOrder || (effectiveSortBy === 'distance' ? 'asc' : 'desc'));
-    const sortOrder = orderStr === 'asc' || orderStr === '1' ? 1 : -1;
+    // Helper to get comparable rent
+    const getComparableRent = (item: SlicedIndexItem): number | null => {
+      if (typeof item.rent === 'number' && !isNaN(item.rent) && item.rent > 0) {
+        return item.rent;
+      }
+      return null;
+    };
 
-    if (effectiveSortBy === 'distance' && isGeographicSearch) {
+    const normalizedSortBy = (requestedSortBy || 'relevance').toLowerCase().trim();
+    const normalizedOrder = (requestedOrder || '').toLowerCase().trim();
+
+    if (
+      normalizedSortBy === 'price_low_high' ||
+      ((normalizedSortBy === 'rent' || normalizedSortBy === 'price') && normalizedOrder === 'asc')
+    ) {
       combinedIndex.sort((a, b) => {
-        const distA = a.distance !== undefined ? a.distance : Number.MAX_VALUE;
-        const distB = b.distance !== undefined ? b.distance : Number.MAX_VALUE;
-        if (distA !== distB) {
-          return sortOrder === -1 ? distB - distA : distA - distB;
+        const rentA = getComparableRent(a);
+        const rentB = getComparableRent(b);
+
+        // Missing/invalid price items must appear at the end
+        if (rentA !== null && rentB === null) return -1;
+        if (rentA === null && rentB !== null) return 1;
+        if (rentA !== null && rentB !== null && rentA !== rentB) {
+          return rentA - rentB;
         }
+
         const timeA = new Date(a.createdAt).getTime();
         const timeB = new Date(b.createdAt).getTime();
-        return timeB - timeA;
+        if (timeA !== timeB) return timeB - timeA;
+
+        return a.id.toString().localeCompare(b.id.toString());
+      });
+    } else if (
+      normalizedSortBy === 'price_high_low' ||
+      ((normalizedSortBy === 'rent' || normalizedSortBy === 'price') && (normalizedOrder === 'desc' || normalizedOrder === ''))
+    ) {
+      combinedIndex.sort((a, b) => {
+        const rentA = getComparableRent(a);
+        const rentB = getComparableRent(b);
+
+        // Missing/invalid price items must appear at the end
+        if (rentA !== null && rentB === null) return -1;
+        if (rentA === null && rentB !== null) return 1;
+        if (rentA !== null && rentB !== null && rentA !== rentB) {
+          return rentB - rentA;
+        }
+
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        if (timeA !== timeB) return timeB - timeA;
+
+        return a.id.toString().localeCompare(b.id.toString());
+      });
+    } else if (
+      normalizedSortBy === 'recent' ||
+      (normalizedSortBy === 'createdat' && (normalizedOrder === 'desc' || normalizedOrder === ''))
+    ) {
+      combinedIndex.sort((a, b) => {
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        if (timeA !== timeB) return timeB - timeA;
+        return a.id.toString().localeCompare(b.id.toString());
+      });
+    } else if (normalizedSortBy === 'createdat' && normalizedOrder === 'asc') {
+      combinedIndex.sort((a, b) => {
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        if (timeA !== timeB) return timeA - timeB;
+        return a.id.toString().localeCompare(b.id.toString());
       });
     } else {
-      combinedIndex.sort((a, b) => {
-        const timeA = new Date(a.createdAt).getTime();
-        const timeB = new Date(b.createdAt).getTime();
-        if (timeA !== timeB) {
-          return sortOrder === 1 ? timeA - timeB : timeB - timeA;
-        }
-        const idA = a.id.toString();
-        const idB = b.id.toString();
-        return sortOrder === 1 ? idA.localeCompare(idB) : idB.localeCompare(idA);
-      });
+      // 'relevance' (default) or 'distance'
+      if (isGeographicSearch) {
+        combinedIndex.sort((a, b) => {
+          const distA = a.distance !== undefined ? a.distance : Number.MAX_VALUE;
+          const distB = b.distance !== undefined ? b.distance : Number.MAX_VALUE;
+          if (distA !== distB) {
+            return distA - distB;
+          }
+          const timeA = new Date(a.createdAt).getTime();
+          const timeB = new Date(b.createdAt).getTime();
+          return timeB - timeA;
+        });
+      } else {
+        combinedIndex.sort((a, b) => {
+          const timeA = new Date(a.createdAt).getTime();
+          const timeB = new Date(b.createdAt).getTime();
+          if (timeA !== timeB) return timeB - timeA;
+          return a.id.toString().localeCompare(b.id.toString());
+        });
+      }
     }
 
     const total = combinedIndex.length;

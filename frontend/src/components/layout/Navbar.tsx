@@ -357,12 +357,29 @@ export default function Navbar({ activeItem }: NavbarProps) {
               </div>
             </>
           ) : (
-            <Link
-              href="/login"
-              className="bg-brand-blue text-white px-6 lg:px-8 py-2.5 rounded-full text-sm lg:text-base font-medium hover:bg-[#0052c7] transition-all shadow-sm active:scale-95"
-            >
-              Login
-            </Link>
+            <>
+              {/* Add Listing */}
+              <Link
+                href="/my-listings/create"
+                // add click event listener to reset the form
+                onClick={() => {
+                  if (pathname === "/my-listings/create") {
+                    window.dispatchEvent(new Event("reset-add-listing-form"));
+                  }
+                }}
+                className="flex items-center gap-2 bg-brand-blue text-white px-5 lg:px-6 py-2.5 rounded-full text-sm lg:text-base font-medium hover:bg-[#0052c7] transition-all shadow-sm active:scale-95"
+              >
+                Add Listing
+                <PlusCircle className="w-4 h-4 lg:w-5 lg:h-5" />
+              </Link>
+
+              <Link
+                href="/login"
+                className="bg-brand-blue text-white px-6 lg:px-8 py-2.5 rounded-full text-sm lg:text-base font-medium hover:bg-[#0052c7] transition-all shadow-sm active:scale-95"
+              >
+                Login
+              </Link>
+            </>
           )}
         </div>
 
@@ -485,6 +502,22 @@ export default function Navbar({ activeItem }: NavbarProps) {
         {/* Mobile Action Buttons (When Logged Out) */}
         {!isAuthenticated && (
           <div className="pt-3 border-t border-gray-100 flex flex-col gap-2.5">
+            {/* Add Listing */}
+            <Link
+              href="/my-listings/create"
+              // add click event listener to reset the form
+              onClick={() => {
+                if (pathname === "/my-listings/create") {
+                  window.dispatchEvent(new Event("reset-add-listing-form"));
+                }
+              }}
+              // className="flex items-center gap-2 bg-brand-blue text-white px-5 lg:px-6 py-2.5 rounded-full text-sm lg:text-base font-medium hover:bg-[#0052c7] transition-all shadow-sm active:scale-95"
+              className="w-full flex items-center justify-center gap-2 text-center bg-brand-blue text-white py-3 rounded-full font-medium hover:bg-[#0052c7] transition-all shadow-sm active:scale-95"
+            >
+              Add Listing
+              <PlusCircle className="w-4 h-4 lg:w-5 lg:h-5" />
+            </Link>
+
             <Link
               href="/login"
               onClick={() => setMobileMenuOpen(false)}

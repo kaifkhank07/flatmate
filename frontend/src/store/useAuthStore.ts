@@ -71,6 +71,10 @@ interface AuthState {
   updateUserPreferences: (preferenceIds: string[]) => Promise<boolean>;
   checkPreferencesStatus: () => Promise<{ hasFivePreferences: boolean; preferencesCount: number }>;
 
+  // Account Deletion Operations
+  requestAccountDeletionOTP: () => Promise<{ success: boolean; message: string; destination?: string; expiresIn?: number }>;
+  deleteAccountWithOTP: (otp: string) => Promise<{ success: boolean; message: string }>;
+
   logout: () => Promise<void>;
   initializeAuth: () => Promise<void>;
 }
@@ -638,24 +642,110 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!get().isAuthenticated) {
       return false;
     }
+    set({ isProfileLoading: true, profileError: null });
     try {
       const response = await apiClient.patch<AuthApiResponse<{ completedOnce: boolean }>>(
         '/profile/complete'
       );
       if (response.data?.success) {
-        if (get().profile) {
+        const currentProfile = get().profile;
+        if (currentProfile) {
           set({
             profile: {
-              ...get().profile!,
+              ...currentProfile,
               completedOnce: true,
             },
+            isProfileLoading: false,
+            profileError: null,
           });
+        } else {
+          set({ isProfileLoading: false, profileError: null });
         }
         return true;
       }
+      set({
+        isProfileLoading: false,
+        profileError: response.data?.message || 'Failed to mark profile as completed',
+      });
       return false;
-    } catch {
+    } catch (err: any) {
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.[0]?.message ||
+        err.message ||
+        'Failed to mark profile as completed';
+      set({
+        isProfileLoading: false,
+        profileError: errorMessage,
+      });
       return false;
+    }
+  },
+
+  /**
+   * Request OTP for account deletion
+   * POST /api/users/me/delete-otp
+   */
+  requestAccountDeletionOTP: async () => {
+    try {
+      const response = await apiClient.post<AuthApiResponse<{ destination?: string; expiresIn?: number }>>(
+        '/users/me/delete-otp'
+      );
+      if (response.data?.success) {
+        return {
+          success: true,
+          message: response.data.message || 'Verification code sent successfully',
+          destination: response.data.data?.destination,
+          expiresIn: response.data.data?.expiresIn || 300,
+        };
+      }
+      return {
+        success: false,
+        message: response.data?.message || 'Failed to send deletion OTP',
+      };
+    } catch (err: any) {
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.[0]?.message ||
+        err.message ||
+        'Failed to request verification code';
+      return {
+        success: false,
+        message: errorMessage,
+      };
+    }
+  },
+
+  /**
+   * Verify OTP and soft-delete user account
+   * DELETE /api/users/me with body { otp }
+   */
+  deleteAccountWithOTP: async (otp: string) => {
+    try {
+      const response = await apiClient.delete<AuthApiResponse<null>>('/users/me', {
+        data: { otp },
+      });
+      if (response.data?.success) {
+        await get().logout();
+        return {
+          success: true,
+          message: response.data.message || 'Account deleted successfully',
+        };
+      }
+      return {
+        success: false,
+        message: response.data?.message || 'Failed to delete account',
+      };
+    } catch (err: any) {
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.[0]?.message ||
+        err.message ||
+        'Failed to verify OTP and delete account';
+      return {
+        success: false,
+        message: errorMessage,
+      };
     }
   },
 

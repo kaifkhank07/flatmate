@@ -340,7 +340,7 @@ export default function ExploreListings() {
       <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto px-4 sm:px-6 lg:px-16 space-y-6 sm:space-y-10 md:space-y-12">
         <div className="flex flex-col sm:flex-row items-end justify-between gap-4">
           <SectionHeading
-            title="Explore Homes & Flatmates"
+            title="Explore Flat & Flatmate"
             description="Discover Verified Listings Near You."
           />
 

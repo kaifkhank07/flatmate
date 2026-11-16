@@ -5,6 +5,7 @@ import gsap from "gsap";
 import SectionHeading from "@/components/utils/SectionHeading";
 import { useLookingFor, LookingFirItem } from "@/data/lookingfor";
 import { ViewReveal } from "../animation";
+import { useRouter } from "next/navigation";
 
 function LookingForCard({ item }: { item: LookingFirItem }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -14,6 +15,8 @@ function LookingForCard({ item }: { item: LookingFirItem }) {
   const descriptionRef = useRef<HTMLParagraphElement>(null);
 
   const hoverTl = useRef<gsap.core.Timeline | null>(null);
+
+  const router = useRouter();
 
   useEffect(() => {
     return () => {
@@ -164,6 +167,7 @@ function LookingForCard({ item }: { item: LookingFirItem }) {
       ref={cardRef}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onClick={() => router.push(item.href)}
       className="h-full bg-[#F2FAFD] rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col items-start gap-4 drop-shadow-md border border-gray-100/90 cursor-pointer"
     >
       <div

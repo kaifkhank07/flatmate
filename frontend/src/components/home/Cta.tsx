@@ -28,7 +28,7 @@ export default function Cta() {
                 {/* Right Column: Heading, Description & CTA */}
                 <div className="flex flex-col justify-center space-y-4 sm:space-y-6">
                     <SectionHeading
-                        title="Ready to Find Your Next Home or Flatmate?"
+                        title="Ready to Find Your Next Flat or Flatmate?"
                         description="Join thousands of happy users who found their perfect match without hassles."
                         className="text-white"
                     />
