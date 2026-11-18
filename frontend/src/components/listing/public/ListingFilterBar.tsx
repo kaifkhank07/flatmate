@@ -48,6 +48,12 @@ interface ListingFilterBarProps {
   selectedFurnishing: FurnishingType;
   onSelectFurnishing: (furnishing: FurnishingType) => void;
 
+  selectedPropertyType?: string;
+  onSelectPropertyType?: (type: string) => void;
+
+  selectedBhk?: string;
+  onSelectBhk?: (bhk: string) => void;
+
   minBudget?: number;
   maxBudget?: number;
   onApplyBudget: (min?: number, max?: number) => void;
@@ -71,6 +77,10 @@ export default function ListingFilterBar({
   onSelectSort,
   selectedFurnishing,
   onSelectFurnishing,
+  selectedPropertyType = "all",
+  onSelectPropertyType,
+  selectedBhk = "all",
+  onSelectBhk,
   minBudget,
   maxBudget,
   onApplyBudget,
@@ -85,6 +95,8 @@ export default function ListingFilterBar({
   const [sortOpen, setSortOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [furnishingOpen, setFurnishingOpen] = useState(false);
+  const [propertyTypeOpen, setPropertyTypeOpen] = useState(false);
+  const [bhkOpen, setBhkOpen] = useState(false);
   const [genderOpen, setGenderOpen] = useState(false);
 
   // Local state for budget inputs
@@ -110,6 +122,8 @@ export default function ListingFilterBar({
   const sortRef = useRef<HTMLDivElement>(null);
   const budgetRef = useRef<HTMLDivElement>(null);
   const furnishingRef = useRef<HTMLDivElement>(null);
+  const propertyTypeRef = useRef<HTMLDivElement>(null);
+  const bhkRef = useRef<HTMLDivElement>(null);
   const genderRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
@@ -135,7 +149,7 @@ export default function ListingFilterBar({
     },
     {
       label: "Property",
-      displayLabel: "Property",
+      displayLabel: "Entire Property",
       icon: <Building className="w-4 h-4 sm:w-5 sm:h-5" />,
     },
   ];
@@ -168,6 +182,44 @@ export default function ListingFilterBar({
     unfurnished: "Unfurnished",
   };
 
+  const propertyTypeOptions: { label: string; value: string }[] = [
+    { label: "All Property Types", value: "all" },
+    { label: "Flats / Apartments", value: "flats_apartments" },
+    { label: "Houses / Villas", value: "houses_villas" },
+    { label: "Office Spaces", value: "office_spaces" },
+    { label: "Shops / Commercial", value: "shops_commercial" },
+  ];
+
+  const propertyTypeLabels: Record<string, string> = {
+    all: "Property Type",
+    flats_apartments: "Flats / Apartments",
+    houses_villas: "Houses / Villas",
+    office_spaces: "Office Spaces",
+    shops_commercial: "Shops / Commercial",
+  };
+
+  const bhkOptions: { label: string; value: string }[] = [
+    { label: "All BHK", value: "all" },
+    { label: "1 RK", value: "1_rk" },
+    { label: "1 BHK", value: "1_bhk" },
+    { label: "2 BHK", value: "2_bhk" },
+    { label: "3 BHK", value: "3_bhk" },
+    { label: "4 BHK", value: "4_bhk" },
+    { label: "5 BHK", value: "5_bhk" },
+    { label: "5+ BHK", value: "5_plus_bhk" },
+  ];
+
+  const bhkLabels: Record<string, string> = {
+    all: "BHK",
+    "1_rk": "1 RK",
+    "1_bhk": "1 BHK",
+    "2_bhk": "2 BHK",
+    "3_bhk": "3 BHK",
+    "4_bhk": "4 BHK",
+    "5_bhk": "5 BHK",
+    "5_plus_bhk": "5+ BHK",
+  };
+
   const genderOptions: GenderFilter[] = ["Any", "Male", "Female"];
 
   useEffect(() => {
@@ -182,6 +234,12 @@ export default function ListingFilterBar({
       if (furnishingRef.current && !furnishingRef.current.contains(target)) {
         setFurnishingOpen(false);
       }
+      if (propertyTypeRef.current && !propertyTypeRef.current.contains(target)) {
+        setPropertyTypeOpen(false);
+      }
+      if (bhkRef.current && !bhkRef.current.contains(target)) {
+        setBhkOpen(false);
+      }
       if (genderRef.current && !genderRef.current.contains(target)) {
         setGenderOpen(false);
       }
@@ -195,6 +253,12 @@ export default function ListingFilterBar({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Close property type and BHK dropdowns when category changes
+  useEffect(() => {
+    setPropertyTypeOpen(false);
+    setBhkOpen(false);
+  }, [selectedCategory]);
 
   // Google Places Autocomplete search on user typing
   useEffect(() => {
@@ -841,6 +905,224 @@ export default function ListingFilterBar({
               )}
             </div>
 
+            {/* Property Type Dropdown */}
+            {onSelectPropertyType && selectedCategory === "Property" && (
+              <div className="relative shrink-0" ref={propertyTypeRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPropertyTypeOpen(!propertyTypeOpen);
+                    setSortOpen(false);
+                    setBudgetOpen(false);
+                    setFurnishingOpen(false);
+                    setBhkOpen(false);
+                    setGenderOpen(false);
+                  }}
+                  className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${
+                    selectedPropertyType !== "all"
+                      ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
+                      : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <Building className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                  <span>{propertyTypeLabels[selectedPropertyType] || "Property Type"}</span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform ${
+                      propertyTypeOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Desktop (lg and up) Dropdown */}
+                {propertyTypeOpen && (
+                  <div className="hidden lg:block absolute left-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
+                    <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                      Property Type
+                    </div>
+                    {propertyTypeOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          onSelectPropertyType(opt.value);
+                          setPropertyTypeOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${
+                          selectedPropertyType === opt.value
+                            ? "bg-blue-50 text-[#0066FF] font-semibold"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Mobile & Tablet Modal Dialog */}
+                {propertyTypeOpen && (
+                  <div
+                    className="fixed inset-0 z-[70] flex items-end justify-center lg:hidden bg-black/50 backdrop-blur-xs p-0"
+                    onClick={() => setPropertyTypeOpen(false)}
+                  >
+                    <div
+                      className="w-full sm:max-w-md bg-white rounded-t-3xl rounded-b-none p-5 pb-28 max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-2">
+                        <div className="flex items-center gap-2">
+                          <Building className="w-4 h-4 text-[#0066FF]" />
+                          <h3 className="text-base font-semibold text-gray-900">
+                            Property Type
+                          </h3>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPropertyTypeOpen(false)}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
+                          aria-label="Close"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="divide-y divide-gray-50 py-1">
+                        {propertyTypeOptions.map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              onSelectPropertyType(opt.value);
+                              setPropertyTypeOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
+                              selectedPropertyType === opt.value
+                                ? "bg-blue-50 text-[#0066FF] font-semibold"
+                                : "text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            <span>{opt.label}</span>
+                            {selectedPropertyType === opt.value && (
+                              <Check className="w-4 h-4 text-[#0066FF]" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* BHK Dropdown */}
+            {onSelectBhk && selectedCategory === "Property" && (
+              <div className="relative shrink-0" ref={bhkRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBhkOpen(!bhkOpen);
+                    setSortOpen(false);
+                    setBudgetOpen(false);
+                    setFurnishingOpen(false);
+                    setPropertyTypeOpen(false);
+                    setGenderOpen(false);
+                  }}
+                  className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${
+                    selectedBhk !== "all"
+                      ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
+                      : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <Bed className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                  <span>{bhkLabels[selectedBhk] || "BHK"}</span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform ${
+                      bhkOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Desktop (lg and up) Dropdown */}
+                {bhkOpen && (
+                  <div className="hidden lg:block absolute left-0 mt-2 w-44 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
+                    <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                      BHK / Bedrooms
+                    </div>
+                    {bhkOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          onSelectBhk(opt.value);
+                          setBhkOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${
+                          selectedBhk === opt.value
+                            ? "bg-blue-50 text-[#0066FF] font-semibold"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Mobile & Tablet Modal Dialog */}
+                {bhkOpen && (
+                  <div
+                    className="fixed inset-0 z-[70] flex items-end justify-center lg:hidden bg-black/50 backdrop-blur-xs p-0"
+                    onClick={() => setBhkOpen(false)}
+                  >
+                    <div
+                      className="w-full sm:max-w-md bg-white rounded-t-3xl rounded-b-none p-5 pb-28 max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-2">
+                        <div className="flex items-center gap-2">
+                          <Bed className="w-4 h-4 text-[#0066FF]" />
+                          <h3 className="text-base font-semibold text-gray-900">
+                            BHK / Bedrooms
+                          </h3>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setBhkOpen(false)}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
+                          aria-label="Close"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="divide-y divide-gray-50 py-1">
+                        {bhkOptions.map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              onSelectBhk(opt.value);
+                              setBhkOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
+                              selectedBhk === opt.value
+                                ? "bg-blue-50 text-[#0066FF] font-semibold"
+                                : "text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            <span>{opt.label}</span>
+                            {selectedBhk === opt.value && (
+                              <Check className="w-4 h-4 text-[#0066FF]" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* 4. Gender Dropdown Pill */}
             <div className="relative shrink-0" ref={genderRef}>
               <button
@@ -850,10 +1132,12 @@ export default function ListingFilterBar({
                   setSortOpen(false);
                   setBudgetOpen(false);
                   setFurnishingOpen(false);
+                  setPropertyTypeOpen(false);
+                  setBhkOpen(false);
                 }}
                 className="bg-[#0066FF] hover:bg-blue-700 text-white text-xs sm:text-sm font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-full flex items-center gap-2 cursor-pointer transition-colors shadow-sm whitespace-nowrap"
               >
-                <span>Gender: {selectedGender}</span>
+                <span>{selectedCategory === "Property" ? "Tenant Gender" : "Gender"}: {selectedGender}</span>
                 <ChevronDown
                   className={`w-4 h-4 transition-transform ${
                     genderOpen ? "rotate-180" : ""
@@ -865,7 +1149,7 @@ export default function ListingFilterBar({
               {genderOpen && (
                 <div className="hidden lg:block absolute right-0 mt-2 w-36 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
                   <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                    Gender Preference
+                    {selectedCategory === "Property" ? "Tenant Gender" : "Gender Preference"}
                   </div>
                   {genderOptions.map((opt) => (
                     <button
@@ -901,7 +1185,7 @@ export default function ListingFilterBar({
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-[#0066FF]" />
                         <h3 className="text-base font-semibold text-gray-900">
-                          Gender Preference
+                          {selectedCategory === "Property" ? "Tenant Gender" : "Gender Preference"}
                         </h3>
                       </div>
                       <button

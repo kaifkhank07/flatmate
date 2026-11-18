@@ -39,11 +39,12 @@ const STATUS_FILTERS = [
 
 const LISTING_TYPE_FILTERS = [
   { value: "all", label: "All Types" },
-  { value: "flat", label: "Flat" },
-  { value: "room", label: "Room" },
-  { value: "pg", label: "PG" },
-  { value: "shared_apartment", label: "Shared Apartment" },
-  { value: "entire_property", label: "Entire Property" },
+  { value: "flats_apartments", label: "Flats / Apartments" },
+  { value: "houses_villas", label: "Houses / Villas" },
+  { value: "office_spaces", label: "Office Spaces" },
+  { value: "shops_commercial", label: "Shops / Commercial" },
+  // { value: "flat", label: "Flat" },
+  // { value: "entire_property", label: "Entire Property" },
 ] as const;
 
 const FURNISHING_FILTERS = [
@@ -490,7 +491,7 @@ export default function PropertyManager({
 
                         <td>
                           <Chip tone="iris">
-                            {(item.propertyType || item.listingType || "flat").replace(/_/g, " ").toUpperCase()}
+                            {String(item.propertyType || item.listingType || "flats_apartments").replace(/_/g, " ").toUpperCase()}
                           </Chip>
                         </td>
 

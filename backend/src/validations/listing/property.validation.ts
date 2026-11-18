@@ -7,6 +7,99 @@ const objectIdString = z
     message: 'Invalid Mongo ObjectId string',
   });
 
+export const propertyTypeSchema = z.enum(
+  [
+    'flats_apartments',
+    'houses_villas',
+    'office_spaces',
+    'shops_commercial',
+  ],
+  {
+    required_error: 'Property type is required',
+    invalid_type_error:
+      'Property type must be one of: flats_apartments, houses_villas, office_spaces, shops_commercial',
+  }
+);
+
+export const propertyDetailsSchema = z
+  .object({
+    floor: z
+      .number({ invalid_type_error: 'Floor must be a number' })
+      .int('Floor must be an integer')
+      .min(0, 'Floor cannot be negative')
+      .optional(),
+    totalFloors: z
+      .number({ invalid_type_error: 'Total floors must be a number' })
+      .int('Total floors must be an integer')
+      .min(0, 'Total floors cannot be negative')
+      .optional(),
+    facing: z
+      .enum([
+        'east',
+        'west',
+        'north',
+        'south',
+        'north_east',
+        'north_west',
+        'south_east',
+        'south_west',
+      ])
+      .optional(),
+    bedrooms: z
+      .enum([
+        '1_rk',
+        '1_bhk',
+        '2_bhk',
+        '3_bhk',
+        '4_bhk',
+        '5_bhk',
+        '5_plus_bhk',
+      ])
+      .optional(),
+  })
+  .refine(
+    (val) => {
+      if (val.floor !== undefined && val.totalFloors !== undefined) {
+        return val.floor <= val.totalFloors;
+      }
+      return true;
+    },
+    {
+      message: 'Floor cannot exceed total floors',
+      path: ['floor'],
+    }
+  )
+  .optional();
+
+export const brokerageDetailsSchema = z
+  .object({
+    applicable: z.boolean({
+      required_error: 'Brokerage applicable is required',
+    }),
+    type: z.enum(['fixed', 'percentage']).optional(),
+    value: z.number().optional(),
+  })
+  .refine(
+    (val) => {
+      if (val.applicable) {
+        if (!val.type) return false;
+        if (val.value === undefined || val.value <= 0) return false;
+        if (val.type === 'percentage' && val.value > 100) return false;
+      }
+      return true;
+    },
+    {
+      message:
+        'When brokerage is applicable, type and value (> 0, and <= 100 for percentage) are required',
+      path: ['value'],
+    }
+  )
+  .optional();
+
+export const postedBySchema = z
+  .enum(['owner', 'flatmate', 'agent', 'builder'])
+  .optional();
+
 export const createPropertySchema = z.object({
   body: z.object({
     userId: objectIdString.optional(),
@@ -20,11 +113,10 @@ export const createPropertySchema = z.object({
       .string({ required_error: 'Description is required' })
       .trim()
       .min(1, 'Description is required'),
-    propertyType: z.enum(['flat', 'room', 'pg', 'shared_apartment', 'entire_property'], {
-      required_error: 'Property type is required',
-      invalid_type_error:
-        'Property type must be one of: flat, room, pg, shared_apartment, entire_property',
-    }),
+    propertyType: propertyTypeSchema,
+    propertyDetails: propertyDetailsSchema,
+    brokerageDetails: brokerageDetailsSchema,
+    postedBy: postedBySchema,
     location: z.union([
       z.string().min(1, 'Location is required'),
       z.object({

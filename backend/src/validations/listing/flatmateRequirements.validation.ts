@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Types } from 'mongoose';
+import { propertyDetailsSchema } from './property.validation';
 
 const objectIdString = z
   .string()
@@ -75,6 +76,7 @@ export const createFlatmateRequirementSchema = z.object({
       amenities: z.array(objectIdString).optional().default([]),
       images: z.array(objectIdString).optional().default([]),
       videos: z.array(objectIdString).optional().default([]),
+      propertyDetails: propertyDetailsSchema,
       status: z
         .enum(['draft', 'pending', 'approved', 'rejected', 'blocked', 'closed', 'expired'])
         .optional(),
@@ -83,13 +85,6 @@ export const createFlatmateRequirementSchema = z.object({
     .superRefine((data, ctx) => {
       // Conditional postType validations
       if (data.postType === 'property') {
-        if (!data.propertyType) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'propertyType is required when postType is property',
-            path: ['propertyType'],
-          });
-        }
         if (data.partnerType !== undefined) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -97,16 +92,16 @@ export const createFlatmateRequirementSchema = z.object({
             path: ['partnerType'],
           });
         }
+        if (data.propertyDetails !== undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'propertyDetails should not be provided when postType is property',
+            path: ['propertyDetails'],
+          });
+        }
       }
 
       if (data.postType === 'partner') {
-        if (!data.partnerType) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'partnerType is required when postType is partner',
-            path: ['partnerType'],
-          });
-        }
         if (data.propertyType !== undefined) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -170,6 +165,7 @@ export const updateFlatmateRequirementSchema = z.object({
       amenities: z.array(objectIdString).optional(),
       images: z.array(objectIdString).optional(),
       videos: z.array(objectIdString).optional(),
+      propertyDetails: propertyDetailsSchema,
       status: z
         .enum([
           'draft',
@@ -185,13 +181,6 @@ export const updateFlatmateRequirementSchema = z.object({
     })
     .superRefine((data, ctx) => {
       if (data.postType === 'property') {
-        if (!data.propertyType) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'propertyType is required when updating postType to property',
-            path: ['propertyType'],
-          });
-        }
         if (data.partnerType !== undefined) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -199,16 +188,16 @@ export const updateFlatmateRequirementSchema = z.object({
             path: ['partnerType'],
           });
         }
+        if (data.propertyDetails !== undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'propertyDetails should not be provided when postType is property',
+            path: ['propertyDetails'],
+          });
+        }
       }
 
       if (data.postType === 'partner') {
-        if (!data.partnerType) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'partnerType is required when updating postType to partner',
-            path: ['partnerType'],
-          });
-        }
         if (data.propertyType !== undefined) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -240,6 +229,8 @@ export const getPublicFlatmateRequirementsSchema = z.object({
       .optional(),
     genderPreference: z.enum(['male', 'female', 'other', 'any']).optional(),
     furnishing: z.enum(['fully_furnished', 'semi_furnished', 'unfurnished']).optional(),
+    bhk: z.enum(['1_rk', '1_bhk', '2_bhk', '3_bhk', '4_bhk', '5_bhk', '5_plus_bhk', 'all']).optional(),
+    bedrooms: z.enum(['1_rk', '1_bhk', '2_bhk', '3_bhk', '4_bhk', '5_bhk', '5_plus_bhk', 'all']).optional(),
     rent: z.string().or(z.number()).optional(),
     budget: z.string().or(z.number()).optional(),
     availableFrom: z.string().optional(),
@@ -261,6 +252,8 @@ export const getMyFlatmateRequirementsSchema = z.object({
     postType: z.enum(['property', 'partner']).optional(),
     propertyType: z.enum(['room', 'flat', 'pg', 'shared_apartment']).optional(),
     partnerType: z.enum(['roommate', 'flatmate']).optional(),
+    bhk: z.enum(['1_rk', '1_bhk', '2_bhk', '3_bhk', '4_bhk', '5_bhk', '5_plus_bhk', 'all']).optional(),
+    bedrooms: z.enum(['1_rk', '1_bhk', '2_bhk', '3_bhk', '4_bhk', '5_bhk', '5_plus_bhk', 'all']).optional(),
     page: z.string().or(z.number()).optional(),
     limit: z.string().or(z.number()).optional(),
     sortBy: z.string().optional(),

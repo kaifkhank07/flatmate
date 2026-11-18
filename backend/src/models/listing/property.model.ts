@@ -1,11 +1,44 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
 export type PropertyType =
-  | 'flat'
-  | 'room'
-  | 'pg'
-  | 'shared_apartment'
-  | 'entire_property';
+  | 'flats_apartments'
+  | 'houses_villas'
+  | 'office_spaces'
+  | 'shops_commercial';
+
+export type FacingDirection =
+  | 'east'
+  | 'west'
+  | 'north'
+  | 'south'
+  | 'north_east'
+  | 'north_west'
+  | 'south_east'
+  | 'south_west';
+
+export type BedroomConfiguration =
+  | '1_rk'
+  | '1_bhk'
+  | '2_bhk'
+  | '3_bhk'
+  | '4_bhk'
+  | '5_bhk'
+  | '5_plus_bhk';
+
+export interface IPropertyDetails {
+  floor?: number;
+  totalFloors?: number;
+  facing?: FacingDirection;
+  bedrooms?: BedroomConfiguration;
+}
+
+export interface IBrokerageDetails {
+  applicable: boolean;
+  type?: 'fixed' | 'percentage';
+  value?: number;
+}
+
+export type PropertyPostedBy = 'owner' | 'flatmate' | 'agent' | 'builder';
 
 export type FurnishingType =
   | 'fully_furnished'
@@ -49,6 +82,10 @@ export interface IProperty extends Document {
   description: string;
 
   propertyType: PropertyType;
+  propertyDetails?: IPropertyDetails;
+  brokerageDetails?: IBrokerageDetails;
+  postedBy?: PropertyPostedBy;
+
   area: number;
 
   rent: number;
@@ -120,8 +157,70 @@ const propertySchema = new Schema<IProperty>(
 
     propertyType: {
       type: String,
-      enum: ['flat', 'room', 'pg', 'shared_apartment', 'entire_property'],
-      required: [true, 'Listing type is required'],
+      enum: [
+        'flats_apartments',
+        'houses_villas',
+        'office_spaces',
+        'shops_commercial',
+      ],
+      required: [true, 'Property type is required'],
+    },
+
+    propertyDetails: {
+      floor: {
+        type: Number,
+        min: [0, 'Floor cannot be negative'],
+      },
+      totalFloors: {
+        type: Number,
+        min: [0, 'Total floors cannot be negative'],
+      },
+      facing: {
+        type: String,
+        enum: [
+          'east',
+          'west',
+          'north',
+          'south',
+          'north_east',
+          'north_west',
+          'south_east',
+          'south_west',
+        ],
+      },
+      bedrooms: {
+        type: String,
+        enum: [
+          '1_rk',
+          '1_bhk',
+          '2_bhk',
+          '3_bhk',
+          '4_bhk',
+          '5_bhk',
+          '5_plus_bhk',
+        ],
+      },
+    },
+
+    brokerageDetails: {
+      applicable: {
+        type: Boolean,
+        default: false,
+      },
+      type: {
+        type: String,
+        enum: ['fixed', 'percentage'],
+      },
+      value: {
+        type: Number,
+        min: [0, 'Brokerage value cannot be negative'],
+      },
+    },
+
+    postedBy: {
+      type: String,
+      enum: ['owner', 'flatmate', 'agent', 'builder'],
+      default: 'owner',
     },
 
     area: {
@@ -252,6 +351,8 @@ const propertySchema = new Schema<IProperty>(
 // Indexes
 propertySchema.index({ status: 1 });
 propertySchema.index({ propertyType: 1 });
+propertySchema.index({ 'propertyDetails.bedrooms': 1 });
+propertySchema.index({ postedBy: 1 });
 propertySchema.index({ rent: 1 });
 propertySchema.index({ availableFrom: 1 });
 

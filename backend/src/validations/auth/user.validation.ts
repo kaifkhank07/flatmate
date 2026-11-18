@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export const userTypeSchema = z.enum(['owner', 'flatmate', 'agent', 'builder']);
+
 export const createUserSchema = z.object({
   body: z
     .object({
@@ -9,6 +11,7 @@ export const createUserSchema = z.object({
         .regex(/^[0-9+\s-]{8,15}$/, 'Invalid mobile number')
         .optional(),
       password: z.string().min(6, 'Password must be at least 6 characters'),
+      userType: userTypeSchema.optional(),
     })
     .refine((data) => data.email || data.mobile, {
       message: 'Either email or mobile number must be provided',
@@ -39,11 +42,13 @@ export const updateUserSchema = z.object({
       .string()
       .regex(/^[0-9+\s-]{8,15}$/, 'Invalid mobile number')
       .optional(),
+    userType: userTypeSchema.optional(),
   }),
 });
 
 export const updateUserByAdminSchema = z.object({
   body: z.object({
+    userType: userTypeSchema.optional(),
     accountStatus: z.enum(['active', 'inactive']).optional(),
     profileVerified: z.boolean().optional(),
     verificationStatus: z

@@ -57,6 +57,11 @@ export default function FlatmateRequirementEditDialog({
   const [postType, setPostType] = useState<"property" | "partner">("property");
   const [propertyType, setPropertyType] = useState<"room" | "flat" | "pg" | "shared_apartment">("flat");
   const [partnerType, setPartnerType] = useState<"roommate" | "flatmate">("flatmate");
+  const [postedBy, setPostedBy] = useState<"owner" | "flatmate">("flatmate");
+  const [floor, setFloor] = useState<number | "">("");
+  const [totalFloors, setTotalFloors] = useState<number | "">("");
+  const [facing, setFacing] = useState<string>("");
+  const [bedrooms, setBedrooms] = useState<string>("");
   const [area, setArea] = useState(0);
   const [rent, setRent] = useState(0);
   const [securityDeposit, setSecurityDeposit] = useState(0);
@@ -117,6 +122,19 @@ export default function FlatmateRequirementEditDialog({
       setPostType(item.postType || "property");
       setPropertyType(item.propertyType || "flat");
       setPartnerType(item.partnerType || "flatmate");
+      setPostedBy((item.postedBy as any) || "flatmate");
+      setFloor(
+        item.propertyDetails?.floor !== undefined
+          ? item.propertyDetails.floor
+          : ""
+      );
+      setTotalFloors(
+        item.propertyDetails?.totalFloors !== undefined
+          ? item.propertyDetails.totalFloors
+          : ""
+      );
+      setFacing(item.propertyDetails?.facing || "");
+      setBedrooms(item.propertyDetails?.bedrooms || "");
       setArea(item.area || 0);
       setRent(typeof item.rent === "number" ? item.rent : (item as any).budget || 0);
       setSecurityDeposit(item.securityDeposit || 0);
@@ -367,6 +385,20 @@ export default function FlatmateRequirementEditDialog({
       }
     }
 
+    if (postType === "partner") {
+      if (
+        floor !== "" &&
+        floor !== undefined &&
+        totalFloors !== "" &&
+        totalFloors !== undefined
+      ) {
+        if (Number(floor) > Number(totalFloors)) {
+          toast("Floor cannot exceed total floors.");
+          return;
+        }
+      }
+    }
+
     setSubmitting(true);
 
     const newlyUploadedImageIds: string[] = [];
@@ -452,7 +484,8 @@ export default function FlatmateRequirementEditDialog({
       };
 
       if (isProperty) {
-        payload.propertyType = propertyType;
+        payload.propertyType = propertyType || "flat";
+        payload.postedBy = postedBy || "flatmate";
         payload.area = 0;
         payload.securityDeposit = 0;
         payload.maintenanceCharges = { amount: 0, frequency: "yearly" };
@@ -462,7 +495,16 @@ export default function FlatmateRequirementEditDialog({
         payload.images = [];
         payload.videos = [];
       } else {
-        payload.partnerType = partnerType;
+        payload.partnerType = partnerType || "flatmate";
+        payload.postedBy = postedBy || "flatmate";
+        if (floor !== "" || totalFloors !== "" || facing || bedrooms) {
+          payload.propertyDetails = {
+            ...(floor !== "" && { floor: Number(floor) }),
+            ...(totalFloors !== "" && { totalFloors: Number(totalFloors) }),
+            ...(facing && { facing }),
+            ...(bedrooms && { bedrooms }),
+          };
+        }
         payload.area = Number(area) || 0;
         payload.securityDeposit = Number(securityDeposit) || 0;
         payload.maintenanceCharges =
@@ -680,39 +722,89 @@ export default function FlatmateRequirementEditDialog({
                     <option value="partner">Partner (Have Room / Flat, Need Flatmate)</option>
                   </select>
                 </div>
-
-                {postType === "property" ? (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Looking For (Property Type) <span className="text-rose-500">*</span>
-                    </label>
-                    <select
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
-                      value={propertyType}
-                      onChange={(e) => setPropertyType(e.target.value as any)}
-                    >
-                      <option value="flat">Flat</option>
-                      <option value="room">Room</option>
-                      <option value="pg">PG</option>
-                      <option value="shared_apartment">Shared Apartment</option>
-                    </select>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Looking For (Partner Type) <span className="text-rose-500">*</span>
-                    </label>
-                    <select
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
-                      value={partnerType}
-                      onChange={(e) => setPartnerType(e.target.value as any)}
-                    >
-                      <option value="flatmate">Flatmate</option>
-                      <option value="roommate">Roommate</option>
-                    </select>
-                  </div>
-                )}
               </div>
+
+              {postType === "partner" && (
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                    Property Details (Optional)
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                        Bedrooms / BHK
+                      </label>
+                      <select
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                        value={bedrooms || ""}
+                        onChange={(e) => setBedrooms(e.target.value)}
+                      >
+                        <option value="">Select BHK</option>
+                        <option value="1_rk">1 RK</option>
+                        <option value="1_bhk">1 BHK</option>
+                        <option value="2_bhk">2 BHK</option>
+                        <option value="3_bhk">3 BHK</option>
+                        <option value="4_bhk">4 BHK</option>
+                        <option value="5_bhk">5 BHK</option>
+                        <option value="5_plus_bhk">5+ BHK</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                        Facing
+                      </label>
+                      <select
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                        value={facing || ""}
+                        onChange={(e) => setFacing(e.target.value)}
+                      >
+                        <option value="">Select Facing</option>
+                        <option value="east">East</option>
+                        <option value="west">West</option>
+                        <option value="north">North</option>
+                        <option value="south">South</option>
+                        <option value="north_east">North-East</option>
+                        <option value="north_west">North-West</option>
+                        <option value="south_east">South-East</option>
+                        <option value="south_west">South-West</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                        Floor (0=Ground)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                        placeholder="e.g. 0, 1, 2"
+                        value={floor !== undefined ? floor : ""}
+                        onChange={(e) =>
+                          setFloor(e.target.value === "" ? "" : Number(e.target.value))
+                        }
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                        Total Floors
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                        placeholder="e.g. 4"
+                        value={totalFloors !== undefined ? totalFloors : ""}
+                        onChange={(e) =>
+                          setTotalFloors(e.target.value === "" ? "" : Number(e.target.value))
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">

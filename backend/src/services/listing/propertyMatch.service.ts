@@ -155,15 +155,24 @@ export const isBudgetCompatible = (
  * Wildcard if either is unset. Compatible groups for flat and room.
  */
 export const isPropertyTypeCompatible = (
-  type1?: string,
-  type2?: string
+  type1?: any,
+  type2?: any
 ): boolean => {
   if (!type1 || !type2) return true;
-  const t1 = type1.trim().toLowerCase();
-  const t2 = type2.trim().toLowerCase();
+  const extractVal = (val: any): string => {
+    if (typeof val === 'string') return val.trim().toLowerCase();
+    if (typeof val === 'object' && val) {
+      if (val.category) return String(val.category).trim().toLowerCase();
+      if (val.type) return String(val.type).trim().toLowerCase();
+    }
+    return '';
+  };
+  const t1 = extractVal(type1);
+  const t2 = extractVal(type2);
+  if (!t1 || !t2) return true;
   if (t1 === t2) return true;
 
-  const flatGroup = new Set(['flat', 'entire_property', 'apartment']);
+  const flatGroup = new Set(['flat', 'entire_property', 'apartment', 'flats_apartments', 'houses_villas', 'residential']);
   const roomGroup = new Set(['room', 'shared_apartment', 'pg']);
 
   if (flatGroup.has(t1) && flatGroup.has(t2)) return true;

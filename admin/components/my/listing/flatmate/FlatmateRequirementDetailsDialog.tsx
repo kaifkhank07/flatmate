@@ -299,6 +299,62 @@ export default function FlatmateRequirementDetailsDialog({
                 </div>
               )}
 
+            {requirement.postedBy && (
+              <div className="d-row">
+                <span>Posted By</span>
+                <b>{requirement.postedBy.toUpperCase()}</b>
+              </div>
+            )}
+
+
+            {requirement.postType === "partner" &&
+              requirement.propertyDetails?.bedrooms && (
+                <div className="d-row">
+                  <span>Bedrooms / BHK</span>
+                  <b>
+                    {requirement.propertyDetails.bedrooms
+                      .replace(/_/g, " ")
+                      .toUpperCase()}
+                  </b>
+                </div>
+              )}
+
+            {requirement.postType === "partner" &&
+              requirement.propertyDetails?.facing && (
+                <div className="d-row">
+                  <span>Facing</span>
+                  <b>
+                    {requirement.propertyDetails.facing
+                      .replace(/_/g, " ")
+                      .toUpperCase()}
+                  </b>
+                </div>
+              )}
+
+            {requirement.postType === "partner" &&
+              requirement.propertyDetails?.floor !== undefined && (
+                <div className="d-row">
+                  <span>Floor</span>
+                  <b>
+                    {requirement.propertyDetails.floor === 0
+                      ? "Ground Floor"
+                      : `Floor ${requirement.propertyDetails.floor}`}
+                    {requirement.propertyDetails.totalFloors !== undefined
+                      ? ` of ${requirement.propertyDetails.totalFloors}`
+                      : ""}
+                  </b>
+                </div>
+              )}
+
+            {requirement.postType === "partner" &&
+              requirement.propertyDetails?.floor === undefined &&
+              requirement.propertyDetails?.totalFloors !== undefined && (
+                <div className="d-row">
+                  <span>Total Floors</span>
+                  <b>{requirement.propertyDetails.totalFloors} Floors</b>
+                </div>
+              )}
+
             {/* Only show Furnishing for property posts */}
             {requirement.postType !== "property" &&
               requirement.furnishing && (

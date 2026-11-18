@@ -4,6 +4,20 @@ import Link from "next/link";
 import { Card, CardHead, Chip } from "@/components/ui";
 import { DashboardRecentUserItem } from "@/lib/api";
 
+const getUserTypeTone = (type?: string) => {
+  switch (type) {
+    case "owner":
+      return "iris";
+    case "agent":
+      return "amber";
+    case "builder":
+      return "sand";
+    case "flatmate":
+    default:
+      return "mint";
+  }
+};
+
 export interface NewUserRegistrationsProps {
   recentUsers?: DashboardRecentUserItem[];
   usersLink?: string;
@@ -142,6 +156,9 @@ export default function NewUserRegistrations({
                       flexShrink: 0,
                     }}
                   >
+                    <Chip tone={getUserTypeTone(u.userType)}>
+                      {u.userType ? u.userType.charAt(0).toUpperCase() + u.userType.slice(1) : "Flatmate"}
+                    </Chip>
                     <Chip tone={u.accountStatus === "active" ? "mint" : "rose"}>
                       {u.accountStatus}
                     </Chip>

@@ -40,7 +40,19 @@ interface PropertyFormData {
   userId: string;
   title: string;
   description: string;
-  propertyType: "flat" | "room" | "pg" | "shared_apartment" | "entire_property";
+  propertyType:
+    | "flats_apartments"
+    | "houses_villas"
+    | "office_spaces"
+    | "shops_commercial";
+  floor?: number | "";
+  totalFloors?: number | "";
+  facing?: string;
+  bedrooms?: string;
+  brokerageApplicable: boolean;
+  brokerageType: "fixed" | "percentage";
+  brokerageValue?: number | "";
+  postedBy: "owner" | "flatmate" | "agent" | "builder";
   location: string;
   rentAmount: number;
   securityDeposit: number;
@@ -62,7 +74,15 @@ const DEFAULT_FORM_DATA: PropertyFormData = {
   userId: "",
   title: "",
   description: "",
-  propertyType: "flat",
+  propertyType: "flats_apartments",
+  floor: "",
+  totalFloors: "",
+  facing: "",
+  bedrooms: "",
+  brokerageApplicable: false,
+  brokerageType: "fixed",
+  brokerageValue: "",
+  postedBy: "owner",
   location: "",
   rentAmount: 0,
   securityDeposit: 0,
@@ -350,6 +370,36 @@ export default function PropertyCreateDialog({
       return;
     }
 
+    if (
+      formData.floor !== "" &&
+      formData.floor !== undefined &&
+      formData.totalFloors !== "" &&
+      formData.totalFloors !== undefined
+    ) {
+      if (Number(formData.floor) > Number(formData.totalFloors)) {
+        toast("Floor cannot exceed total floors.");
+        return;
+      }
+    }
+
+    if (formData.brokerageApplicable) {
+      if (
+        formData.brokerageValue === "" ||
+        formData.brokerageValue === undefined ||
+        Number(formData.brokerageValue) <= 0
+      ) {
+        toast("Please enter a valid brokerage amount / percentage greater than 0.");
+        return;
+      }
+      if (
+        formData.brokerageType === "percentage" &&
+        Number(formData.brokerageValue) > 100
+      ) {
+        toast("Brokerage percentage cannot exceed 100%.");
+        return;
+      }
+    }
+
     setSubmitting(true);
     const createdImageIds: string[] = [];
     const createdVideoIds: string[] = [];
@@ -422,6 +472,28 @@ export default function PropertyCreateDialog({
         title: formData.title.trim(),
         description: formData.description.trim(),
         propertyType: formData.propertyType,
+        propertyDetails:
+          formData.floor !== "" ||
+          formData.totalFloors !== "" ||
+          formData.facing ||
+          formData.bedrooms
+            ? {
+                ...(formData.floor !== "" && { floor: Number(formData.floor) }),
+                ...(formData.totalFloors !== "" && {
+                  totalFloors: Number(formData.totalFloors),
+                }),
+                ...(formData.facing && { facing: formData.facing }),
+                ...(formData.bedrooms && { bedrooms: formData.bedrooms }),
+              }
+            : undefined,
+        brokerageDetails: {
+          applicable: formData.brokerageApplicable,
+          ...(formData.brokerageApplicable && {
+            type: formData.brokerageType,
+            value: Number(formData.brokerageValue),
+          }),
+        },
+        postedBy: formData.postedBy,
         location: resolvedLocationId,
         rent: Number(formData.rentAmount),
         securityDeposit: Number(formData.securityDeposit),
@@ -557,7 +629,7 @@ export default function PropertyCreateDialog({
                           >
                             <div>
                               <div className="text-slate-900 font-medium">{displayLabel}</div>
-                              <div className="text-[10px] text-slate-400">ID: {u._id.slice(-6)} • {u.role}</div>
+                              <div className="text-[10px] text-slate-400">ID: {u._id.slice(-6)} • {u.userType || u.role}</div>
                             </div>
                             {isSelected && <span className="text-amber-600 font-bold text-xs">Selected</span>}
                           </button>
@@ -707,22 +779,50 @@ export default function PropertyCreateDialog({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Type <span className="text-rose-500">*</span>
+                  Property Type <span className="text-rose-500">*</span>
                 </label>
                 <select
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
                   value={formData.propertyType}
-                  onChange={(e) => setFormData({ ...formData, propertyType: e.target.value as any })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      propertyType: e.target.value as any,
+                    })
+                  }
                   required
                 >
-                  <option value="flat">Flat</option>
-                  <option value="room">Room</option>
-                  <option value="pg">PG</option>
-                  <option value="shared_apartment">Shared Apartment</option>
-                  <option value="entire_property">Entire Property</option>
+                  <option value="flats_apartments">Flats / Apartments</option>
+                  <option value="houses_villas">Houses / Villas</option>
+                  <option value="office_spaces">Office Spaces</option>
+                  <option value="shops_commercial">Shops / Commercial</option>
                 </select>
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Posted By <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                  value={formData.postedBy}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      postedBy: e.target.value as any,
+                    })
+                  }
+                  required
+                >
+                  <option value="owner">Owner</option>
+                  <option value="flatmate">Flatmate</option>
+                  <option value="agent">Agent / Broker</option>
+                  <option value="builder">Builder</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                   Area (sqft)
@@ -748,12 +848,102 @@ export default function PropertyCreateDialog({
                 >
                   <option value="approved">Approved</option>
                   <option value="pending">Pending</option>
-                  {/* <option value="draft">Draft</option> */}
                   <option value="rejected">Rejected</option>
                   <option value="blocked">Blocked</option>
                   <option value="closed">Closed</option>
                   <option value="expired">Expired</option>
                 </select>
+              </div>
+            </div>
+
+            {/* Property Structural & Configuration Details */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                Property Details (Optional)
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                    Bedrooms / BHK
+                  </label>
+                  <select
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                    value={formData.bedrooms || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, bedrooms: e.target.value })
+                    }
+                  >
+                    <option value="">Select BHK</option>
+                    <option value="1_rk">1 RK</option>
+                    <option value="1_bhk">1 BHK</option>
+                    <option value="2_bhk">2 BHK</option>
+                    <option value="3_bhk">3 BHK</option>
+                    <option value="4_bhk">4 BHK</option>
+                    <option value="5_bhk">5 BHK</option>
+                    <option value="5_plus_bhk">5+ BHK</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                    Facing
+                  </label>
+                  <select
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                    value={formData.facing || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, facing: e.target.value })
+                    }
+                  >
+                    <option value="">Select Facing</option>
+                    <option value="east">East</option>
+                    <option value="west">West</option>
+                    <option value="north">North</option>
+                    <option value="south">South</option>
+                    <option value="north_east">North-East</option>
+                    <option value="north_west">North-West</option>
+                    <option value="south_east">South-East</option>
+                    <option value="south_west">South-West</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                    Floor (0=Ground)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                    placeholder="e.g. 0, 1, 2"
+                    value={formData.floor !== undefined ? formData.floor : ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        floor: e.target.value === "" ? "" : Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                    Total Floors
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                    placeholder="e.g. 4"
+                    value={formData.totalFloors !== undefined ? formData.totalFloors : ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        totalFloors: e.target.value === "" ? "" : Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
               </div>
             </div>
 
@@ -774,10 +964,10 @@ export default function PropertyCreateDialog({
             )}
           </div>
 
-          {/* Section 4: Pricing & Maintenance */}
+          {/* Section 4: Pricing, Maintenance & Brokerage */}
           <div className="space-y-3 pt-3 border-t border-slate-100">
             <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-              4. Pricing & Maintenance
+              4. Pricing, Maintenance & Brokerage
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
@@ -865,6 +1055,83 @@ export default function PropertyCreateDialog({
                   <option value="one_time">One Time</option>
                 </select>
               </div>
+            </div>
+
+            {/* Brokerage Details */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                    Brokerage Details
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    Is brokerage or broker commission applicable on this property?
+                  </span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={formData.brokerageApplicable}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        brokerageApplicable: e.target.checked,
+                        brokerageValue: e.target.checked ? (formData.brokerageValue || "") : "",
+                      })
+                    }
+                  />
+                  <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+
+              {formData.brokerageApplicable && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                      Brokerage Type <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                      value={formData.brokerageType}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          brokerageType: e.target.value as "fixed" | "percentage",
+                        })
+                      }
+                    >
+                      <option value="fixed">Fixed Amount (₹)</option>
+                      <option value="percentage">Percentage of Rent (%)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                      Brokerage Value <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={formData.brokerageType === "percentage" ? 100 : undefined}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                      placeholder={
+                        formData.brokerageType === "percentage"
+                          ? "e.g. 10 (percentage)"
+                          : "e.g. 5000 (₹)"
+                      }
+                      value={formData.brokerageValue !== undefined ? formData.brokerageValue : ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          brokerageValue: e.target.value === "" ? "" : Number(e.target.value),
+                        })
+                      }
+                      required={formData.brokerageApplicable}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

@@ -99,11 +99,18 @@ function mapUnifiedToExploreCard(
     const pType = property.propertyType || property.listingType;
 
     if (pType) {
-      detailParts.push(
-        pType
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (char) => char.toUpperCase())
-      );
+      if (typeof pType === "object") {
+        const catStr = ((pType as any).category || (pType as any).type || "").replace(/_/g, " ");
+        detailParts.push(
+          catStr.replace(/\b\w/g, (char: string) => char.toUpperCase())
+        );
+      } else {
+        detailParts.push(
+          String(pType)
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (char: string) => char.toUpperCase())
+        );
+      }
     }
 
     if (property.area) {
@@ -159,7 +166,7 @@ function mapUnifiedToExploreCard(
 
   if (
     requirement.propertyType &&
-    requirement.propertyType !== "all"
+    (requirement.propertyType as string) !== "all"
   ) {
     detailParts.push(
       requirement.propertyType

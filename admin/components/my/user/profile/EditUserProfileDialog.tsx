@@ -180,7 +180,7 @@ export default function EditUserProfileDialog({
               Edit User Profile & Preferences
             </h3>
             <p className="text-xs text-slate-500">
-              User: {user.email || user.mobile} (ID: {user._id.slice(-6)})
+              User: {user.email || user.mobile} (ID: {user._id.slice(-6)}) • Type: <span className="capitalize font-semibold text-slate-700">{user.userType || "flatmate"}</span>
             </p>
           </div>
           <button

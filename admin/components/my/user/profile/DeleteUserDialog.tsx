@@ -116,6 +116,9 @@ export default function DeleteUserDialog({
             Target: <strong className="text-slate-900 font-medium">{user.email || user.mobile || user._id}</strong>
           </div>
           <div>
+            User Type: <span className="font-semibold text-slate-800 capitalize">{user.userType || "flatmate"}</span>
+          </div>
+          <div>
             Current Status:{" "}
             <span
               className={`font-semibold ${

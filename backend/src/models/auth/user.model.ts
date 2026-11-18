@@ -1,6 +1,6 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
-export type UserRole = 'user';
+export type UserType = 'owner' | 'flatmate' | 'agent' | 'builder';
 export type AccountStatus = 'active' | 'inactive';
 export type VerificationStatus = 'not_submitted' | 'pending' | 'approved' | 'rejected';
 
@@ -9,7 +9,7 @@ export interface IUser extends Document {
   email?: string;
   mobile?: string;
   password?: string;
-  role: UserRole;
+  userType: UserType;
   accountStatus: AccountStatus;
   emailVerified: boolean;
   mobileVerified: boolean;
@@ -46,10 +46,11 @@ const userSchema = new Schema<IUser>(
       type: String,
       select: false,
     },
-    role: {
+    userType: {
       type: String,
-      enum: ['user'],
-      default: 'user',
+      enum: ['owner', 'flatmate', 'agent', 'builder'],
+      default: 'flatmate',
+      required: true,
       index: true,
     },
     accountStatus: {

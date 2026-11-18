@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { useListingStore } from "@/store/useListingStore";
 import ListingOptionSelector from "./create/ListingOptionSelector";
@@ -36,6 +36,11 @@ export default function AddListingManager() {
     }
   }, [fetchMyListings]);
 
+  const modeRef = useRef(mode);
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -53,9 +58,12 @@ export default function AddListingManager() {
 
     runInitialCheck();
 
-    // Re-check count on window focus if user deleted a listing in another tab/window
+    // Re-check count on window focus ONLY if user is on the option selector screen.
+    // Never re-fetch while the user is actively filling out a creation form (e.g. when OS file picker opens/closes).
     const handleFocus = () => {
-      fetchMyListings({ page: 1, limit: 10 });
+      if (modeRef.current === "select") {
+        fetchMyListings({ page: 1, limit: 10 });
+      }
     };
 
     window.addEventListener("focus", handleFocus);
@@ -92,8 +100,8 @@ export default function AddListingManager() {
   const totalListings = myListingsPagination?.total ?? myListings.length;
   const hasReachedLimit = totalListings >= MAX_LISTING_LIMIT;
 
-  // 1. Loading State: Do not briefly display the listing options while verifying limit
-  if (isCheckingLimit || (loadingMyListings && totalListings === 0 && !myListingsError)) {
+  // 1. Loading State: Only block the screen during initial limit verification on mount
+  if (isCheckingLimit) {
     return (
       <section className="w-full py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
         <div className="w-full max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[420px] text-center space-y-4">
@@ -111,8 +119,8 @@ export default function AddListingManager() {
     );
   }
 
-  // 2. Error State: If the count check failed, show error with retry option instead of defaulting to selector
-  if (myListingsError && !loadingMyListings && totalListings === 0) {
+  // 2. Error State: If the count check failed on the selection screen, show error with retry option
+  if (mode === "select" && myListingsError && !loadingMyListings && totalListings === 0) {
     return (
       <section className="w-full py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
         <div className="w-full max-w-lg mx-auto bg-white rounded-3xl p-8 border border-rose-100 shadow-sm text-center space-y-6">
@@ -146,8 +154,8 @@ export default function AddListingManager() {
     );
   }
 
-  // 3. Limit Reached State: Display dedicated limit UI if user has 3 or more listings
-  if (hasReachedLimit) {
+  // 3. Limit Reached State: Display dedicated limit UI if user has reached max allowed listings
+  if (mode === "select" && hasReachedLimit) {
     return (
       <div className="w-full" key={resetKey}>
         <ListingLimitReached

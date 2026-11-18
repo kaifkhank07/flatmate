@@ -57,7 +57,8 @@ export default function ToggleUserStatusDialog({
 
         <p className="text-sm text-slate-700">
           Are you sure you want to {actionLabel.toLowerCase()} user account{" "}
-          <strong className="text-slate-900 font-semibold">{user.email || user.mobile || user._id}</strong>?
+          <strong className="text-slate-900 font-semibold">{user.email || user.mobile || user._id}</strong>{" "}
+          <span className="capitalize font-semibold text-slate-600">({user.userType || "flatmate"})</span>?
         </p>
 
         <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">

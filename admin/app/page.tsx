@@ -14,8 +14,8 @@ export default function LoginPage() {
   const [pre, setPre] = useState(true);
   const [n, setN] = useState(0);
 
-  const [email, setEmail] = useState(`superadmin@flatmate.com`);
-  const [password, setPassword] = useState("SuperAdminPass123!");
+  const [email, setEmail] = useState(``);
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -93,7 +93,7 @@ export default function LoginPage() {
           <div className="l-inner">
             <h1 className="l-title">Flatmate Marketplace<br /><em>Admin Control</em></h1>
             <p className="l-sub">Manage users, admin staff, verifications, and marketplace operations.</p>
-            
+
             {errorMsg && (
               <div style={{ color: "var(--rose-ink)", background: "var(--rose)", padding: "10px 14px", borderRadius: 8, fontSize: 13, marginBottom: 12 }}>
                 {errorMsg}

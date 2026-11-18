@@ -2,15 +2,43 @@ import { Schema, model, Document, Types } from 'mongoose';
 
 export type PostType = 'property' | 'partner';
 
-export type PropertyType =
+export type FlatmatePropertyType =
   | 'room'
   | 'flat'
   | 'pg'
   | 'shared_apartment';
 
+export type PropertyType = FlatmatePropertyType;
+
 export type PartnerType =
   | 'roommate'
   | 'flatmate';
+
+export type FacingDirection =
+  | 'east'
+  | 'west'
+  | 'north'
+  | 'south'
+  | 'north_east'
+  | 'north_west'
+  | 'south_east'
+  | 'south_west';
+
+export type BedroomConfiguration =
+  | '1_rk'
+  | '1_bhk'
+  | '2_bhk'
+  | '3_bhk'
+  | '4_bhk'
+  | '5_bhk'
+  | '5_plus_bhk';
+
+export interface IPropertyDetails {
+  floor?: number;
+  totalFloors?: number;
+  facing?: FacingDirection;
+  bedrooms?: BedroomConfiguration;
+}
 
 export type FurnishingType =
   | 'fully_furnished'
@@ -54,8 +82,9 @@ export interface IFlatmateRequirement extends Document {
   description: string;
 
   postType: PostType;
-  propertyType?: PropertyType; // Required when postType = property
-  partnerType?: PartnerType; // Required when postType = partner
+  propertyType?: FlatmatePropertyType;
+  partnerType?: PartnerType; 
+  propertyDetails?: IPropertyDetails;
   area: number;
 
   rent: number;
@@ -134,13 +163,11 @@ const flatmateRequirementSchema = new Schema<IFlatmateRequirement>(
     propertyType: {
       type: String,
       enum: ['room', 'flat', 'pg', 'shared_apartment'],
-      default: 'flat',
     },
 
     partnerType: {
       type: String,
       enum: ['roommate', 'flatmate'],
-      default: 'flatmate',
     },
 
     area: {
@@ -252,6 +279,42 @@ const flatmateRequirementSchema = new Schema<IFlatmateRequirement>(
       default: 'pending',
     },
 
+    propertyDetails: {
+      floor: {
+        type: Number,
+        min: [0, 'Floor cannot be negative'],
+      },
+      totalFloors: {
+        type: Number,
+        min: [0, 'Total floors cannot be negative'],
+      },
+      facing: {
+        type: String,
+        enum: [
+          'east',
+          'west',
+          'north',
+          'south',
+          'north_east',
+          'north_west',
+          'south_east',
+          'south_west',
+        ],
+      },
+      bedrooms: {
+        type: String,
+        enum: [
+          '1_rk',
+          '1_bhk',
+          '2_bhk',
+          '3_bhk',
+          '4_bhk',
+          '5_bhk',
+          '5_plus_bhk',
+        ],
+      },
+    },
+
     rejectionReason: {
       type: String,
       trim: true,
@@ -280,6 +343,7 @@ const flatmateRequirementSchema = new Schema<IFlatmateRequirement>(
 flatmateRequirementSchema.index({ status: 1 });
 flatmateRequirementSchema.index({ rent: 1 });
 flatmateRequirementSchema.index({ availableFrom: 1 });
+flatmateRequirementSchema.index({ 'propertyDetails.bedrooms': 1 });
 
 export const FlatmateRequirement = model<IFlatmateRequirement>(
   'FlatmateRequirement',
@@ -476,6 +540,9 @@ export const FlatmateRequirement = model<IFlatmateRequirement>(
 //     },
 
 //     rejectionReason: {
+//       type: String,
+//       trim: true,
+//     },
 //       type: String,
 //       trim: true,
 //     },

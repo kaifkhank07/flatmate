@@ -34,6 +34,7 @@ import {
   SavePlacePayload,
   PropertyAmenityItem,
 } from "@/lib/apiServices";
+import { PropertyType } from "@/types/listing";
 import { ViewReveal } from "@/components/animation";
 
 interface PropertyCreationFormProps {
@@ -74,8 +75,24 @@ export default function PropertyCreationForm({
   // Form Fields State
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [propertyType, setPropertyType] = useState<"flat" | "room" | "pg" | "shared_apartment" | "entire_property">("flat");
+  const [propertyType, setPropertyType] = useState<PropertyType>("flats_apartments");
+  const [floor, setFloor] = useState("");
+  const [totalFloors, setTotalFloors] = useState("");
+  const [facing, setFacing] = useState("");
+  const [bedrooms, setBedrooms] = useState("");
+  const [brokerageApplicable, setBrokerageApplicable] = useState(false);
+  const [brokerageType, setBrokerageType] = useState<"fixed" | "percentage">("fixed");
+  const [brokerageValue, setBrokerageValue] = useState("");
+  const [postedBy, setPostedBy] = useState<"owner" | "flatmate" | "agent" | "builder">(
+    (user?.userType as any) || "owner"
+  );
   const [area, setArea] = useState("");
+
+  useEffect(() => {
+    if (user?.userType) {
+      setPostedBy(user.userType as any);
+    }
+  }, [user?.userType]);
   const [rentAmount, setRentAmount] = useState("");
   const [securityDeposit, setSecurityDeposit] = useState("");
   const [maintenanceAmount, setMaintenanceAmount] = useState("");
@@ -281,6 +298,24 @@ export default function PropertyCreationForm({
       return;
     }
 
+    if (floor !== "" && totalFloors !== "") {
+      if (Number(floor) > Number(totalFloors)) {
+        setErrorMessage("Floor cannot exceed total floors.");
+        return;
+      }
+    }
+
+    if (brokerageApplicable) {
+      if (!brokerageValue || Number(brokerageValue) <= 0) {
+        setErrorMessage("Please enter a valid brokerage amount / percentage greater than 0.");
+        return;
+      }
+      if (brokerageType === "percentage" && Number(brokerageValue) > 100) {
+        setErrorMessage("Brokerage percentage cannot exceed 100%.");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     const createdImageIds: string[] = [];
     const createdVideoIds: string[] = [];
@@ -340,6 +375,23 @@ export default function PropertyCreationForm({
         title: title.trim(),
         description: description.trim(),
         propertyType,
+        propertyDetails:
+          floor !== "" || totalFloors !== "" || facing || bedrooms
+            ? {
+                ...(floor !== "" && { floor: Number(floor) }),
+                ...(totalFloors !== "" && { totalFloors: Number(totalFloors) }),
+                ...(facing && { facing }),
+                ...(bedrooms && { bedrooms }),
+              }
+            : undefined,
+        brokerageDetails: {
+          applicable: brokerageApplicable,
+          ...(brokerageApplicable && {
+            type: brokerageType,
+            value: Number(brokerageValue),
+          }),
+        },
+        postedBy: (user?.userType as any) || postedBy || "owner",
         area: area ? Number(area) : 0,
         location: locationId,
         rent: Number(rentAmount),
@@ -538,25 +590,44 @@ export default function PropertyCreationForm({
                 />
               </div>
 
-              {/* Property Type & Area */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Classification, Area & Property Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Type <span className="text-rose-500">*</span>
+                    Property Type <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={propertyType}
-                    onChange={(e) => setPropertyType(e.target.value as any)}
+                    onChange={(e) => setPropertyType(e.target.value as PropertyType)}
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
                     required
                   >
-                    <option value="flat">Flat</option>
-                    <option value="room">Room</option>
-                    <option value="pg">PG</option>
-                    <option value="shared_apartment">Shared Apartment</option>
-                    <option value="entire_property">Entire Property</option>
+                    <option value="flats_apartments">Flats / Apartments</option>
+                    <option value="houses_villas">Houses / Villas</option>
+                    <option value="office_spaces">Office Spaces</option>
+                    <option value="shops_commercial">Shops / Commercial</option>
                   </select>
                 </div>
+
+                {/* Posted By (Hidden) */}
+                {/*
+                <div className="space-y-2">
+                  <label className="block text-sm sm:text-base font-regular text-black">
+                    Posted By <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={postedBy}
+                    onChange={(e) => setPostedBy(e.target.value as any)}
+                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
+                    required
+                  >
+                    <option value="owner">Owner</option>
+                    <option value="flatmate">Flatmate</option>
+                    <option value="agent">Agent</option>
+                    <option value="builder">Builder</option>
+                  </select>
+                </div>
+                */}
 
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
@@ -568,6 +639,75 @@ export default function PropertyCreationForm({
                     value={area}
                     onChange={(e) => setArea(e.target.value)}
                     placeholder="e.g. 1200"
+                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm sm:text-base font-regular text-black">
+                    Bedrooms / BHK
+                  </label>
+                  <select
+                    value={bedrooms}
+                    onChange={(e) => setBedrooms(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
+                  >
+                    <option value="">Select BHK (Optional)</option>
+                    <option value="1_rk">1 RK</option>
+                    <option value="1_bhk">1 BHK</option>
+                    <option value="2_bhk">2 BHK</option>
+                    <option value="3_bhk">3 BHK</option>
+                    <option value="4_bhk">4 BHK</option>
+                    <option value="5_bhk">5 BHK</option>
+                    <option value="5_plus_bhk">5+ BHK</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm sm:text-base font-regular text-black">
+                    Facing
+                  </label>
+                  <select
+                    value={facing}
+                    onChange={(e) => setFacing(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
+                  >
+                    <option value="">Select Facing (Optional)</option>
+                    <option value="east">East</option>
+                    <option value="west">West</option>
+                    <option value="north">North</option>
+                    <option value="south">South</option>
+                    <option value="north_east">North-East</option>
+                    <option value="north_west">North-West</option>
+                    <option value="south_east">South-East</option>
+                    <option value="south_west">South-West</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm sm:text-base font-regular text-black">
+                    Floor
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={floor}
+                    onChange={(e) => setFloor(e.target.value)}
+                    placeholder="0 for Ground floor"
+                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm sm:text-base font-regular text-black">
+                    Total Floors
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={totalFloors}
+                    onChange={(e) => setTotalFloors(e.target.value)}
+                    placeholder="e.g. 10"
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
                   />
                 </div>
@@ -677,6 +817,56 @@ export default function PropertyCreationForm({
                     </select>
                   </div>
                 )}
+
+                {/* Brokerage Details */}
+                <div className="sm:col-span-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="brokerageApplicable"
+                      checked={brokerageApplicable}
+                      onChange={(e) => setBrokerageApplicable(e.target.checked)}
+                      className="w-4 h-4 text-brand-blue rounded focus:ring-brand-blue/30 cursor-pointer"
+                    />
+                    <label htmlFor="brokerageApplicable" className="text-sm sm:text-base font-medium text-gray-800 cursor-pointer">
+                      Brokerage Applicable
+                    </label>
+                  </div>
+
+                  {brokerageApplicable && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 animate-in fade-in duration-200">
+                      <div className="space-y-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700">
+                          Brokerage Type <span className="text-rose-500">*</span>
+                        </label>
+                        <select
+                          value={brokerageType}
+                          onChange={(e) => setBrokerageType(e.target.value as "fixed" | "percentage")}
+                          className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
+                        >
+                          <option value="fixed">Fixed Amount (₹)</option>
+                          <option value="percentage">Percentage (%)</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700">
+                          {brokerageType === "fixed" ? "Brokerage Amount (₹)" : "Brokerage Percentage (%)"} <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={brokerageType === "percentage" ? 100 : undefined}
+                          value={brokerageValue}
+                          onChange={(e) => setBrokerageValue(e.target.value)}
+                          placeholder={brokerageType === "fixed" ? "e.g. 5000" : "e.g. 15"}
+                          className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
+                          required={brokerageApplicable}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -701,10 +891,10 @@ export default function PropertyCreationForm({
                   />
                 </div>
 
-                {/* Gender Preference */}
+                {/* Tenant Gender */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Gender Preference
+                    Tenant Gender
                   </label>
                   <select
                     value={genderPreference}
@@ -839,6 +1029,7 @@ export default function PropertyCreationForm({
                       type="file"
                       multiple
                       accept="image/*"
+                      onClick={(e) => e.stopPropagation()}
                       onChange={handlePhotoUpload}
                       className="hidden"
                     />
@@ -875,6 +1066,7 @@ export default function PropertyCreationForm({
                       type="file"
                       multiple
                       accept="image/*"
+                      onClick={(e) => e.stopPropagation()}
                       onChange={handlePhotoUpload}
                       className="hidden"
                     />

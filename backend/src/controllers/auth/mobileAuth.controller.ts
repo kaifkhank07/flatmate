@@ -32,7 +32,7 @@ const generateRandomOTP = (): string => {
  */
 export const registerWithMobileOTP = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const { firstName, lastName, email, mobile } = req.body;
+    const { firstName, lastName, email, mobile, userType } = req.body;
 
     const cleanEmail = email.toLowerCase().trim();
 
@@ -59,7 +59,7 @@ export const registerWithMobileOTP = async (req: Request, res: Response): Promis
     const user = await User.create({
       email: cleanEmail,
       mobile: normalizedMobile,
-      role: 'user',
+      userType: userType || 'flatmate',
       accountStatus: 'active',
       emailVerified: false,
       mobileVerified: false,

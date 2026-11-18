@@ -41,7 +41,7 @@ export const getChatReports = async (
 
   const total = await ChatReport.countDocuments({ reporterId: reporterObj });
   const reports = await ChatReport.find({ reporterId: reporterObj })
-    .populate('reportedUserId', 'email mobile role accountStatus')
+    .populate('reportedUserId', 'email mobile userType accountStatus')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);

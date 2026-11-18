@@ -94,8 +94,8 @@ export default function FlatmateEditForm1({
   // Form Fields State (Post Type: 'property')
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(initialData?.description || "");
-  const [propertyType, setPropertyType] = useState<"flat" | "room" | "pg" | "shared_apartment">(
-    initialData?.propertyType || "flat"
+  const [postedBy, setPostedBy] = useState<"owner" | "flatmate">(
+    initialData?.postedBy || "flatmate"
   );
   const [rent, setRent] = useState(
     initialData?.rent ? String(initialData.rent) : initialData?.budget ? String(initialData.budget) : ""
@@ -378,7 +378,8 @@ export default function FlatmateEditForm1({
         title: title.trim(),
         description: description.trim() || undefined,
         postType: "property",
-        propertyType,
+        propertyType: initialData?.propertyType || "flat",
+        postedBy: postedBy || "flatmate",
         location: locationId,
         rent: Number(rent),
         budget: Number(rent),
@@ -573,24 +574,6 @@ export default function FlatmateEditForm1({
                   className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none resize-none"
                   required
                 />
-              </div>
-
-              {/* Property Type Select */}
-              <div className="space-y-2">
-                <label className="block text-sm sm:text-base font-regular text-black">
-                  Looking for <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={propertyType}
-                  onChange={(e) => setPropertyType(e.target.value as any)}
-                  className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                  required
-                >
-                  <option value="flat">Flat</option>
-                  <option value="room">Room</option>
-                  <option value="pg">PG</option>
-                  <option value="shared_apartment">Shared Apartment</option>
-                </select>
               </div>
             </div>
 

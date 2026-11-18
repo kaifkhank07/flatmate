@@ -10,6 +10,20 @@ import {
   DashboardRecentReportItem,
 } from "@/lib/api";
 
+const getUserTypeTone = (type?: string) => {
+  switch (type) {
+    case "owner":
+      return "iris";
+    case "agent":
+      return "amber";
+    case "builder":
+      return "sand";
+    case "flatmate":
+    default:
+      return "mint";
+  }
+};
+
 export interface DashboardRecentActivityProps {
   role: "super_admin" | "admin";
   recentActivity:
@@ -302,6 +316,9 @@ export default function DashboardRecentActivity({
 
                       {/* Status and Action */}
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                        <Chip tone={getUserTypeTone(u.userType)}>
+                          {u.userType ? u.userType.charAt(0).toUpperCase() + u.userType.slice(1) : "Flatmate"}
+                        </Chip>
                         <Chip tone={u.accountStatus === "active" ? "mint" : "rose"}>
                           {u.accountStatus}
                         </Chip>

@@ -204,10 +204,68 @@ export default function PropertyDetailsDialog({
               </div>
             )}
 
-            {(property.propertyType || property.listingType) && (
+            {property.propertyType && (
               <div className="d-row">
                 <span>Property Type</span>
-                <b>{(property.propertyType || property.listingType)?.replace(/_/g, " ").toUpperCase()}</b>
+                <b>
+                  {String(property.propertyType).replace(/_/g, " ").toUpperCase()}
+                </b>
+              </div>
+            )}
+
+            {property.propertyDetails?.bedrooms && (
+              <div className="d-row">
+                <span>Bedrooms / BHK</span>
+                <b>{property.propertyDetails.bedrooms.replace(/_/g, " ").toUpperCase()}</b>
+              </div>
+            )}
+
+            {property.propertyDetails?.facing && (
+              <div className="d-row">
+                <span>Facing</span>
+                <b>{property.propertyDetails.facing.replace(/_/g, " ").toUpperCase()}</b>
+              </div>
+            )}
+
+            {property.propertyDetails?.floor !== undefined && (
+              <div className="d-row">
+                <span>Floor</span>
+                <b>
+                  {property.propertyDetails.floor === 0
+                    ? "Ground Floor"
+                    : `Floor ${property.propertyDetails.floor}`}
+                  {property.propertyDetails.totalFloors !== undefined
+                    ? ` of ${property.propertyDetails.totalFloors}`
+                    : ""}
+                </b>
+              </div>
+            )}
+
+            {property.propertyDetails?.floor === undefined &&
+              property.propertyDetails?.totalFloors !== undefined && (
+                <div className="d-row">
+                  <span>Total Floors</span>
+                  <b>{property.propertyDetails.totalFloors} Floors</b>
+                </div>
+              )}
+
+            {property.brokerageDetails && (
+              <div className="d-row">
+                <span>Brokerage</span>
+                <b>
+                  {property.brokerageDetails.applicable
+                    ? property.brokerageDetails.type === "percentage"
+                      ? `${property.brokerageDetails.value}%`
+                      : `₹${(property.brokerageDetails.value || 0).toLocaleString("en-IN")}`
+                    : "Zero Brokerage / Not Applicable"}
+                </b>
+              </div>
+            )}
+
+            {property.postedBy && (
+              <div className="d-row">
+                <span>Posted By</span>
+                <b>{property.postedBy.toUpperCase()}</b>
               </div>
             )}
 

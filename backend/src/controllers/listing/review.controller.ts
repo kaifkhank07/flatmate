@@ -290,7 +290,7 @@ export const getReviewById = async (req: Request, res: Response): Promise<Respon
     let target = null;
     if (review.targetType === 'user') {
       target = await User.findById(review.targetId)
-        .select('email mobile role accountStatus profileVerified verificationStatus')
+        .select('email mobile userType accountStatus profileVerified verificationStatus')
         .lean();
     } else if (review.targetType === 'property') {
       target = await Property.findById(review.targetId)

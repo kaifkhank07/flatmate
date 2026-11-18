@@ -9,6 +9,7 @@ export const mobileRegisterSchema = z.object({
       .string()
       .min(8, 'Invalid mobile number')
       .regex(/^[0-9+\s-]{8,15}$/, 'Invalid mobile number format'),
+    userType: z.enum(['owner', 'flatmate', 'agent', 'builder']).optional(),
   }),
 });
 

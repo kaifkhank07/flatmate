@@ -43,7 +43,7 @@ export default function SearchSection({
     { label: "All", displayLabel: "All Listing" },
     { label: "Flat", displayLabel: "Flat" },
     { label: "Flatmate", displayLabel: "Flatmate" },
-    { label: "Property", displayLabel: "Property" },
+    { label: "Property", displayLabel: "Entire Property" },
   ];
 
   // Close dropdowns on outside click

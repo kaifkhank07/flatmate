@@ -14,7 +14,8 @@ export interface UserItem {
   _id: string;
   email?: string;
   mobile?: string;
-  role: "user";
+  userType?: "owner" | "flatmate" | "agent" | "builder";
+  role?: string;
   accountStatus: "active" | "inactive";
   emailVerified: boolean;
   mobileVerified: boolean;
@@ -152,6 +153,7 @@ export interface DashboardRecentUserItem {
   name?: string;
   email?: string;
   mobile?: string;
+  userType?: "owner" | "flatmate" | "agent" | "builder";
   accountStatus: string;
   verificationStatus: string;
   profileVerified: boolean;
@@ -445,6 +447,7 @@ export async function fetchUsers(params: {
   limit?: number;
   search?: string;
   accountStatus?: string;
+  userType?: string;
   isDeleted?: boolean | string;
   sortBy?: string;
   order?: string;
@@ -454,6 +457,7 @@ export async function fetchUsers(params: {
   if (params.limit) query.append("limit", params.limit.toString());
   if (params.search) query.append("search", params.search);
   if (params.accountStatus && params.accountStatus !== "all") query.append("accountStatus", params.accountStatus);
+  if (params.userType && params.userType !== "all") query.append("userType", params.userType);
   if (params.isDeleted !== undefined) query.append("isDeleted", params.isDeleted.toString());
   if (params.sortBy) query.append("sortBy", params.sortBy);
   if (params.order) query.append("order", params.order);
@@ -498,7 +502,12 @@ export async function updateUserProfileByAdmin(
 
 export async function updateUserStatus(
   userId: string,
-  payload: { accountStatus?: string; profileVerified?: boolean; verificationStatus?: string }
+  payload: {
+    accountStatus?: string;
+    profileVerified?: boolean;
+    verificationStatus?: string;
+    userType?: "owner" | "flatmate" | "agent" | "builder";
+  }
 ) {
   return apiFetch<UserItem>(`/users/${userId}`, {
     method: "PATCH",
@@ -530,7 +539,12 @@ export async function restoreUser(userId: string) {
   return apiFetch(`/users/${userId}/restore`, { method: "PATCH" });
 }
 
-export async function createUserApi(payload: { email?: string; mobile?: string; password?: string }) {
+export async function createUserApi(payload: {
+  email?: string;
+  mobile?: string;
+  password?: string;
+  userType?: "owner" | "flatmate" | "agent" | "builder";
+}) {
   return apiFetch<UserItem>("/users/register", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -918,7 +932,55 @@ export interface PropertyMediaItem {
   createdAt?: string;
 }
 
-export type PropertyType = "flat" | "room" | "pg" | "shared_apartment" | "entire_property";
+export type PropertyType =
+  | "flats_apartments"
+  | "houses_villas"
+  | "office_spaces"
+  | "shops_commercial";
+
+export type PropertyCategory = PropertyType;
+
+export interface PropertyListingType {
+  category: PropertyType;
+}
+
+export type FacingDirection =
+  | "east"
+  | "west"
+  | "north"
+  | "south"
+  | "north_east"
+  | "north_west"
+  | "south_east"
+  | "south_west";
+
+export type BedroomConfiguration =
+  | "1_rk"
+  | "1_bhk"
+  | "2_bhk"
+  | "3_bhk"
+  | "4_bhk"
+  | "5_bhk"
+  | "5_plus_bhk";
+
+export interface PropertyDetails {
+  floor?: number;
+  totalFloors?: number;
+  facing?: FacingDirection;
+  bedrooms?: BedroomConfiguration;
+}
+
+export interface BrokerageDetails {
+  applicable: boolean;
+  type?: "fixed" | "percentage";
+  value?: number;
+}
+
+export type PropertyPostedBy = "owner" | "flatmate" | "agent" | "builder";
+export type FlatmatePostedBy = "owner" | "flatmate";
+export type FlatmatePropertyType = "room" | "flat" | "pg" | "shared_apartment";
+
+export type LegacyPropertyType = "flat" | "room" | "pg" | "shared_apartment" | "entire_property";
 export type FurnishingType = "fully_furnished" | "semi_furnished" | "unfurnished";
 export type GenderPreference = "male" | "female" | "other" | "any";
 export type OccupationPreference = "student" | "working_professional" | "self_employed" | "business_owner" | "freelancer" | "other" | "any";
@@ -931,8 +993,11 @@ export interface PropertyItem {
   title: string;
   slug: string;
   description: string;
-  propertyType?: PropertyType;
-  listingType?: PropertyType;
+  propertyType?: PropertyType | string;
+  listingType?: PropertyType | string;
+  propertyDetails?: PropertyDetails;
+  brokerageDetails?: BrokerageDetails;
+  postedBy?: PropertyPostedBy;
   location?: any;
   rent: number;
   securityDeposit?: number;
@@ -1114,6 +1179,7 @@ export interface FlatmateRequirementItem {
     _id?: string;
     email?: string;
     mobile?: string;
+    userType?: string;
     role?: string;
     profileVerified?: boolean;
     accountStatus?: string;
@@ -1175,6 +1241,9 @@ export interface FlatmateRequirementItem {
   images?: FlatmateRequirementMediaItem[];
 
   videos?: FlatmateRequirementMediaItem[];
+
+  propertyDetails?: PropertyDetails;
+  postedBy?: FlatmatePostedBy;
 
   status: ListingStatus;
   rejectionReason?: string;
@@ -1414,6 +1483,7 @@ export interface SingleReportItem {
     name?: string;
     email?: string;
     mobile?: string;
+    userType?: string;
     role?: string;
     accountStatus?: string;
   } | string;

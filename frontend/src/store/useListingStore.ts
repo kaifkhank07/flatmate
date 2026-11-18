@@ -112,12 +112,16 @@ interface ListingState {
     | 'flat'
     | 'pg'
     | 'shared_apartment'
+    | 'residential'
+    | 'commercial'
     | 'all';
 
     partnerType?:
     | 'roommate'
     | 'flatmate'
     | 'all';
+
+    bhk?: string;
 
     peopleCount?: number;
 

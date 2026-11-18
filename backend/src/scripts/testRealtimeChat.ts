@@ -95,7 +95,7 @@ const runDiagnostic = async () => {
     if (!userA) {
       userA = await User.create({
         email: 'diag_user_a@buzzlink.com',
-        role: 'user',
+        userType: 'flatmate',
         accountStatus: 'active',
         emailVerified: true,
         mobileVerified: true,
@@ -112,7 +112,7 @@ const runDiagnostic = async () => {
     if (!userB) {
       userB = await User.create({
         email: 'diag_user_b@buzzlink.com',
-        role: 'user',
+        userType: 'flatmate',
         accountStatus: 'active',
         emailVerified: true,
         mobileVerified: true,
@@ -129,7 +129,7 @@ const runDiagnostic = async () => {
     if (!userC) {
       userC = await User.create({
         email: 'diag_user_c@buzzlink.com',
-        role: 'user',
+        userType: 'flatmate',
         accountStatus: 'active',
         emailVerified: true,
         mobileVerified: true,

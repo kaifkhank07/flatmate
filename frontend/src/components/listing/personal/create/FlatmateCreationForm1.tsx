@@ -75,7 +75,7 @@ export default function FlatmateCreationForm1({
   // Form Fields State (Post Type: 'property')
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [propertyType, setPropertyType] = useState<"flat" | "room" | "pg" | "shared_apartment">("flat");
+  const [postedBy, setPostedBy] = useState<"owner" | "flatmate">("flatmate");
   const [rent, setRent] = useState("");
   const [availableFrom, setAvailableFrom] = useState("");
   const [furnishing, setFurnishing] = useState<"fully_furnished" | "semi_furnished" | "unfurnished">("semi_furnished");
@@ -233,6 +233,7 @@ export default function FlatmateCreationForm1({
       previewUrl: URL.createObjectURL(file),
     }));
     setPhotoItems((prev) => [...prev, ...newItems]);
+    e.target.value = "";
   };
 
   const handleRemovePhoto = (id: string) => {
@@ -360,7 +361,7 @@ export default function FlatmateCreationForm1({
         title: title.trim(),
         description: description.trim() || undefined,
         postType: "property",
-        propertyType,
+        postedBy: postedBy || "flatmate",
         location: locationId,
         rent: Number(rent),
         budget: Number(rent),
@@ -553,24 +554,6 @@ export default function FlatmateCreationForm1({
                   className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none resize-none"
                   required
                 />
-              </div>
-
-              {/* Property Type Select */}
-              <div className="space-y-2">
-                <label className="block text-sm sm:text-base font-regular text-black">
-                  Looking for <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={propertyType}
-                  onChange={(e) => setPropertyType(e.target.value as any)}
-                  className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                  required
-                >
-                  <option value="flat">Flat</option>
-                  <option value="room">Room</option>
-                  <option value="pg">PG</option>
-                  <option value="shared_apartment">Shared Apartment</option>
-                </select>
               </div>
             </div>
 
@@ -890,6 +873,7 @@ export default function FlatmateCreationForm1({
                       type="file"
                       multiple
                       accept="image/*"
+                      onClick={(e) => e.stopPropagation()}
                       onChange={handlePhotoUpload}
                       className="hidden"
                     />
@@ -925,6 +909,7 @@ export default function FlatmateCreationForm1({
                       type="file"
                       multiple
                       accept="image/*"
+                      onClick={(e) => e.stopPropagation()}
                       onChange={handlePhotoUpload}
                       className="hidden"
                     />

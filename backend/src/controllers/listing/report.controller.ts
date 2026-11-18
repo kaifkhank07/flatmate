@@ -488,7 +488,7 @@ export const getReportById = async (
     const report = await Report.findById(reportId)
       .populate({
         path: 'userId',
-        select: 'name email mobile role accountStatus',
+        select: 'name email mobile userType accountStatus',
       })
       .populate({
         path: 'resolvedBy',
@@ -546,7 +546,7 @@ export const getReportsByTarget = async (
     const reports = await Report.find({ targetType, targetId })
       .populate({
         path: 'userId',
-        select: 'name email mobile role accountStatus',
+        select: 'name email mobile userType accountStatus',
       })
       .populate({
         path: 'resolvedBy',

@@ -65,7 +65,10 @@ export const createProperty = async (req: Request, res: Response): Promise<Respo
     }
 
     // Validate referenced user
-    const userExists = await User.findById(userId).select('_id').lean();
+    const userExists = await User.findById(userId)
+      .select('_id userType')
+      .lean();
+
     if (!userExists) {
       return sendError(res, 'Referenced property user not found', 404);
     }
@@ -140,12 +143,40 @@ export const createProperty = async (req: Request, res: Response): Promise<Respo
       return isNaN(d.getTime()) ? undefined : d;
     };
 
+    const allowedPostedBy = ['owner', 'flatmate', 'agent', 'builder'] as const;
+
+    const postedBy =
+      body.postedBy !== undefined
+        ? body.postedBy
+        : userExists.userType;
+
+    if (!allowedPostedBy.includes(postedBy)) {
+      if (locationDoc) await locationService.deleteLocationIfUnreferenced(locationDoc._id);
+      return sendError(res, 'Invalid postedBy value', 400);
+    }
+
     const propertyData: Partial<IProperty> = {
       userId,
       title: body.title.trim(),
       slug,
       description: body.description.trim(),
-      propertyType: body.propertyType || body.listingType,
+      propertyType: body.propertyType || 'flats_apartments',
+      propertyDetails: body.propertyDetails
+        ? {
+            ...(body.propertyDetails.floor !== undefined && { floor: Number(body.propertyDetails.floor) }),
+            ...(body.propertyDetails.totalFloors !== undefined && { totalFloors: Number(body.propertyDetails.totalFloors) }),
+            ...(body.propertyDetails.facing && { facing: body.propertyDetails.facing }),
+            ...(body.propertyDetails.bedrooms && { bedrooms: body.propertyDetails.bedrooms }),
+          }
+        : undefined,
+      brokerageDetails: body.brokerageDetails
+        ? {
+            applicable: Boolean(body.brokerageDetails.applicable),
+            ...(body.brokerageDetails.type && { type: body.brokerageDetails.type }),
+            ...(body.brokerageDetails.value !== undefined && { value: Number(body.brokerageDetails.value) }),
+          }
+        : undefined,
+      postedBy,
       area: Number(typeof body.area === 'object' ? body.area?.value : body.area || 0),
       location: locationDoc._id,
       rent: Number(body.rent),
@@ -213,7 +244,7 @@ export const createProperty = async (req: Request, res: Response): Promise<Respo
     }
 
     const populatedProperty = await Property.findById(property._id)
-      .populate('userId', 'name email mobile role accountStatus')
+      .populate('userId', 'name email mobile userType accountStatus')
       .populate('location', 'name formattedAddress city state country latitude longitude placeId')
       .populate('amenities')
       .populate('images')
@@ -263,6 +294,17 @@ export const getProperties = async (req: Request, res: Response): Promise<Respon
     const pType = req.query.propertyType || req.query.listingType;
     if (pType && pType !== 'all') {
       filter.propertyType = pType;
+    }
+
+    // BHK / bedrooms filter
+    const bhk = req.query.bhk || req.query.bedrooms;
+    if (bhk && bhk !== 'all') {
+      filter['propertyDetails.bedrooms'] = bhk;
+    }
+
+    // postedBy filter
+    if (req.query.postedBy && req.query.postedBy !== 'all') {
+      filter.postedBy = req.query.postedBy;
     }
 
     // Furnishing filter
@@ -318,7 +360,7 @@ export const getProperties = async (req: Request, res: Response): Promise<Respon
         .sort(sortOptions)
         .skip(skip)
         .limit(limit)
-        .populate('userId', 'name email mobile role accountStatus')
+        .populate('userId', 'name email mobile userType accountStatus')
         .populate('location', 'name formattedAddress city state country')
         .populate('amenities')
         .populate('images')
@@ -354,7 +396,7 @@ export const getPropertyById = async (req: Request, res: Response): Promise<Resp
     }
 
     const property = await Property.findById(id)
-      .populate('userId', 'name email mobile role accountStatus profileVerified')
+      .populate('userId', 'name email mobile userType accountStatus profileVerified')
       .populate('location', 'name formattedAddress city state country latitude longitude')
       .populate('amenities')
       .populate('images')
@@ -384,7 +426,7 @@ export const getPropertyBySlug = async (req: Request, res: Response): Promise<Re
     }
 
     const property = await Property.findOne({ slug: slug.toLowerCase().trim() })
-      .populate('userId', 'name email mobile role accountStatus profileVerified')
+      .populate('userId', 'name email mobile userType accountStatus profileVerified')
       .populate('location', 'name formattedAddress city state country latitude longitude')
       .populate('amenities')
       .populate('images')
@@ -460,8 +502,36 @@ export const updateProperty = async (req: Request, res: Response): Promise<Respo
 
     // Direct string/enum fields
     if (body.description !== undefined) property.description = body.description.trim();
-    if (body.propertyType !== undefined || body.listingType !== undefined) {
-      property.propertyType = body.propertyType || body.listingType;
+    if (body.propertyType !== undefined) {
+      property.propertyType = body.propertyType;
+    }
+    if (body.propertyDetails !== undefined) {
+      const existingDetails = property.propertyDetails
+        ? (typeof (property.propertyDetails as any).toObject === 'function'
+            ? (property.propertyDetails as any).toObject()
+            : property.propertyDetails)
+        : {};
+      const updatedDetails: any = {
+        ...existingDetails,
+        ...body.propertyDetails,
+      };
+      if (body.propertyDetails.floor !== undefined) {
+        updatedDetails.floor = Number(body.propertyDetails.floor);
+      }
+      if (body.propertyDetails.totalFloors !== undefined) {
+        updatedDetails.totalFloors = Number(body.propertyDetails.totalFloors);
+      }
+      property.propertyDetails = updatedDetails;
+    }
+    if (body.brokerageDetails !== undefined) {
+      property.brokerageDetails = {
+        applicable: Boolean(body.brokerageDetails.applicable),
+        ...(body.brokerageDetails.type && { type: body.brokerageDetails.type }),
+        ...(body.brokerageDetails.value !== undefined && { value: Number(body.brokerageDetails.value) }),
+      };
+    }
+    if (body.postedBy !== undefined) {
+      property.postedBy = body.postedBy;
     }
     if (body.furnishing !== undefined) property.furnishing = body.furnishing;
     if (body.genderPreference !== undefined) property.genderPreference = body.genderPreference;
@@ -636,7 +706,7 @@ export const updateProperty = async (req: Request, res: Response): Promise<Respo
     }
 
     const updatedProperty = await Property.findById(property._id)
-      .populate('userId', 'name email mobile role accountStatus')
+      .populate('userId', 'name email mobile userType accountStatus')
       .populate('location', 'name formattedAddress city state country latitude longitude placeId')
       .populate('amenities')
       .populate('images')
@@ -791,7 +861,7 @@ export const updatePropertyStatus = async (req: Request, res: Response): Promise
     }
 
     const updated = await Property.findById(id)
-      .populate('userId', 'name email mobile role')
+      .populate('userId', 'name email mobile userType')
       .populate('location', 'name city state')
       .populate('amenities')
       .lean();

@@ -5,6 +5,56 @@
 
 export type SourceType = 'all' | 'property' | 'flatmate_requirement';
 
+export type PropertyType =
+  | 'flats_apartments'
+  | 'houses_villas'
+  | 'office_spaces'
+  | 'shops_commercial';
+
+export type PropertyCategory = PropertyType;
+
+export type FlatmatePropertyType = 'room' | 'flat' | 'pg' | 'shared_apartment';
+
+export interface PropertyListingType {
+  type?: string;
+  category?: PropertyType;
+}
+
+export type FacingDirection =
+  | 'east'
+  | 'west'
+  | 'north'
+  | 'south'
+  | 'north_east'
+  | 'north_west'
+  | 'south_east'
+  | 'south_west';
+
+export type BedroomConfiguration =
+  | '1_rk'
+  | '1_bhk'
+  | '2_bhk'
+  | '3_bhk'
+  | '4_bhk'
+  | '5_bhk'
+  | '5_plus_bhk';
+
+export interface PropertyDetails {
+  floor?: number;
+  totalFloors?: number;
+  facing?: FacingDirection;
+  bedrooms?: BedroomConfiguration;
+}
+
+export interface BrokerageDetails {
+  applicable: boolean;
+  type?: 'fixed' | 'percentage';
+  value?: number;
+}
+
+export type PropertyPostedBy = 'owner' | 'flatmate' | 'agent' | 'builder';
+export type FlatmatePostedBy = 'owner' | 'flatmate';
+
 export type ListingType =
   | 'flat'
   | 'room'
@@ -33,7 +83,14 @@ export type OccupationPreference =
 
 export type PostType = 'property' | 'partner' | 'all';
 
-export type PropertyType = 'room' | 'flat' | 'pg' | 'shared_apartment' | 'entire_property' | 'all';
+export type FilterPropertyType =
+  | 'room'
+  | 'flat'
+  | 'pg'
+  | 'shared_apartment'
+  | 'entire_property'
+  | PropertyType
+  | 'all';
 
 export type PartnerType = 'roommate' | 'flatmate' | 'all';
 
@@ -109,7 +166,7 @@ export interface PropertyUser {
   image?: string;
   avatar?: string;
   profileImage?: string;
-  role?: string;
+  userType?: 'owner' | 'flatmate' | 'agent' | 'builder';
   profileVerified?: boolean;
   isOnline?: boolean;
 }
@@ -122,8 +179,11 @@ export interface PropertyListingItem {
   title: string;
   slug: string;
   description: string;
-  propertyType?: PropertyType;
-  listingType?: ListingType;
+  propertyType?: PropertyType | PropertyListingType | string;
+  listingType?: PropertyType | PropertyListingType | string;
+  propertyDetails?: PropertyDetails;
+  brokerageDetails?: BrokerageDetails;
+  postedBy?: PropertyPostedBy;
   location: LocationItem;
   rent: number;
   securityDeposit?: number;
@@ -158,8 +218,10 @@ export interface FlatmateRequirementItem {
   slug: string;
   description?: string;
   postType: PostType;
-  propertyType?: PropertyType;
+  propertyType?: FlatmatePropertyType;
   partnerType?: PartnerType;
+  propertyDetails?: PropertyDetails;
+  postedBy?: FlatmatePostedBy;
   location: LocationItem;
   area?: number;
   rent: number;
@@ -230,8 +292,9 @@ export interface ListingQueryParams {
   listingType?: ListingType;
   furnishing?: FurnishingType;
   postType?: PostType;
-  propertyType?: PropertyType;
+  propertyType?: PropertyType | FlatmatePropertyType | 'all';
   partnerType?: PartnerType;
+  bhk?: BedroomConfiguration | 'all';
   peopleCount?: number;
   sortBy?: string;
   order?: 'asc' | 'desc' | '1' | '-1';
@@ -288,7 +351,7 @@ export function getCategoryFilters(cat: ListingCategory): {
 
 export function getCategoryMappingFromLookingFor(lookingForLabel: string): {
   category?: ListingCategory;
-  propertyType?: PropertyType;
+  propertyType?: PropertyType | FlatmatePropertyType;
   listingType?: ListingType;
 } {
   switch (lookingForLabel) {
@@ -324,6 +387,11 @@ export interface FlatmateListingItem {
   avatarBg: string;
   avatarType: "male1" | "female1" | "female2" | "female3" | "male2" | "female4";
   status?: string;
+  bhk?: string;
+  floor?: string;
+  facing?: string;
+  postedBy?: string;
+  brokerage?: string;
 }
 
 export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListingItem {
@@ -376,10 +444,50 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
         ? "Female"
         : "Any";
 
-    const pType = property.propertyType || property.listingType;
-    const lookingForType = pType
-      ? pType.replace(/_/g, " ").toUpperCase()
-      : "PROPERTY";
+    let lookingForType = "PROPERTY";
+    if (property.propertyType) {
+      if (typeof property.propertyType === "object" && property.propertyType !== null) {
+        lookingForType = (
+          (property.propertyType as any).category ||
+          (property.propertyType as any).type ||
+          "PROPERTY"
+        ).replace(/_/g, " ").toUpperCase();
+      } else {
+        lookingForType = String(property.propertyType).replace(/_/g, " ").toUpperCase();
+      }
+    } else if (property.listingType) {
+      lookingForType = String(property.listingType).replace(/_/g, " ").toUpperCase();
+    }
+
+    const bhk = property.propertyDetails?.bedrooms
+      ? property.propertyDetails.bedrooms.replace(/_/g, " ").toUpperCase()
+      : undefined;
+
+    let floorStr: string | undefined = undefined;
+    if (property.propertyDetails?.floor !== undefined) {
+      floorStr =
+        property.propertyDetails.floor === 0
+          ? "Ground"
+          : `Floor ${property.propertyDetails.floor}`;
+      if (property.propertyDetails.totalFloors !== undefined) {
+        floorStr += `/${property.propertyDetails.totalFloors}`;
+      }
+    }
+
+    const facing = property.propertyDetails?.facing
+      ? property.propertyDetails.facing.replace(/_/g, " ").toUpperCase()
+      : undefined;
+
+    const postedBy = property.postedBy ? property.postedBy.toUpperCase() : undefined;
+
+    let brokerageStr: string | undefined = undefined;
+    if (property.brokerageDetails) {
+      brokerageStr = property.brokerageDetails.applicable
+        ? property.brokerageDetails.type === "percentage"
+          ? `${property.brokerageDetails.value}% Brokerage`
+          : `₹${(property.brokerageDetails.value || 0).toLocaleString("en-IN")} Brokerage`
+        : "Zero Brokerage";
+    }
 
     const category: "Flat" | "Flatmate" | "Property" = "Property";
 
@@ -408,7 +516,12 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       category,
       avatarBg: "bg-[#EBF5FF]",
       avatarType,
-      status
+      status,
+      bhk,
+      floor: floorStr,
+      facing,
+      postedBy,
+      brokerage: brokerageStr,
     };
   } else {
     const flatmate = item as FlatmateRequirementItem;
@@ -453,6 +566,27 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
         : "ROOMMATE";
     }
 
+    const bhk = (!isPropertyPost && flatmate.propertyDetails?.bedrooms)
+      ? flatmate.propertyDetails.bedrooms.replace(/_/g, " ").toUpperCase()
+      : undefined;
+
+    let floorStr: string | undefined = undefined;
+    if (!isPropertyPost && flatmate.propertyDetails?.floor !== undefined) {
+      floorStr =
+        flatmate.propertyDetails.floor === 0
+          ? "Ground"
+          : `Floor ${flatmate.propertyDetails.floor}`;
+      if (flatmate.propertyDetails.totalFloors !== undefined) {
+        floorStr += `/${flatmate.propertyDetails.totalFloors}`;
+      }
+    }
+
+    const facing = (!isPropertyPost && flatmate.propertyDetails?.facing)
+      ? flatmate.propertyDetails.facing.replace(/_/g, " ").toUpperCase()
+      : undefined;
+
+    const postedBy = flatmate.postedBy ? flatmate.postedBy.toUpperCase() : undefined;
+
     const category: "Flat" | "Flatmate" | "Property" = isPropertyPost ? "Flat" : "Flatmate";
 
     const avatarType: "male1" | "female1" | "female2" | "female3" | "male2" | "female4" =
@@ -481,7 +615,11 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       category,
       avatarBg: isPropertyPost ? "bg-[#FFF5EB]" : "bg-[#F0FDF4]",
       avatarType,
-      status
+      status,
+      bhk,
+      floor: floorStr,
+      facing,
+      postedBy,
     };
   }
 }

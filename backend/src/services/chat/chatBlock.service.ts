@@ -89,7 +89,7 @@ export const getBlockedUsers = async (
   const blocks = await ChatBlock.find({ blockerId: blockerObj })
     .populate({
       path: 'blockedUserId',
-      select: 'email mobile role accountStatus profileVerified verificationStatus createdAt',
+      select: 'email mobile userType accountStatus profileVerified verificationStatus createdAt',
     })
     .sort({ createdAt: -1 })
     .skip(skip)

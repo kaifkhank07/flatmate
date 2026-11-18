@@ -25,7 +25,7 @@ const seedChats = async (): Promise<void> => {
       userA = await User.create({
         email: 'test1@gmail.com',
         password: hashedPass,
-        role: 'user',
+        userType: 'flatmate',
         accountStatus: 'active',
         emailVerified: true,
         mobileVerified: true,
@@ -45,7 +45,7 @@ const seedChats = async (): Promise<void> => {
       userB = await User.create({
         email: 'test2@gmail.com',
         password: hashedPass,
-        role: 'user',
+        userType: 'flatmate',
         accountStatus: 'active',
         emailVerified: true,
         mobileVerified: true,

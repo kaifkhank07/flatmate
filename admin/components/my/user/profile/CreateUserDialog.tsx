@@ -18,16 +18,22 @@ export default function CreateUserDialog({
 }: CreateUserDialogProps) {
   const toast = useToast();
 
-  const [createForm, setCreateForm] = useState({
+  const [createForm, setCreateForm] = useState<{
+    email: string;
+    mobile: string;
+    password: string;
+    userType: "owner" | "flatmate" | "agent" | "builder";
+  }>({
     email: "",
     mobile: "",
     password: "",
+    userType: "flatmate",
   });
   const [createSubmitting, setCreateSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setCreateForm({ email: "", mobile: "", password: "" });
+      setCreateForm({ email: "", mobile: "", password: "", userType: "flatmate" });
       setCreateSubmitting(false);
     }
   }, [open]);
@@ -50,12 +56,13 @@ export default function CreateUserDialog({
       email: createForm.email.trim() || undefined,
       mobile: createForm.mobile.trim() || undefined,
       password: createForm.password,
+      userType: createForm.userType,
     });
 
     if (res.success) {
       toast("User account created successfully!");
       onClose();
-      setCreateForm({ email: "", mobile: "", password: "" });
+      setCreateForm({ email: "", mobile: "", password: "", userType: "flatmate" });
       await onSuccess();
     } else {
       toast(res.message || "Failed to create user account");
@@ -102,6 +109,27 @@ export default function CreateUserDialog({
               value={createForm.mobile}
               onChange={(e) => setCreateForm({ ...createForm, mobile: e.target.value })}
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+              User Type *
+            </label>
+            <select
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+              value={createForm.userType}
+              onChange={(e) =>
+                setCreateForm({
+                  ...createForm,
+                  userType: e.target.value as "owner" | "flatmate" | "agent" | "builder",
+                })
+              }
+            >
+              <option value="flatmate">Flatmate</option>
+              <option value="owner">Owner</option>
+              <option value="agent">Agent</option>
+              <option value="builder">Builder</option>
+            </select>
           </div>
 
           <div>

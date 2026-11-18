@@ -34,7 +34,7 @@ const seedUsers = async (): Promise<void> => {
       const user = await User.create({
         email: u.email.toLowerCase(),
         password: hashedPassword,
-        role: 'user',
+        userType: 'flatmate',
         accountStatus: 'active',
         emailVerified: true,
         mobileVerified: true,

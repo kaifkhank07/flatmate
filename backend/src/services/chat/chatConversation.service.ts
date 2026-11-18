@@ -28,7 +28,7 @@ export const normalizeParticipants = (
  */
 export const getParticipantSummary = async (userId: Types.ObjectId | string) => {
   const userObj = new Types.ObjectId(userId.toString());
-  const user = await User.findById(userObj).select('email mobile role accountStatus profileVerified verificationStatus');
+  const user = await User.findById(userObj).select('email mobile userType accountStatus profileVerified verificationStatus');
   if (!user) return null;
 
   const profile = await UserProfile.findOne({ userId: userObj })

@@ -42,7 +42,7 @@ const generateRandomOTP = (): string => {
  */
 export const registerUser = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const { email, mobile, password } = req.body;
+    const { email, mobile, password, userType } = req.body;
 
     // Check duplicate email
     if (email) {
@@ -66,7 +66,7 @@ export const registerUser = async (req: Request, res: Response): Promise<Respons
       email: email ? email.toLowerCase() : undefined,
       mobile: mobile || undefined,
       password: hashedPassword,
-      role: 'user',
+      userType: userType || 'flatmate',
       accountStatus: 'active',
       emailVerified: false,
       mobileVerified: false,
@@ -335,7 +335,11 @@ export const updateCurrentUser = async (req: Request, res: Response): Promise<Re
       return sendError(res, 'Authentication required', 401);
     }
 
-    const { email, mobile } = req.body;
+    const { email, mobile, userType } = req.body;
+
+    if (userType) {
+      req.user.userType = userType;
+    }
 
     if (email && email.toLowerCase() !== req.user.email) {
       const existingEmail = await User.findOne({
@@ -623,9 +627,13 @@ export const getUsers = async (req: Request, res: Response): Promise<Response> =
     const limit = parseInt(req.query.limit as string, 10) || 20;
     const skip = (page - 1) * limit;
 
-    const { search, accountStatus, isDeleted, sortBy = 'createdAt', order = 'desc' } = req.query;
+    const { search, accountStatus, isDeleted, userType, sortBy = 'createdAt', order = 'desc' } = req.query;
 
     const query: any = {};
+
+    if (userType && userType !== 'all') {
+      query.userType = userType;
+    }
 
     if (accountStatus === 'deleted' || isDeleted === 'true') {
       query.isDeleted = true;
@@ -955,6 +963,7 @@ export const updateUserProfileByAdmin = async (req: Request, res: Response): Pro
         _id: user._id,
         email: user.email,
         mobile: user.mobile,
+        userType: user.userType,
         accountStatus: user.accountStatus,
         verificationStatus: user.verificationStatus,
       },
@@ -978,13 +987,14 @@ export const updateUserProfileByAdmin = async (req: Request, res: Response): Pro
 export const updateUserByAdmin = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { userId } = req.params;
-    const { accountStatus, profileVerified, verificationStatus } = req.body;
+    const { accountStatus, profileVerified, verificationStatus, userType } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
       return sendError(res, 'User not found', 404);
     }
 
+    if (userType) user.userType = userType;
     if (accountStatus) {
       user.accountStatus = accountStatus;
       if (accountStatus === 'inactive') {

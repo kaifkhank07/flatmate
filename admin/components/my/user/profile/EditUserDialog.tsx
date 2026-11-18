@@ -22,10 +22,12 @@ export default function EditUserDialog({
     accountStatus: string;
     profileVerified: boolean;
     verificationStatus: string;
+    userType: "owner" | "flatmate" | "agent" | "builder";
   }>({
     accountStatus: "active",
     profileVerified: false,
     verificationStatus: "not_submitted",
+    userType: "flatmate",
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
 
@@ -35,6 +37,7 @@ export default function EditUserDialog({
         accountStatus: user.accountStatus,
         profileVerified: user.profileVerified,
         verificationStatus: user.verificationStatus || "not_submitted",
+        userType: (user.userType as "owner" | "flatmate" | "agent" | "builder") || "flatmate",
       });
       setEditSubmitting(false);
     }
@@ -71,6 +74,27 @@ export default function EditUserDialog({
         </div>
 
         <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+              User Type
+            </label>
+            <select
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+              value={editForm.userType}
+              onChange={(e) =>
+                setEditForm({
+                  ...editForm,
+                  userType: e.target.value as "owner" | "flatmate" | "agent" | "builder",
+                })
+              }
+            >
+              <option value="flatmate" className="text-slate-900 bg-white">Flatmate</option>
+              <option value="owner" className="text-slate-900 bg-white">Owner</option>
+              <option value="agent" className="text-slate-900 bg-white">Agent</option>
+              <option value="builder" className="text-slate-900 bg-white">Builder</option>
+            </select>
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
               Verification Status

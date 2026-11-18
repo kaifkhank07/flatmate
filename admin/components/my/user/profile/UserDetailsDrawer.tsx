@@ -10,6 +10,25 @@ import {
 import { Avatar, Chip } from "@/components/ui";
 import { X } from "lucide-react";
 
+const getUserTypeTone = (type?: string) => {
+  switch (type) {
+    case "owner":
+      return "iris";
+    case "agent":
+      return "amber";
+    case "builder":
+      return "sand";
+    case "flatmate":
+    default:
+      return "mint";
+  }
+};
+
+const formatUserType = (type?: string) => {
+  if (!type) return "Flatmate";
+  return type.charAt(0).toUpperCase() + type.slice(1);
+};
+
 type UserDetailsDrawerProps = {
   selectedUserId: string | null;
   refreshKey?: number;
@@ -97,6 +116,11 @@ export default function UserDetailsDrawer({
                   <div className="d-sub">
                     Joined {new Date(drawerData.user.createdAt).toLocaleDateString()}
                   </div>
+                  <div style={{ marginTop: 6, display: "flex", justifyContent: "center" }}>
+                    <Chip tone={getUserTypeTone(drawerData.user.userType)} dot>
+                      {formatUserType(drawerData.user.userType)}
+                    </Chip>
+                  </div>
                   <div className="d-actions" style={{ marginTop: 12, display: "flex", gap: 8, justifyContent: "center" }}>
                     <button
                       className="btn btn-brand sm"
@@ -114,6 +138,10 @@ export default function UserDetailsDrawer({
                 </div>
 
                 <div className="d-stats">
+                  <div className="d-stat">
+                    <span>USER TYPE</span>
+                    <b>{formatUserType(drawerData.user.userType)}</b>
+                  </div>
                   <div className="d-stat">
                     <span>ACCOUNT STATUS</span>
                     <b>{drawerData.user.accountStatus}</b>
@@ -134,6 +162,14 @@ export default function UserDetailsDrawer({
 
                 <div className="card-title" style={{ margin: "16px 0 6px" }}>
                   Account Credentials & Verification
+                </div>
+                <div className="d-row">
+                  <span>User Type</span>
+                  <b>
+                    <Chip tone={getUserTypeTone(drawerData.user.userType)} dot>
+                      {formatUserType(drawerData.user.userType)}
+                    </Chip>
+                  </b>
                 </div>
                 <div className="d-row">
                   <span>Email</span>

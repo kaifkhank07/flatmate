@@ -335,7 +335,7 @@ export const getSuperAdminDashboardData = async () => {
       .limit(5)
       .lean(),
     User.find({ isDeleted: false })
-      .select('email mobile accountStatus verificationStatus profileVerified createdAt')
+      .select('email mobile userType accountStatus verificationStatus profileVerified createdAt')
       .sort({ createdAt: -1 })
       .limit(5)
       .lean(),
@@ -445,6 +445,7 @@ export const getSuperAdminDashboardData = async () => {
       name: fullName || undefined,
       email: u.email,
       mobile: u.mobile,
+      userType: u.userType,
       accountStatus: u.accountStatus,
       verificationStatus: u.verificationStatus,
       profileVerified: u.profileVerified,
@@ -714,7 +715,7 @@ export const getAdminDashboardData = async () => {
       .limit(5)
       .lean(),
     User.find({ isDeleted: false })
-      .select('email mobile accountStatus verificationStatus profileVerified createdAt')
+      .select('email mobile userType accountStatus verificationStatus profileVerified createdAt')
       .sort({ createdAt: -1 })
       .limit(8)
       .lean(),
@@ -790,6 +791,7 @@ export const getAdminDashboardData = async () => {
       name: fullName || undefined,
       email: u.email,
       mobile: u.mobile,
+      userType: u.userType,
       accountStatus: u.accountStatus,
       verificationStatus: u.verificationStatus,
       profileVerified: u.profileVerified,
@@ -910,7 +912,7 @@ export const getUserDashboardData = async (userObjectId: Types.ObjectId) => {
   ] = await Promise.all([
     User.findById(userObjectId)
       .select(
-        'email mobile role accountStatus emailVerified mobileVerified profileVerified verificationStatus lastLoginAt createdAt'
+        'email mobile userType accountStatus emailVerified mobileVerified profileVerified verificationStatus lastLoginAt createdAt'
       )
       .lean(),
     UserProfile.findOne({ userId: userObjectId })

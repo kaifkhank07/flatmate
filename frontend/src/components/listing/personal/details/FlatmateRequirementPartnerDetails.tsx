@@ -271,6 +271,11 @@ export default function FlatmateRequirementPartnerDetails({
                       {status}
                     </span>
                   )}
+                  {listing.postedBy && (
+                    <span className="px-3 py-0.5 rounded-full text-xs font-medium capitalize bg-blue-50 text-blue-700 border border-blue-200">
+                      Posted by {listing.postedBy}
+                    </span>
+                  )}
                 </div>
                 <p className="text-gray-500 text-sm sm:text-base font-regular">
                   {categoryHeader}
@@ -411,6 +416,40 @@ export default function FlatmateRequirementPartnerDetails({
                 </div>
               </div>
             </div>
+
+            {/* Property Details */}
+            {listing.propertyDetails && (listing.propertyDetails.bedrooms || listing.propertyDetails.facing || listing.propertyDetails.floor !== undefined || listing.propertyDetails.totalFloors !== undefined) && (
+              <div className="space-y-3">
+                <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Property Details</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
+                  {listing.propertyDetails.bedrooms && (
+                    <div>
+                      <span className="block text-gray-500 text-sm sm:text-lg font-regular">Bedrooms / BHK</span>
+                      <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1 uppercase">
+                        {listing.propertyDetails.bedrooms.replace(/_/g, " ")}
+                      </p>
+                    </div>
+                  )}
+                  {listing.propertyDetails.floor !== undefined && (
+                    <div>
+                      <span className="block text-gray-500 text-sm sm:text-lg font-regular">Floor</span>
+                      <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">
+                        {listing.propertyDetails.floor === 0 ? "Ground Floor (0)" : `${listing.propertyDetails.floor}`}
+                        {listing.propertyDetails.totalFloors !== undefined ? ` of ${listing.propertyDetails.totalFloors}` : ""}
+                      </p>
+                    </div>
+                  )}
+                  {listing.propertyDetails.facing && (
+                    <div>
+                      <span className="block text-gray-500 text-sm sm:text-lg font-regular">Facing</span>
+                      <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1 capitalize">
+                        {listing.propertyDetails.facing.replace(/_/g, "-")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Roommate Preferences */}
             <div className="space-y-3">

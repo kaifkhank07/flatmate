@@ -310,11 +310,44 @@ export const getListings = async (req: Request, res: Response): Promise<Response
       flatmateFilter.availableFrom = { $gte: dateVal };
     }
 
-    // 8. Property-Specific Filters
+    // 8. Property & Flatmate Property Type Filters
     const pType = query.propertyType || query.listingType;
     if (pType && pType !== 'all') {
-      propertyFilter.propertyType = pType;
+      const pTypeStr = pType as string;
+      if (
+        [
+          'flats_apartments',
+          'houses_villas',
+          'office_spaces',
+          'shops_commercial',
+        ].includes(pTypeStr)
+      ) {
+        propertyFilter.propertyType = pTypeStr;
+        if (pTypeStr === 'flats_apartments') {
+          flatmateFilter.propertyType = 'flat';
+        } else {
+          flatmateFilter._id = null;
+        }
+      } else if (['room', 'flat', 'pg', 'shared_apartment'].includes(pTypeStr)) {
+        flatmateFilter.propertyType = pTypeStr;
+        if (pTypeStr === 'flat') {
+          propertyFilter.propertyType = 'flats_apartments';
+        } else {
+          propertyFilter._id = null;
+        }
+      } else {
+        propertyFilter.propertyType = pType;
+        flatmateFilter.propertyType = pType;
+      }
     }
+
+    // BHK / Bedrooms Filter
+    const bhkVal = (query.bhk || query.bedrooms) as string;
+    if (bhkVal && bhkVal !== 'all') {
+      propertyFilter['propertyDetails.bedrooms'] = bhkVal;
+      flatmateFilter['propertyDetails.bedrooms'] = bhkVal;
+    }
+
     if (query.furnishing && query.furnishing !== 'all') {
       propertyFilter.furnishing = query.furnishing;
       flatmateFilter.furnishing = query.furnishing;
@@ -334,9 +367,6 @@ export const getListings = async (req: Request, res: Response): Promise<Response
       if (postTypeStr !== 'all') {
         flatmateFilter.postType = postTypeStr;
       }
-    }
-    if (query.propertyType && query.propertyType !== 'all') {
-      flatmateFilter.propertyType = query.propertyType;
     }
     if (query.partnerType && query.partnerType !== 'all') {
       flatmateFilter.partnerType = query.partnerType;
@@ -522,7 +552,7 @@ export const getListings = async (req: Request, res: Response): Promise<Response
         ? Property.find({ _id: { $in: propIdsForPage } })
           .populate(
             'userId',
-            'email mobile role accountStatus profileVerified isOnline'
+            'email mobile userType accountStatus profileVerified isOnline'
           )
           .populate('location')
           .populate('amenities')
@@ -534,7 +564,7 @@ export const getListings = async (req: Request, res: Response): Promise<Response
         ? FlatmateRequirement.find({ _id: { $in: flatIdsForPage } })
           .populate(
             'userId',
-            'email mobile role accountStatus profileVerified isOnline'
+            'email mobile userType accountStatus profileVerified isOnline'
           )
           .populate('location')
           .populate('images')
@@ -685,7 +715,7 @@ export const getListingBySlug = async (req: Request, res: Response): Promise<Res
 
     // 1. Try finding in Property model by slug
     const property = await Property.findOne({ slug: trimmedSlug })
-      .populate('userId', 'email mobile role accountStatus profileVerified isOnline')
+      .populate('userId', 'email mobile userType accountStatus profileVerified isOnline')
       .populate('location')
       .populate('amenities')
       .populate('images')
@@ -703,7 +733,7 @@ export const getListingBySlug = async (req: Request, res: Response): Promise<Res
 
     // 2. Try finding in FlatmateRequirement model by slug
     const flatmate = await FlatmateRequirement.findOne({ slug: trimmedSlug })
-      .populate('userId', 'email mobile role accountStatus profileVerified isOnline')
+      .populate('userId', 'email mobile userType accountStatus profileVerified isOnline')
       .populate('location')
       .populate('images')
       .populate('videos')
@@ -723,7 +753,7 @@ export const getListingBySlug = async (req: Request, res: Response): Promise<Res
     // 3. Fallback: If slug is an ObjectId, search by _id
     if (Types.ObjectId.isValid(slug)) {
       const propById = await Property.findById(slug)
-        .populate('userId', 'email mobile role accountStatus profileVerified isOnline')
+        .populate('userId', 'email mobile userType accountStatus profileVerified isOnline')
         .populate('location')
         .populate('amenities')
         .populate('images')
@@ -740,7 +770,7 @@ export const getListingBySlug = async (req: Request, res: Response): Promise<Res
       }
 
       const flatById = await FlatmateRequirement.findById(slug)
-        .populate('userId', 'email mobile role accountStatus profileVerified isOnline')
+        .populate('userId', 'email mobile userType accountStatus profileVerified isOnline')
         .populate('location')
         .populate('images')
         .populate('videos')
@@ -1205,10 +1235,42 @@ export const getMyListings = async (
       };
     }
 
-    // 12. Property-Specific Filters
+    // 12. Property & Flatmate Property Type Filters
     const myPType = query.propertyType || query.listingType;
     if (myPType && myPType !== 'all') {
-      propertyFilter.propertyType = myPType;
+      const myPTypeStr = myPType as string;
+      if (
+        [
+          'flats_apartments',
+          'houses_villas',
+          'office_spaces',
+          'shops_commercial',
+        ].includes(myPTypeStr)
+      ) {
+        propertyFilter.propertyType = myPTypeStr;
+        if (myPTypeStr === 'flats_apartments') {
+          flatmateFilter.propertyType = 'flat';
+        } else {
+          flatmateFilter._id = null;
+        }
+      } else if (['room', 'flat', 'pg', 'shared_apartment'].includes(myPTypeStr)) {
+        flatmateFilter.propertyType = myPTypeStr;
+        if (myPTypeStr === 'flat') {
+          propertyFilter.propertyType = 'flats_apartments';
+        } else {
+          propertyFilter._id = null;
+        }
+      } else {
+        propertyFilter.propertyType = myPType;
+        flatmateFilter.propertyType = myPType;
+      }
+    }
+
+    // BHK / Bedrooms Filter
+    const myBhkVal = (query.bhk || query.bedrooms) as string;
+    if (myBhkVal && myBhkVal !== 'all') {
+      propertyFilter['propertyDetails.bedrooms'] = myBhkVal;
+      flatmateFilter['propertyDetails.bedrooms'] = myBhkVal;
     }
 
     if (
@@ -1216,6 +1278,8 @@ export const getMyListings = async (
       query.furnishing !== 'all'
     ) {
       propertyFilter.furnishing =
+        query.furnishing;
+      flatmateFilter.furnishing =
         query.furnishing;
     }
 
@@ -1250,14 +1314,6 @@ export const getMyListings = async (
         flatmateFilter.postType =
           postTypeStr;
       }
-    }
-
-    if (
-      query.propertyType &&
-      query.propertyType !== 'all'
-    ) {
-      flatmateFilter.propertyType =
-        query.propertyType;
     }
 
     if (
@@ -1537,7 +1593,7 @@ export const getMyListings = async (
         })
           .populate(
             'userId',
-            'email mobile role accountStatus profileVerified isOnline'
+            'email mobile userType accountStatus profileVerified isOnline'
           )
           .populate('location')
           .populate('amenities')
@@ -1554,7 +1610,7 @@ export const getMyListings = async (
         })
           .populate(
             'userId',
-            'email mobile role accountStatus profileVerified isOnline'
+            'email mobile userType accountStatus profileVerified isOnline'
           )
           .populate('location')
           .populate('images')

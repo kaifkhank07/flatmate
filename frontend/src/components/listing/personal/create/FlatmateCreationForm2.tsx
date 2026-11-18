@@ -75,7 +75,6 @@ export default function FlatmateCreationForm2({
   // Form Fields State (Post Type: 'partner')
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [partnerType, setPartnerType] = useState<"roommate" | "flatmate">("flatmate");
   const [rent, setRent] = useState("");
   const [availableFrom, setAvailableFrom] = useState("");
   const [furnishing, setFurnishing] = useState<"fully_furnished" | "semi_furnished" | "unfurnished">("semi_furnished");
@@ -88,6 +87,12 @@ export default function FlatmateCreationForm2({
   const [occupationPreference, setOccupationPreference] = useState<"student" | "working_professional" | "self_employed" | "business_owner" | "freelancer" | "any">("any");
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+
+  // Property Details State (partner post)
+  const [floor, setFloor] = useState("");
+  const [totalFloors, setTotalFloors] = useState("");
+  const [facing, setFacing] = useState("");
+  const [bedrooms, setBedrooms] = useState("");
 
   // Media State
   const [photoItems, setPhotoItems] = useState<PhotoStateItem[]>([]);
@@ -233,6 +238,7 @@ export default function FlatmateCreationForm2({
       previewUrl: URL.createObjectURL(file),
     }));
     setPhotoItems((prev) => [...prev, ...newItems]);
+    e.target.value = "";
   };
 
   const handleRemovePhoto = (id: string) => {
@@ -307,6 +313,11 @@ export default function FlatmateCreationForm2({
       return;
     }
 
+    if (floor !== "" && totalFloors !== "" && Number(floor) > Number(totalFloors)) {
+      setErrorMessage("Floor cannot be greater than Total Floors.");
+      return;
+    }
+
     setIsSubmitting(true);
     const createdImageIds: string[] = [];
     const createdVideoIds: string[] = [];
@@ -356,7 +367,7 @@ export default function FlatmateCreationForm2({
         title: title.trim(),
         description: description.trim() || undefined,
         postType: "partner",
-        partnerType,
+        postedBy: "flatmate",
         location: locationId,
         rent: Number(rent),
         budget: Number(rent),
@@ -377,6 +388,12 @@ export default function FlatmateCreationForm2({
         amenities: selectedAmenities,
         images: createdImageIds,
         videos: createdVideoIds,
+        propertyDetails: (floor !== "" || totalFloors !== "" || facing || bedrooms) ? {
+          floor: floor !== "" ? Number(floor) : undefined,
+          totalFloors: totalFloors !== "" ? Number(totalFloors) : undefined,
+          facing: facing || undefined,
+          bedrooms: bedrooms || undefined,
+        } : undefined,
         status: "pending",
       };
 
@@ -551,20 +568,76 @@ export default function FlatmateCreationForm2({
                 />
               </div>
 
-              {/* Partner Type Select */}
-              <div className="space-y-2">
-                <label className="block text-sm sm:text-base font-regular text-black">
-                  Looking for <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={partnerType}
-                  onChange={(e) => setPartnerType(e.target.value as any)}
-                  className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                  required
-                >
-                  <option value="flatmate">Flatmate</option>
-                  <option value="roommate">Roommate</option>
-                </select>
+              {/* Property Details (BHK, Facing, Floor, Total Floors) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
+                <div className="space-y-2">
+                  <label className="block text-sm sm:text-base font-regular text-black">
+                    Bedrooms / BHK
+                  </label>
+                  <select
+                    value={bedrooms}
+                    onChange={(e) => setBedrooms(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
+                  >
+                    <option value="">Select BHK (Optional)</option>
+                    <option value="1_rk">1 RK</option>
+                    <option value="1_bhk">1 BHK</option>
+                    <option value="2_bhk">2 BHK</option>
+                    <option value="3_bhk">3 BHK</option>
+                    <option value="4_bhk">4 BHK</option>
+                    <option value="5_bhk">5 BHK</option>
+                    <option value="5_plus_bhk">5+ BHK</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm sm:text-base font-regular text-black">
+                    Facing
+                  </label>
+                  <select
+                    value={facing}
+                    onChange={(e) => setFacing(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
+                  >
+                    <option value="">Select Facing (Optional)</option>
+                    <option value="east">East</option>
+                    <option value="west">West</option>
+                    <option value="north">North</option>
+                    <option value="south">South</option>
+                    <option value="north_east">North-East</option>
+                    <option value="north_west">North-West</option>
+                    <option value="south_east">South-East</option>
+                    <option value="south_west">South-West</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm sm:text-base font-regular text-black">
+                    Floor
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={floor}
+                    onChange={(e) => setFloor(e.target.value)}
+                    placeholder="0 for Ground floor"
+                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm sm:text-base font-regular text-black">
+                    Total Floors
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={totalFloors}
+                    onChange={(e) => setTotalFloors(e.target.value)}
+                    placeholder="e.g. 10"
+                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
+                  />
+                </div>
               </div>
             </div>
 
@@ -885,6 +958,7 @@ export default function FlatmateCreationForm2({
                       type="file"
                       multiple
                       accept="image/*"
+                      onClick={(e) => e.stopPropagation()}
                       onChange={handlePhotoUpload}
                       className="hidden"
                     />
@@ -921,6 +995,7 @@ export default function FlatmateCreationForm2({
                       type="file"
                       multiple
                       accept="image/*"
+                      onClick={(e) => e.stopPropagation()}
                       onChange={handlePhotoUpload}
                       className="hidden"
                     />

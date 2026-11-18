@@ -36,6 +36,14 @@ const STATUS_OPTIONS = [
   { value: "deleted", label: "Deleted" },
 ] as const;
 
+const USER_TYPE_OPTIONS = [
+  { value: "all", label: "All Types" },
+  { value: "flatmate", label: "Flatmate" },
+  { value: "owner", label: "Owner" },
+  { value: "agent", label: "Agent" },
+  { value: "builder", label: "Builder" },
+] as const;
+
 export default function UsersManager({
   eyebrow = "User Management",
   title = "User Management",
@@ -59,6 +67,7 @@ export default function UsersManager({
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
+  const [userTypeFilter, setUserTypeFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const adminUser = getStoredAdminUser();
   const isSuperAdmin = adminUser?.role === "super_admin";
@@ -76,11 +85,12 @@ export default function UsersManager({
   const [editProfileUser, setEditProfileUser] = useState<UserItem | null>(null);
   const [editProfileData, setEditProfileData] = useState<UserProfileItem | null>(null);
 
-  const hasActiveFilters = Boolean(search.trim() || filter !== "all");
+  const hasActiveFilters = Boolean(search.trim() || filter !== "all" || userTypeFilter !== "all");
 
   const handleResetFilters = () => {
     setSearch("");
     setFilter("all");
+    setUserTypeFilter("all");
     setPage(1);
   };
 
@@ -122,6 +132,7 @@ export default function UsersManager({
       limit: LIMIT,
       search: search,
       accountStatus: accountStatusParam,
+      userType: userTypeFilter !== "all" ? userTypeFilter : undefined,
       isDeleted: isDeletedParam,
     });
 
@@ -132,7 +143,7 @@ export default function UsersManager({
       toast(res.message || "Failed to load users");
     }
     setLoading(false);
-  }, [page, search, filter, toast]);
+  }, [page, search, filter, userTypeFilter, toast]);
 
   const handleUserUpdated = useCallback(() => {
     loadUsers();
@@ -142,6 +153,26 @@ export default function UsersManager({
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
+
+  const getUserTypeTone = (type?: string) => {
+    switch (type) {
+      case "owner":
+        return "iris";
+      case "flatmate":
+        return "mint";
+      case "agent":
+        return "amber";
+      case "builder":
+        return "sand";
+      default:
+        return "sand";
+    }
+  };
+
+  const formatUserType = (type?: string) => {
+    if (!type) return "Flatmate";
+    return type.charAt(0).toUpperCase() + type.slice(1);
+  };
 
   const getStatusTone = (status: string) => {
     switch (status) {
@@ -212,6 +243,21 @@ export default function UsersManager({
               }}
             />
 
+            <select
+              className="px-3 py-1.5 bg-[var(--canvas-2)] border border-[var(--hair-2)] rounded-lg text-xs font-semibold text-[var(--ink-2)] focus:outline-none focus:border-[var(--ember)]"
+              value={userTypeFilter}
+              onChange={(e) => {
+                setUserTypeFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              {USER_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
             <ResetFilterButton
               visible={hasActiveFilters}
               onClick={handleResetFilters}
@@ -224,6 +270,7 @@ export default function UsersManager({
                 <tr>
                   <th>User Name</th>
                   <th>Email / Mobile</th>
+                  <th>User Type</th>
                   <th>Status</th>
                   <th>Completion</th>
                   <th>Verification</th>
@@ -234,13 +281,13 @@ export default function UsersManager({
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
+                    <td colSpan={8} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
                       Loading users…
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
+                    <td colSpan={8} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
                       No users found.
                     </td>
                   </tr>
@@ -266,7 +313,7 @@ export default function UsersManager({
                           <Avatar src={avatarSrc} name={fullName || u.email || u.mobile} size={48} />
                           <div>
                             <strong>{fullName || u.email || u.mobile || "Unnamed User"}</strong>
-                            <span>ID: {u._id.slice(-6)}</span>
+                            <span>ID: {u._id.slice(-6)} • {formatUserType(u.userType)}</span>
                           </div>
                         </td>
                         <td>
@@ -275,6 +322,11 @@ export default function UsersManager({
                             {u.mobile && <span style={{ color: "var(--ink-3)", fontSize: 12 }}>{u.mobile}</span>}
                             {!u.email && !u.mobile && <span style={{ color: "var(--ink-4)" }}>N/A</span>}
                           </div>
+                        </td>
+                        <td>
+                          <Chip tone={getUserTypeTone(u.userType)} dot>
+                            {formatUserType(u.userType)}
+                          </Chip>
                         </td>
                         <td>
                           {u.isDeleted ? (

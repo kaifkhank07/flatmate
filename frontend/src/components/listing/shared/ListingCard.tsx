@@ -87,21 +87,34 @@ export default function ListingCard({ item, isMylisting = false }: ListingCardPr
           {/* Distance, Match & Chat Button */}
           <div className="flex flex-col items-end gap-1 sm:gap-2 text-right shrink-0">
             <div>{renderDistance(item.distance)}</div>
-
-            {/* <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
-              <span className="text-gray-900 text-xs sm:text-base font-regular whitespace-nowrap">
-                {item.matchPercentage}% Match
-              </span>
-              <button
-                type="button"
-                aria-label={`Chat with ${item.name}`}
-                className="p-1.5 sm:p-2 bg-background hover:bg-primary/10 text-accent rounded-full transition-colors cursor-pointer flex items-center justify-center shrink-0"
-              >
-                <MessageSquare className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-              </button>
-            </div> */}
           </div>
         </div>
+
+        {/* Badges row if BHK, Floor, Posted By, or Brokerage present */}
+        {(item.bhk || item.floor || item.postedBy || item.brokerage) && (
+          <div className="flex items-center gap-1.5 flex-wrap -mt-1 sm:-mt-2">
+            {item.bhk && (
+              <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] sm:text-xs font-medium border border-blue-100">
+                {item.bhk}
+              </span>
+            )}
+            {item.floor && (
+              <span className="px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-[10px] sm:text-xs font-medium border border-slate-200">
+                {item.floor}
+              </span>
+            )}
+            {item.postedBy && (
+              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] sm:text-xs font-medium border border-emerald-100 capitalize">
+                By {item.postedBy}
+              </span>
+            )}
+            {item.brokerage && (
+              <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] sm:text-xs font-medium border border-amber-100">
+                {item.brokerage}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Bottom Details Grid */}
         <div className="w-full pt-1.5 grid grid-cols-3 gap-1 sm:gap-4 border-t-2 border-accent border-dashed">
@@ -115,10 +128,10 @@ export default function ListingCard({ item, isMylisting = false }: ListingCardPr
             </span>
           </div>
 
-          {/* Looking For (Gender) */}
+          {/* Looking For / Tenant Gender */}
           <div className="min-w-0">
             <span className="block text-gray-400 text-[10px] xs:text-xs sm:text-base font-regular truncate">
-              Looking For
+              {item.sourceType === "property" ? "Tenant Gender" : "Looking For"}
             </span>
             <span className="block text-xs sm:text-base font-medium text-gray-900 mt-0.5 sm:mt-1 truncate">
               {item.lookingForGender}

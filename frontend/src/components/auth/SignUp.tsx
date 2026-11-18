@@ -5,6 +5,7 @@ import { User as UserIcon, Mail, Phone, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import LineRoll from "../utils/LineRoll";
 import { useAuthStore } from "@/store/useAuthStore";
+import { UserType } from "@/types/auth";
 
 interface SignUpProps {
   onSwitchToLogin?: () => void;
@@ -14,11 +15,18 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
   const router = useRouter();
   const { register, verifyRegistrationOTP, checkProfileCompletionStatus, tempOtp, isLoading, error, clearError } = useAuthStore();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    firstName: string;
+    lastName: string;
+    email: string;
+    mobileNumber: string;
+    userType: UserType;
+  }>({
     firstName: "",
     lastName: "",
     email: "",
     mobileNumber: "",
+    userType: "flatmate",
   });
   const [step, setStep] = useState<"details" | "otp">("details");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -52,6 +60,11 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
       return;
     }
 
+    if (!formData.userType) {
+      setLocalError("Please select your user type");
+      return;
+    }
+
     setLocalError("");
     clearError();
 
@@ -60,6 +73,7 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
       lastName: formData.lastName,
       email: formData.email,
       mobile: formData.mobileNumber,
+      userType: formData.userType,
     });
 
     if (success) {
@@ -187,6 +201,42 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
               placeholder="9999 999 999"
               className="w-full bg-transparent text-gray-900 placeholder:text-gray-300 outline-none text-sm sm:text-base tracking-wider"
             />
+          </div>
+
+          {/* User Type Selection */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-gray-700 ml-1">
+              I am registering as <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { label: "Owner", value: "owner" as UserType },
+                { label: "Flatmate", value: "flatmate" as UserType },
+                { label: "Agent", value: "agent" as UserType },
+                { label: "Builder", value: "builder" as UserType },
+              ].map((item) => {
+                const isSelected = formData.userType === item.value;
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => {
+                      setFormData((prev) => ({ ...prev, userType: item.value }));
+                      if (localError) setLocalError("");
+                      if (error) clearError();
+                    }}
+                    className={`py-2 px-3 text-xs sm:text-sm font-medium rounded-full border transition-all text-center cursor-pointer ${
+                      isSelected
+                        ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                        : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {activeError && <p className="text-xs text-red-500 pl-4">{activeError}</p>}

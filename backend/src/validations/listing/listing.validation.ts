@@ -165,11 +165,43 @@ export const getListingsQuerySchema = z.object({
 
       propertyType: z
         .enum([
+          'residential',
+          'commercial',
+          'flats_apartments',
+          'houses_villas',
+          'office_spaces',
+          'shops_commercial',
           'flat',
           'room',
           'pg',
           'shared_apartment',
           'entire_property',
+          'all',
+        ])
+        .optional(),
+
+      bhk: z
+        .enum([
+          '1_rk',
+          '1_bhk',
+          '2_bhk',
+          '3_bhk',
+          '4_bhk',
+          '5_bhk',
+          '5_plus_bhk',
+          'all',
+        ])
+        .optional(),
+
+      bedrooms: z
+        .enum([
+          '1_rk',
+          '1_bhk',
+          '2_bhk',
+          '3_bhk',
+          '4_bhk',
+          '5_bhk',
+          '5_plus_bhk',
           'all',
         ])
         .optional(),
@@ -380,11 +412,43 @@ export const getMyListingsQuerySchema = z.object({
 
       propertyType: z
         .enum([
+          'residential',
+          'commercial',
+          'flats_apartments',
+          'houses_villas',
+          'office_spaces',
+          'shops_commercial',
           'flat',
           'room',
           'pg',
           'shared_apartment',
           'entire_property',
+          'all',
+        ])
+        .optional(),
+
+      bhk: z
+        .enum([
+          '1_rk',
+          '1_bhk',
+          '2_bhk',
+          '3_bhk',
+          '4_bhk',
+          '5_bhk',
+          '5_plus_bhk',
+          'all',
+        ])
+        .optional(),
+
+      bedrooms: z
+        .enum([
+          '1_rk',
+          '1_bhk',
+          '2_bhk',
+          '3_bhk',
+          '4_bhk',
+          '5_bhk',
+          '5_plus_bhk',
           'all',
         ])
         .optional(),

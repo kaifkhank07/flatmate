@@ -40,6 +40,8 @@ export default function ListingManager() {
   const [selectedGender, setSelectedGender] = useState<GenderFilter>("Any");
   const [selectedSort, setSelectedSort] = useState<ListingSortOption>("relevance");
   const [selectedFurnishing, setSelectedFurnishing] = useState<FurnishingType>("all");
+  const [selectedPropertyType, setSelectedPropertyType] = useState<string>("all");
+  const [selectedBhk, setSelectedBhk] = useState<string>("all");
   const [minBudget, setMinBudget] = useState<number | undefined>(undefined);
   const [maxBudget, setMaxBudget] = useState<number | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
@@ -75,7 +77,8 @@ export default function ListingManager() {
     setSelectedCategory(categoryToSet);
 
     const catFilters = getCategoryFilters(categoryToSet);
-    if (propertyTypeParam) {
+    if (propertyTypeParam && categoryToSet === "Property") {
+      setSelectedPropertyType(propertyTypeParam);
       catFilters.propertyType = propertyTypeParam as any;
       catFilters.listingType = propertyTypeParam as any;
     }
@@ -173,11 +176,19 @@ export default function ListingManager() {
     setSelectedCategory(cat);
     const catFilters = getCategoryFilters(cat);
 
+    const nextPropertyType = cat === "Property" ? selectedPropertyType : "all";
+    const nextBhk = cat === "Property" ? selectedBhk : "all";
+    if (cat !== "Property") {
+      setSelectedPropertyType("all");
+      setSelectedBhk("all");
+    }
+
     setFilters({
       ...catFilters,
       listingType: undefined,
       partnerType: undefined,
-      propertyType: undefined,
+      propertyType: nextPropertyType === "all" ? undefined : (nextPropertyType as any),
+      bhk: nextBhk === "all" ? undefined : (nextBhk as any),
       page: 1,
     });
   };
@@ -202,6 +213,24 @@ export default function ListingManager() {
     setSelectedFurnishing(furnishing);
     setFilters({
       furnishing: furnishing === "all" ? undefined : furnishing,
+      page: 1,
+    });
+  };
+
+  // Handle Property Type Filter Selection
+  const handleSelectPropertyType = (type: string) => {
+    setSelectedPropertyType(type);
+    setFilters({
+      propertyType: type === "all" ? undefined : (type as any),
+      page: 1,
+    });
+  };
+
+  // Handle BHK Filter Selection
+  const handleSelectBhk = (bhk: string) => {
+    setSelectedBhk(bhk);
+    setFilters({
+      bhk: bhk === "all" ? undefined : (bhk as any),
       page: 1,
     });
   };
@@ -233,6 +262,8 @@ export default function ListingManager() {
     setSelectedGender("Any");
     setSelectedSort("relevance");
     setSelectedFurnishing("all");
+    setSelectedPropertyType("all");
+    setSelectedBhk("all");
     setMinBudget(undefined);
     setMaxBudget(undefined);
     setSearchQuery("");
@@ -258,6 +289,8 @@ export default function ListingManager() {
       setSelectedGender("Any");
       setSelectedSort("relevance");
       setSelectedFurnishing("all");
+      setSelectedPropertyType("all");
+      setSelectedBhk("all");
       setMinBudget(undefined);
       setMaxBudget(undefined);
       setSearchQuery("");
@@ -286,6 +319,10 @@ export default function ListingManager() {
         onSelectSort={handleSelectSort}
         selectedFurnishing={selectedFurnishing}
         onSelectFurnishing={handleSelectFurnishing}
+        selectedPropertyType={selectedPropertyType}
+        onSelectPropertyType={handleSelectPropertyType}
+        selectedBhk={selectedBhk}
+        onSelectBhk={handleSelectBhk}
         minBudget={minBudget}
         maxBudget={maxBudget}
         onApplyBudget={handleApplyBudget}

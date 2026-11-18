@@ -229,6 +229,11 @@ export default function FlatmateRequirementPropertyDetails({
                       {status}
                     </span>
                   )}
+                  {listing.postedBy && (
+                    <span className="px-3 py-0.5 rounded-full text-xs font-medium capitalize bg-blue-50 text-blue-700 border border-blue-200">
+                      Posted by {listing.postedBy}
+                    </span>
+                  )}
                 </div>
                 <p className="text-gray-500 text-sm sm:text-base font-regular">
                   {categoryHeader}
@@ -333,6 +338,7 @@ export default function FlatmateRequirementPropertyDetails({
                 </div>
               </div>
             </div>
+
 
             {/* Preferences */}
             <div className="space-y-3">

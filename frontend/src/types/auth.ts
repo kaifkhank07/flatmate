@@ -1,8 +1,10 @@
+export type UserType = 'owner' | 'flatmate' | 'agent' | 'builder';
+
 export interface User {
   _id: string;
   email?: string;
   mobile?: string;
-  role: 'user';
+  userType: UserType;
   accountStatus: 'active' | 'inactive';
   emailVerified: boolean;
   mobileVerified: boolean;
@@ -55,6 +57,7 @@ export interface RegisterWithMobileOTPRequest {
   lastName: string;
   email: string;
   mobile: string;
+  userType?: UserType;
 }
 
 export interface VerifyRegistrationOTPRequest {

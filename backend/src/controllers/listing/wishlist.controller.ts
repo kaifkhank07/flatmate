@@ -151,7 +151,7 @@ export const getWishlist = async (req: Request, res: Response): Promise<Response
     const [propDocsRaw, flatDocsRaw] = await Promise.all([
       propIds.length > 0
         ? Property.find({ _id: { $in: propIds } })
-            .populate('userId', 'email mobile role accountStatus profileVerified isOnline')
+            .populate('userId', 'email mobile userType accountStatus profileVerified isOnline')
             .populate('location')
             .populate('amenities')
             .populate('images')
@@ -160,7 +160,7 @@ export const getWishlist = async (req: Request, res: Response): Promise<Response
         : [],
       flatIds.length > 0
         ? FlatmateRequirement.find({ _id: { $in: flatIds } })
-            .populate('userId', 'email mobile role accountStatus profileVerified isOnline')
+            .populate('userId', 'email mobile userType accountStatus profileVerified isOnline')
             .populate('location')
             .populate('images')
             .populate('videos')

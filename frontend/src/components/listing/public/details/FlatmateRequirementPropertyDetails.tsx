@@ -285,9 +285,16 @@ export default function FlatmateRequirementPropertyDetails({
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <h2 className="text-black text-xl sm:text-2xl md:text-3xl font-regular">
-                  {postTitle}
-                </h2>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h2 className="text-black text-xl sm:text-2xl md:text-3xl font-regular">
+                    {postTitle}
+                  </h2>
+                  {listing.postedBy && (
+                    <span className="px-3 py-0.5 rounded-full text-xs font-medium capitalize bg-blue-50 text-blue-700 border border-blue-200">
+                      Posted by {listing.postedBy}
+                    </span>
+                  )}
+                </div>
                 <p className="text-gray-500 text-sm sm:text-base font-regular">
                   {categoryHeader}
                 </p>
@@ -361,6 +368,7 @@ export default function FlatmateRequirementPropertyDetails({
                 </div>
               </div>
             </div>
+
 
             {/* Preferences / Information Grid */}
             <div className="space-y-3">

@@ -45,6 +45,11 @@ interface FormDataState {
   postType: "property" | "partner";
   propertyType: "room" | "flat" | "pg" | "shared_apartment";
   partnerType: "roommate" | "flatmate";
+  postedBy: "owner" | "flatmate";
+  floor?: number | "";
+  totalFloors?: number | "";
+  facing?: string;
+  bedrooms?: string;
   area: number;
   rent: number;
   securityDeposit: number;
@@ -76,6 +81,11 @@ const DEFAULT_FORM: FormDataState = {
   postType: "property",
   propertyType: "flat",
   partnerType: "flatmate",
+  postedBy: "flatmate",
+  floor: "",
+  totalFloors: "",
+  facing: "",
+  bedrooms: "",
   area: 0,
   rent: 0,
   securityDeposit: 0,
@@ -407,6 +417,20 @@ export default function FlatmateRequirementCreateDialog({
       }
     }
 
+    if (formData.postType === "partner") {
+      if (
+        formData.floor !== "" &&
+        formData.floor !== undefined &&
+        formData.totalFloors !== "" &&
+        formData.totalFloors !== undefined
+      ) {
+        if (Number(formData.floor) > Number(formData.totalFloors)) {
+          toast("Floor cannot exceed total floors.");
+          return;
+        }
+      }
+    }
+
     setSubmitting(true);
     const createdImageIds: string[] = [];
     const createdVideoIds: string[] = [];
@@ -488,7 +512,8 @@ export default function FlatmateRequirementCreateDialog({
       };
 
       if (isProperty) {
-        payload.propertyType = formData.propertyType;
+        payload.propertyType = formData.propertyType || "flat";
+        payload.postedBy = formData.postedBy || "flatmate";
         payload.area = 0;
         payload.securityDeposit = 0;
         payload.maintenanceCharges = { amount: 0, frequency: "yearly" };
@@ -498,7 +523,23 @@ export default function FlatmateRequirementCreateDialog({
         payload.images = [];
         payload.videos = [];
       } else {
-        payload.partnerType = formData.partnerType;
+        payload.partnerType = formData.partnerType || "flatmate";
+        payload.postedBy = formData.postedBy || "flatmate";
+        if (
+          formData.floor !== "" ||
+          formData.totalFloors !== "" ||
+          formData.facing ||
+          formData.bedrooms
+        ) {
+          payload.propertyDetails = {
+            ...(formData.floor !== "" && { floor: Number(formData.floor) }),
+            ...(formData.totalFloors !== "" && {
+              totalFloors: Number(formData.totalFloors),
+            }),
+            ...(formData.facing && { facing: formData.facing }),
+            ...(formData.bedrooms && { bedrooms: formData.bedrooms }),
+          };
+        }
         payload.area = Number(formData.area) || 0;
         payload.securityDeposit = Number(formData.securityDeposit) || 0;
         payload.maintenanceCharges =
@@ -766,49 +807,99 @@ export default function FlatmateRequirementCreateDialog({
                   <option value="partner">Partner (Have Room / Flat, Need Flatmate)</option>
                 </select>
               </div>
-
-              {formData.postType === "property" ? (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Looking For (Property Type) <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
-                    value={formData.propertyType}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        propertyType: e.target.value as any,
-                      }))
-                    }
-                  >
-                    <option value="flat">Flat</option>
-                    <option value="room">Room</option>
-                    <option value="pg">PG</option>
-                    <option value="shared_apartment">Shared Apartment</option>
-                  </select>
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Looking For (Partner Type) <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
-                    value={formData.partnerType}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        partnerType: e.target.value as any,
-                      }))
-                    }
-                  >
-                    <option value="flatmate">Flatmate</option>
-                    <option value="roommate">Roommate</option>
-                  </select>
-                </div>
-              )}
             </div>
+
+            {formData.postType === "partner" && (
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                  Property Details (Optional)
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                      Bedrooms / BHK
+                    </label>
+                    <select
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                      value={formData.bedrooms || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, bedrooms: e.target.value }))
+                      }
+                    >
+                      <option value="">Select BHK</option>
+                      <option value="1_rk">1 RK</option>
+                      <option value="1_bhk">1 BHK</option>
+                      <option value="2_bhk">2 BHK</option>
+                      <option value="3_bhk">3 BHK</option>
+                      <option value="4_bhk">4 BHK</option>
+                      <option value="5_bhk">5 BHK</option>
+                      <option value="5_plus_bhk">5+ BHK</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                      Facing
+                    </label>
+                    <select
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                      value={formData.facing || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, facing: e.target.value }))
+                      }
+                    >
+                      <option value="">Select Facing</option>
+                      <option value="east">East</option>
+                      <option value="west">West</option>
+                      <option value="north">North</option>
+                      <option value="south">South</option>
+                      <option value="north_east">North-East</option>
+                      <option value="north_west">North-West</option>
+                      <option value="south_east">South-East</option>
+                      <option value="south_west">South-West</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                      Floor (0=Ground)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                      placeholder="e.g. 0, 1, 2"
+                      value={formData.floor !== undefined ? formData.floor : ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          floor: e.target.value === "" ? "" : Number(e.target.value),
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                      Total Floors
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                      placeholder="e.g. 4"
+                      value={formData.totalFloors !== undefined ? formData.totalFloors : ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          totalFloors: e.target.value === "" ? "" : Number(e.target.value),
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">

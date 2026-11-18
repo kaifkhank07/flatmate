@@ -52,7 +52,7 @@ export interface UserItem {
   _id: string;
   email?: string;
   mobile?: string;
-  role?: string;
+  userType?: 'owner' | 'flatmate' | 'agent' | 'builder';
   firstName?: string;
   lastName?: string;
 }

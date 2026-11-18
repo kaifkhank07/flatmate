@@ -15,7 +15,7 @@ import { processListingMatches } from '../../services/listing/propertyMatch.serv
 /** Helper to populate standard flatmate requirement fields */
 const populateFlatmateRequirementFields = (query: any) => {
   return query
-    .populate('userId', 'email mobile role profileVerified isOnline accountStatus')
+    .populate('userId', 'email mobile userType profileVerified isOnline accountStatus')
     .populate('location')
     .populate('images')
     .populate('videos')
@@ -104,6 +104,7 @@ export const createFlatmateRequirement = async (req: Request, res: Response): Pr
       amenities,
       images,
       videos,
+      propertyDetails,
       status,
     } = req.body;
 
@@ -164,8 +165,8 @@ export const createFlatmateRequirement = async (req: Request, res: Response): Pr
       slug: finalSlug,
       description: description ? description.trim() : undefined,
       postType,
-      propertyType: postType === 'property' ? propertyType : undefined,
-      partnerType: postType === 'partner' ? partnerType : undefined,
+      propertyType: postType === 'property' ? (propertyType || 'flat') : undefined,
+      partnerType: postType === 'partner' ? (partnerType || 'flatmate') : undefined,
       location: locationDoc._id,
       area: area ? Number(area) : 0,
       rent: finalRent,
@@ -180,6 +181,12 @@ export const createFlatmateRequirement = async (req: Request, res: Response): Pr
       amenities: amenities || [],
       images: imageIds,
       videos: videoIds,
+      propertyDetails: postType === 'partner' && propertyDetails ? {
+        ...(propertyDetails.floor !== undefined && { floor: Number(propertyDetails.floor) }),
+        ...(propertyDetails.totalFloors !== undefined && { totalFloors: Number(propertyDetails.totalFloors) }),
+        ...(propertyDetails.facing && { facing: propertyDetails.facing }),
+        ...(propertyDetails.bedrooms && { bedrooms: propertyDetails.bedrooms }),
+      } : undefined,
       status: status || 'pending',
     };
 
@@ -323,6 +330,11 @@ export const getMyFlatmateRequirements = async (req: Request, res: Response): Pr
       filter.partnerType = req.query.partnerType;
     }
 
+    const myBhk = req.query.bhk || req.query.bedrooms;
+    if (myBhk && myBhk !== 'all') {
+      filter['propertyDetails.bedrooms'] = myBhk;
+    }
+
     const searchStr = (req.query.search || req.query.q) as string;
     if (searchStr && searchStr.trim()) {
       const escaped = searchStr.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -381,6 +393,11 @@ export const getPublicFlatmateRequirements = async (req: Request, res: Response)
 
     if (req.query.partnerType) {
       filter.partnerType = req.query.partnerType;
+    }
+
+    const myBhk = req.query.bhk || req.query.bedrooms;
+    if (myBhk && myBhk !== 'all') {
+      filter['propertyDetails.bedrooms'] = myBhk;
     }
 
     if (req.query.location && Types.ObjectId.isValid(req.query.location as string)) {
@@ -571,13 +588,32 @@ export const updateFlatmateRequirement = async (req: Request, res: Response): Pr
 
     if (targetPostType === 'property') {
       unsetFields.partnerType = '';
-      if (!updateData.propertyType && !existingRequirement.propertyType) {
-        return sendError(res, 'propertyType is required for property posts', 400);
-      }
+      delete updateData.partnerType;
+      unsetFields.propertyDetails = '';
+      delete updateData.propertyDetails;
+      // Preserve existing valid value if available; if not available, default to 'flat'
+      updateData.propertyType = updateData.propertyType || existingRequirement.propertyType || 'flat';
     } else if (targetPostType === 'partner') {
       unsetFields.propertyType = '';
-      if (!updateData.partnerType && !existingRequirement.partnerType) {
-        return sendError(res, 'partnerType is required for partner posts', 400);
+      delete updateData.propertyType;
+      // Preserve existing valid value if available; if not available, default to 'flatmate'
+      updateData.partnerType = updateData.partnerType || existingRequirement.partnerType || 'flatmate';
+      if (updateData.propertyDetails !== undefined) {
+        const existingDetails = existingRequirement.propertyDetails
+          ? (typeof (existingRequirement.propertyDetails as any).toObject === 'function'
+              ? (existingRequirement.propertyDetails as any).toObject()
+              : existingRequirement.propertyDetails)
+          : {};
+        updateData.propertyDetails = {
+          ...existingDetails,
+          ...updateData.propertyDetails,
+        };
+        if (updateData.propertyDetails.floor !== undefined) {
+          updateData.propertyDetails.floor = Number(updateData.propertyDetails.floor);
+        }
+        if (updateData.propertyDetails.totalFloors !== undefined) {
+          updateData.propertyDetails.totalFloors = Number(updateData.propertyDetails.totalFloors);
+        }
       }
     }
 
@@ -902,6 +938,11 @@ export const getAdminFlatmateRequirements = async (req: Request, res: Response):
 
     if (req.query.partnerType) {
       filter.partnerType = req.query.partnerType;
+    }
+
+    const myBhk = req.query.bhk || req.query.bedrooms;
+    if (myBhk && myBhk !== 'all') {
+      filter['propertyDetails.bedrooms'] = myBhk;
     }
 
     if (req.query.location && Types.ObjectId.isValid(req.query.location as string)) {

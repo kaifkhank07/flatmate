@@ -40,8 +40,8 @@ const STATUS_FILTERS = [
 
 const POST_TYPE_FILTERS = [
   { value: "all", label: "All Types" },
-  { value: "property", label: "Property" },
-  { value: "partner", label: "Partner" },
+  { value: "property", label: "Looking For Flat" },
+  { value: "partner", label: "Looking For Flatmate" },
 ] as const;
 
 const PROPERTY_TYPE_FILTERS = [
@@ -230,7 +230,27 @@ export default function FlatmateRequirementsManager({
       case "closed":
         return "rose";
       default:
-        return "glass";
+        return "sand";
+    }
+  };
+
+  const getPostTypeTone = (postType?: string) => {
+    switch (postType) {
+      case "partner":
+        return "sea";
+      case "property":
+      default:
+        return "iris";
+    }
+  };
+
+  const getLookingForTone = (subType?: string) => {
+    switch (subType) {
+      case "flatmate":
+        return "sea";
+      case "flat":
+      default:
+        return "iris";
     }
   };
 
@@ -303,7 +323,7 @@ export default function FlatmateRequirementsManager({
             />
 
             {/* Filter Dropdowns Row */}
-      <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <select
                 className="px-3 py-1.5 bg-[var(--canvas-2)] border border-[var(--hair-2)] rounded-lg text-xs font-semibold text-[var(--ink-2)] focus:outline-none focus:border-[var(--ember)]"
                 value={selectedStatusFilter}
@@ -337,7 +357,7 @@ export default function FlatmateRequirementsManager({
                 ))}
               </select>
 
-              {selectedPostTypeFilter === "property" && (
+              {/* {selectedPostTypeFilter === "property" && (
                 <select
                   className="px-3 py-1.5 bg-[var(--canvas-2)] border border-[var(--hair-2)] rounded-lg text-xs font-semibold text-[var(--ink-2)] focus:outline-none focus:border-[var(--ember)]"
                   value={selectedPropertyTypeFilter}
@@ -369,7 +389,7 @@ export default function FlatmateRequirementsManager({
                     </option>
                   ))}
                 </select>
-              )}
+              )} */}
 
               <ResetFilterButton
                 visible={hasActiveFilters}
@@ -419,8 +439,9 @@ export default function FlatmateRequirementsManager({
                   <th>Requirement</th>
                   <th>User</th>
                   <th>Location</th>
-                  <th>Post Type</th>
-                  <th>Sub Type</th>
+                  {/* <th>Post Type</th>
+                  <th>Sub Type</th> */}
+                  <th>Looking For</th>
                   <th>Rent</th>
                   <th>Occupation</th>
                   <th>Available From</th>
@@ -432,19 +453,21 @@ export default function FlatmateRequirementsManager({
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={12} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
+                    <td colSpan={11} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
                       Loading flatmate requirements…
                     </td>
                   </tr>
                 ) : items.length === 0 ? (
                   <tr>
-                    <td colSpan={12} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
+                    <td colSpan={11} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
                       No flatmate requirements found matching parameters.
                     </td>
                   </tr>
                 ) : (
                   items.map((item) => {
                     const cover = getCoverImageUrl(item);
+                    const subtype = item.postType === "partner" ? item.partnerType : item.propertyType;
+
                     return (
                       <tr key={item._id}>
                         <td style={{ textAlign: "center", width: 42 }}>
@@ -500,8 +523,18 @@ export default function FlatmateRequirementsManager({
                             >
                               {item.title}
                             </strong>
-                            <span style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                              ID: {item._id.slice(-6)}
+                            <span
+                              style={{
+                                fontSize: 11,
+                                color: "var(--ink-3)",
+                                display: "block",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                              title={item.slug || item._id}
+                            >
+                              {item.slug || item._id}
                             </span>
                           </div>
                         </td>
@@ -514,16 +547,22 @@ export default function FlatmateRequirementsManager({
                           {getLocationName(item.location)}
                         </td>
 
-                        <td>
-                          <Chip tone="glass">
+                        {/* <td>
+                          <Chip tone={getPostTypeTone(item.postType)}>
                             {(item.postType || "property").toUpperCase()}
                           </Chip>
-                        </td>
+                        </td> */}
 
-                        <td style={{ fontSize: 13, color: "var(--ink-2)" }}>
+                        {/* <td style={{ fontSize: 13, color: "var(--ink-2)" }}>
                           {item.postType === "property"
                             ? (item.propertyType || "N/A").replace(/_/g, " ").toUpperCase()
                             : (item.partnerType || "N/A").toUpperCase()}
+                        </td> */}
+
+                        <td>
+                          <Chip tone={getLookingForTone(subtype)}>
+                            {subtype?.replace(/_/g, " ").toUpperCase()}
+                          </Chip>
                         </td>
 
                         <td>
