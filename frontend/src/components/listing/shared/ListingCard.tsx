@@ -92,7 +92,7 @@ export default function ListingCard({ item, isMylisting = false }: ListingCardPr
 
         {/* Badges row if BHK, Floor, Posted By, or Brokerage present */}
         {(item.bhk || item.floor || item.postedBy || item.brokerage) && (
-          <div className="flex items-center gap-1.5 flex-wrap -mt-1 sm:-mt-2">
+          <div className="hidden lg:flex items-center gap-1.5 flex-wrap -mt-1 sm:-mt-2">
             {item.bhk && (
               <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] sm:text-xs font-medium border border-blue-100">
                 {item.bhk}

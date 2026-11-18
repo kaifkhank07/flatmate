@@ -19,6 +19,7 @@ interface SearchSectionProps {
   onSearch?: (searchData: {
     location: string;
     lookingFor: string;
+    propertyType?: string;
     selectedPlace?: SelectedPlace | null;
   }) => void;
 }
@@ -31,11 +32,13 @@ export default function SearchSection({
   const [locationInput, setLocationInput] = useState("");
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<ListingCategory>("All");
+  const [selectedPropertyType, setSelectedPropertyType] = useState<string>("all");
 
   const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([]);
   const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
   const [showPredictions, setShowPredictions] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
+  const [propertyTypeOpen, setPropertyTypeOpen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -46,6 +49,22 @@ export default function SearchSection({
     { label: "Property", displayLabel: "Entire Property" },
   ];
 
+  const propertyTypeOptions: { label: string; value: string }[] = [
+    { label: "All Property Types", value: "all" },
+    { label: "Flats / Apartments", value: "flats_apartments" },
+    { label: "Houses / Villas", value: "houses_villas" },
+    { label: "Office Spaces", value: "office_spaces" },
+    { label: "Shops / Commercial", value: "shops_commercial" },
+  ];
+
+  const propertyTypeLabels: Record<string, string> = {
+    all: "All Property Types",
+    flats_apartments: "Flats / Apartments",
+    houses_villas: "Houses / Villas",
+    office_spaces: "Office Spaces",
+    shops_commercial: "Shops / Commercial",
+  };
+
   // Close dropdowns on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -55,6 +74,7 @@ export default function SearchSection({
       ) {
         setShowPredictions(false);
         setCategoryOpen(false);
+        setPropertyTypeOpen(false);
       }
     }
 
@@ -130,10 +150,15 @@ export default function SearchSection({
       searchParams.set("category", selectedCategory);
     }
 
+    if (selectedCategory === "Property" && selectedPropertyType && selectedPropertyType !== "all") {
+      searchParams.set("propertyType", selectedPropertyType);
+    }
+
     if (onSearch) {
       onSearch({
         location: selectedLocationName,
         lookingFor: selectedCategory,
+        propertyType: selectedCategory === "Property" && selectedPropertyType !== "all" ? selectedPropertyType : undefined,
         selectedPlace,
       });
     }
@@ -148,7 +173,11 @@ export default function SearchSection({
       ref={containerRef}
       className={`relative z-30 w-full max-w-8xl 3xl:max-w-[1450px] mx-auto px-4 sm:px-6 lg:px-16 ${className}`}
     >
-      <div className="bg-white rounded-2xl sm:rounded-3xl flex flex-col md:grid md:grid-cols-4 items-stretch p-2 md:p-0 md:pl-2 lg:pl-4">
+      <div
+        className={`bg-white rounded-2xl sm:rounded-3xl flex flex-col md:grid ${
+          selectedCategory === "Property" ? "md:grid-cols-5" : "md:grid-cols-4"
+        } items-stretch p-2 md:p-0 md:pl-2 lg:pl-4`}
+      >
         {/* Direct Location Search Input - Takes 2 Columns */}
         <div className="relative md:col-span-2 px-4 lg:px-6 py-3 lg:py-5 border-b md:border-b-0 md:border-r border-gray-200 flex items-center justify-between group rounded-2xl md:rounded-none transition-colors">
           <div className="w-full pr-2">
@@ -223,6 +252,7 @@ export default function SearchSection({
             type="button"
             onClick={() => {
               setCategoryOpen(!categoryOpen);
+              setPropertyTypeOpen(false);
               setShowPredictions(false);
             }}
             className="w-full text-left px-4 lg:px-6 py-3 lg:py-5 border-b md:border-b-0 md:border-r border-gray-200 flex items-center justify-between group cursor-pointer hover:bg-gray-50/80 rounded-2xl md:rounded-none transition-colors"
@@ -233,13 +263,16 @@ export default function SearchSection({
               </span>
 
               <span className="block text-xs lg:text-sm text-gray-600 font-medium mt-0.5">
-                {selectedCategory === "All" ? "All Listing" : selectedCategory}
+                {selectedCategory === "All"
+                  ? "All Listing"
+                  : categories.find((c) => c.label === selectedCategory)?.displayLabel || selectedCategory}
               </span>
             </div>
 
             <ChevronDown
-              className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-brand-dark transition-transform duration-200 ${categoryOpen ? "rotate-180 text-brand-dark" : ""
-                }`}
+              className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-brand-dark transition-transform duration-200 ${
+                categoryOpen ? "rotate-180 text-brand-dark" : ""
+              }`}
             />
           </button>
 
@@ -251,12 +284,17 @@ export default function SearchSection({
                   type="button"
                   onClick={() => {
                     setSelectedCategory(cat.label);
+                    if (cat.label !== "Property") {
+                      setSelectedPropertyType("all");
+                      setPropertyTypeOpen(false);
+                    }
                     setCategoryOpen(false);
                   }}
-                  className={`w-full text-left px-5 py-2.5 text-sm font-medium transition-colors cursor-pointer ${selectedCategory === cat.label
+                  className={`w-full text-left px-5 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
+                    selectedCategory === cat.label
                       ? "bg-brand-ice text-brand-blue font-semibold"
                       : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
-                    }`}
+                  }`}
                 >
                   {cat.displayLabel}
                 </button>
@@ -264,6 +302,59 @@ export default function SearchSection({
             </div>
           )}
         </div>
+
+        {/* Property Type (Only when selectedCategory === "Property") */}
+        {selectedCategory === "Property" && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setPropertyTypeOpen(!propertyTypeOpen);
+                setCategoryOpen(false);
+                setShowPredictions(false);
+              }}
+              className="w-full text-left px-4 lg:px-6 py-3 lg:py-5 border-b md:border-b-0 md:border-r border-gray-200 flex items-center justify-between group cursor-pointer hover:bg-gray-50/80 rounded-2xl md:rounded-none transition-colors"
+            >
+              <div className="min-w-0 pr-1">
+                <span className="block text-gray-800 text-xs sm:text-sm lg:text-xl font-medium tracking-tight">
+                  Property Type
+                </span>
+
+                <span className="block text-xs lg:text-sm text-gray-600 font-medium mt-0.5 truncate">
+                  {propertyTypeLabels[selectedPropertyType] || "All Property Types"}
+                </span>
+              </div>
+
+              <ChevronDown
+                className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-brand-dark transition-transform duration-200 shrink-0 ${
+                  propertyTypeOpen ? "rotate-180 text-brand-dark" : ""
+                }`}
+              />
+            </button>
+
+            {propertyTypeOpen && (
+              <div className="absolute left-0 top-full mt-2 md:top-auto md:bottom-full md:mt-0 md:mb-2 w-full md:w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-in fade-in-50 slide-in-from-top-2 md:slide-in-from-bottom-2 duration-150">
+                {propertyTypeOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      setSelectedPropertyType(opt.value);
+                      setPropertyTypeOpen(false);
+                    }}
+                    className={`w-full text-left px-5 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
+                      selectedPropertyType === opt.value
+                        ? "bg-brand-ice text-brand-blue font-semibold"
+                        : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Search Button */}
         <div className="w-full md:w-auto self-stretch flex items-stretch mt-2 md:mt-0">

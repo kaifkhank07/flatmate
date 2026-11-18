@@ -466,7 +466,7 @@ export default function FlatmateRequirementsManager({
                 ) : (
                   items.map((item) => {
                     const cover = getCoverImageUrl(item);
-                    const subtype = item.postType === "partner" ? item.partnerType : item.propertyType;
+                    const subtype = (item.postType === "partner" ? item.partnerType : item.propertyType) || (item.postType === "partner" ? "flatmate" : "flat");
 
                     return (
                       <tr key={item._id}>

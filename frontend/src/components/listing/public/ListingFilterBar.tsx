@@ -92,6 +92,7 @@ export default function ListingFilterBar({
   hasActiveFilters,
 }: ListingFilterBarProps) {
   // Dropdown open states
+  const [categoryOpen, setCategoryOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [furnishingOpen, setFurnishingOpen] = useState(false);
@@ -119,7 +120,9 @@ export default function ListingFilterBar({
   const [showPredictions, setShowPredictions] = useState(false);
 
   // Refs for click outside
+  const categoryRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
+  const sortMobileRef = useRef<HTMLDivElement>(null);
   const budgetRef = useRef<HTMLDivElement>(null);
   const furnishingRef = useRef<HTMLDivElement>(null);
   const propertyTypeRef = useRef<HTMLDivElement>(null);
@@ -132,27 +135,27 @@ export default function ListingFilterBar({
     displayLabel: string;
     icon: React.ReactNode;
   }[] = [
-    {
-      label: "All",
-      displayLabel: "All Listing",
-      icon: <Home className="w-4 h-4 sm:w-5 sm:h-5" />,
-    },
-    {
-      label: "Flat",
-      displayLabel: "Flat",
-      icon: <Bed className="w-4 h-4 sm:w-5 sm:h-5" />,
-    },
-    {
-      label: "Flatmate",
-      displayLabel: "Flatmate",
-      icon: <Users className="w-4 h-4 sm:w-5 sm:h-5" />,
-    },
-    {
-      label: "Property",
-      displayLabel: "Entire Property",
-      icon: <Building className="w-4 h-4 sm:w-5 sm:h-5" />,
-    },
-  ];
+      {
+        label: "All",
+        displayLabel: "All Listing",
+        icon: <Home className="w-4 h-4 sm:w-5 sm:h-5" />,
+      },
+      {
+        label: "Flat",
+        displayLabel: "Flat",
+        icon: <Bed className="w-4 h-4 sm:w-5 sm:h-5" />,
+      },
+      {
+        label: "Flatmate",
+        displayLabel: "Flatmate",
+        icon: <Users className="w-4 h-4 sm:w-5 sm:h-5" />,
+      },
+      {
+        label: "Property",
+        displayLabel: "Entire Property",
+        icon: <Building className="w-4 h-4 sm:w-5 sm:h-5" />,
+      },
+    ];
 
   const sortOptions: { label: string; value: ListingSortOption }[] = [
     { label: "Relevance", value: "relevance" },
@@ -225,7 +228,14 @@ export default function ListingFilterBar({
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
-      if (sortRef.current && !sortRef.current.contains(target)) {
+      if (categoryRef.current && !categoryRef.current.contains(target)) {
+        setCategoryOpen(false);
+      }
+      if (
+        sortRef.current &&
+        !sortRef.current.contains(target) &&
+        (!sortMobileRef.current || !sortMobileRef.current.contains(target))
+      ) {
         setSortOpen(false);
       }
       if (budgetRef.current && !budgetRef.current.contains(target)) {
@@ -378,9 +388,10 @@ export default function ListingFilterBar({
     <div className="w-full space-y-3 sm:space-y-4">
       {/* Category Tabs & Filter Controls Bar */}
       <div className="w-full py-2 sm:py-3 px-4 sm:px-6 lg:px-16 relative z-20">
-        <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-4">
+        {/* Row 1: Category Tabs (Left) & Sorting (Right) - Desktop/Tablet */}
+        <div className="hidden md:flex w-full max-w-8xl 3xl:max-w-[1450px] mx-auto items-center justify-between gap-3 lg:gap-4">
           {/* Left: Category Tabs */}
-          <div className="flex items-center gap-6 sm:gap-8 lg:gap-10 overflow-x-auto no-scrollbar scrollbar-none py-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex items-center gap-6 sm:gap-8 lg:gap-10 overflow-x-auto no-scrollbar scrollbar-none py-1 -mx-4 px-4 sm:mx-0 sm:px-0 min-w-0 flex-1">
             {categories.map((cat) => {
               const isActive = selectedCategory === cat.label;
               return (
@@ -388,11 +399,10 @@ export default function ListingFilterBar({
                   key={cat.label}
                   type="button"
                   onClick={() => onSelectCategory(cat.label)}
-                  className={`flex flex-col items-center justify-center gap-1.5 py-1 transition-all cursor-pointer relative shrink-0 ${
-                    isActive
-                      ? "text-black font-semibold"
-                      : "text-gray-400 hover:text-gray-600 font-medium"
-                  }`}
+                  className={`flex flex-col items-center justify-center gap-1.5 py-1 transition-all cursor-pointer relative shrink-0 ${isActive
+                    ? "text-black font-semibold"
+                    : "text-gray-400 hover:text-gray-600 font-medium"
+                    }`}
                 >
                   {cat.icon}
                   <span className="text-xs sm:text-sm whitespace-nowrap">
@@ -403,168 +413,400 @@ export default function ListingFilterBar({
             })}
           </div>
 
-          {/* Right: Filter & Sort Controls */}
-          <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto no-scrollbar scrollbar-none py-1 -mx-4 px-4 sm:mx-0 sm:px-0 lg:overflow-visible lg:flex-wrap">
-            {/* 1. Sorting Dropdown */}
-            <div className="relative shrink-0" ref={sortRef}>
-              <button
-                type="button"
-                onClick={() => {
-                  setSortOpen(!sortOpen);
-                  setBudgetOpen(false);
-                  setFurnishingOpen(false);
-                  setGenderOpen(false);
-                }}
-                className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${
-                  selectedSort !== "relevance"
-                    ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <ArrowUpDown className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                <span>
-                  {selectedSort === "relevance"
-                    ? "Sort"
-                    : sortLabels[selectedSort]}
-                </span>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform ${
-                    sortOpen ? "rotate-180" : ""
+          {/* Right: Sorting Dropdown (Desktop / Tablet) */}
+          <div className="relative shrink-0" ref={sortRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setSortOpen(!sortOpen);
+                setCategoryOpen(false);
+                setBudgetOpen(false);
+                setFurnishingOpen(false);
+                setPropertyTypeOpen(false);
+                setBhkOpen(false);
+                setGenderOpen(false);
+              }}
+              className="bg-[#0066FF] hover:bg-blue-700 text-white text-xs sm:text-sm font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-full flex items-center gap-2 cursor-pointer transition-colors shadow-sm whitespace-nowrap"
+            >
+              <ArrowUpDown className="w-3.5 h-3.5 text-white shrink-0" />
+              <span>
+                {selectedSort === "relevance"
+                  ? "Sort"
+                  : sortLabels[selectedSort]}
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 text-white transition-transform ${sortOpen ? "rotate-180" : ""
                   }`}
-                />
-              </button>
+              />
+            </button>
 
-              {/* Desktop (lg and up) Dropdown */}
-              {sortOpen && (
-                <div className="hidden lg:block absolute left-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
-                  <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                    Sort By
-                  </div>
-                  {sortOptions.map((opt) => (
+            {/* Desktop (lg and up) Dropdown */}
+            {sortOpen && (
+              <div className="hidden lg:block absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
+                <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                  Sort By
+                </div>
+                {sortOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      onSelectSort(opt.value);
+                      setSortOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${selectedSort === opt.value
+                      ? "bg-blue-50 text-[#0066FF] font-semibold"
+                      : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Tablet Modal Dialog (hidden on mobile & desktop, visible on md to lg) */}
+            {sortOpen && (
+              <div
+                className="fixed inset-0 z-[70] hidden md:flex lg:hidden items-end justify-center bg-black/50 backdrop-blur-xs p-0"
+                onClick={() => setSortOpen(false)}
+              >
+                <div
+                  className="w-full sm:max-w-md bg-white rounded-t-3xl rounded-b-none p-5 pb-28 max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-2">
+                    <div className="flex items-center gap-2">
+                      <ArrowUpDown className="w-4 h-4 text-[#0066FF]" />
+                      <h3 className="text-base font-semibold text-gray-900">
+                        Sort Listings
+                      </h3>
+                    </div>
                     <button
-                      key={opt.value}
                       type="button"
-                      onClick={() => {
-                        onSelectSort(opt.value);
-                        setSortOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${
-                        selectedSort === opt.value
+                      onClick={() => setSortOpen(false)}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
+                      aria-label="Close"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="divide-y divide-gray-50 py-1">
+                    {sortOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          onSelectSort(opt.value);
+                          setSortOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${selectedSort === opt.value
                           ? "bg-blue-50 text-[#0066FF] font-semibold"
                           : "text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Mobile & Tablet Modal Dialog */}
-              {sortOpen && (
-                <div
-                  className="fixed inset-0 z-[70] flex items-end justify-center lg:hidden bg-black/50 backdrop-blur-xs p-0"
-                  onClick={() => setSortOpen(false)}
-                >
-                  <div
-                    className="w-full sm:max-w-md bg-white rounded-t-3xl rounded-b-none p-5 pb-28 max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-2">
-                      <div className="flex items-center gap-2">
-                        <ArrowUpDown className="w-4 h-4 text-[#0066FF]" />
-                        <h3 className="text-base font-semibold text-gray-900">
-                          Sort Listings
-                        </h3>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setSortOpen(false)}
-                        className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
-                        aria-label="Close"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    <div className="divide-y divide-gray-50 py-1">
-                      {sortOptions.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => {
-                            onSelectSort(opt.value);
-                            setSortOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
-                            selectedSort === opt.value
-                              ? "bg-blue-50 text-[#0066FF] font-semibold"
-                              : "text-gray-700 hover:bg-gray-50"
                           }`}
-                        >
-                          <span>{opt.label}</span>
-                          {selectedSort === opt.value && (
-                            <Check className="w-4 h-4 text-[#0066FF]" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                      >
+                        <span>{opt.label}</span>
+                        {selectedSort === opt.value && (
+                          <Check className="w-4 h-4 text-[#0066FF]" />
+                        )}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
+        </div>
 
-            {/* 2. Budget Range Filter Popover */}
-            <div className="relative shrink-0" ref={budgetRef}>
-              <button
-                type="button"
-                onClick={() => {
-                  setBudgetOpen(!budgetOpen);
-                  setSortOpen(false);
-                  setFurnishingOpen(false);
-                  setGenderOpen(false);
-                }}
-                className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${
-                  isBudgetActive
-                    ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+        {/* Row 2: Filter Controls, Reset & Mobile Sort */}
+        <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto md:mt-2.5 md:pt-2.5 md:border-t md:border-gray-100 flex items-center gap-2 sm:gap-2.5 overflow-x-auto no-scrollbar scrollbar-none py-1 -mx-4 px-4 sm:mx-0 sm:px-0 lg:overflow-visible lg:flex-wrap">
+          {/* Mobile Category Filter Pill (First Position on Mobile) */}
+          <div className="relative shrink-0 md:hidden" ref={categoryRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setCategoryOpen(!categoryOpen);
+                setSortOpen(false);
+                setBudgetOpen(false);
+                setFurnishingOpen(false);
+                setPropertyTypeOpen(false);
+                setBhkOpen(false);
+                setGenderOpen(false);
+              }}
+              className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${selectedCategory !== "All"
+                ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
+                : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
                 }`}
-              >
-                <IndianRupee className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                <span>{budgetButtonText}</span>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform ${
-                    budgetOpen ? "rotate-180" : ""
+            >
+              {selectedCategory === "Flat" ? (
+                <Bed className="w-3.5 h-3.5 shrink-0 text-[#0066FF]" />
+              ) : selectedCategory === "Flatmate" ? (
+                <Users className="w-3.5 h-3.5 shrink-0 text-[#0066FF]" />
+              ) : selectedCategory === "Property" ? (
+                <Building className="w-3.5 h-3.5 shrink-0 text-[#0066FF]" />
+              ) : (
+                <Home className="w-3.5 h-3.5 shrink-0 text-gray-500" />
+              )}
+              <span>
+                {selectedCategory === "All"
+                  ? "Category"
+                  : categories.find((c) => c.label === selectedCategory)
+                    ?.displayLabel || selectedCategory}
+              </span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform ${categoryOpen ? "rotate-180" : ""
                   }`}
-                />
-              </button>
+              />
+            </button>
 
-              {/* Desktop (lg and up) Popover */}
-              {budgetOpen && (
-                <div className="hidden lg:block absolute left-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 p-4 z-50">
-                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
-                    <span className="text-xs sm:text-sm font-semibold text-gray-800">
-                      Monthly Budget (₹)
-                    </span>
-                    {isBudgetActive && (
-                      <button
-                        type="button"
-                        onClick={handleClearBudget}
-                        className="text-[11px] text-red-500 hover:text-red-600 font-medium cursor-pointer"
-                      >
-                        Clear
-                      </button>
-                    )}
+            {/* Mobile Category Modal Dialog */}
+            {categoryOpen && (
+              <div
+                className="fixed inset-0 z-[70] flex items-end justify-center md:hidden bg-black/50 backdrop-blur-xs p-0"
+                onClick={() => setCategoryOpen(false)}
+              >
+                <div
+                  className="w-full sm:max-w-md bg-white rounded-t-3xl rounded-b-none p-5 pb-28 max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-2">
+                    <div className="flex items-center gap-2">
+                      <Home className="w-4 h-4 text-[#0066FF]" />
+                      <h3 className="text-base font-semibold text-gray-900">
+                        Select Category
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCategoryOpen(false)}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
+                      aria-label="Close"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
 
-                  <form onSubmit={handleBudgetSubmit} className="space-y-3">
-                    <div className="grid grid-cols-2 gap-2">
+                  <div className="divide-y divide-gray-50 py-1">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.label}
+                        type="button"
+                        onClick={() => {
+                          onSelectCategory(cat.label);
+                          setCategoryOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${selectedCategory === cat.label
+                          ? "bg-blue-50 text-[#0066FF] font-semibold"
+                          : "text-gray-700 hover:bg-gray-50"
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={
+                              selectedCategory === cat.label
+                                ? "text-[#0066FF]"
+                                : "text-gray-500"
+                            }
+                          >
+                            {cat.icon}
+                          </span>
+                          <span>{cat.displayLabel}</span>
+                        </div>
+                        {selectedCategory === cat.label && (
+                          <Check className="w-4 h-4 text-[#0066FF]" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 1. Budget Range Filter Popover */}
+          <div className="relative shrink-0" ref={budgetRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setBudgetOpen(!budgetOpen);
+                setCategoryOpen(false);
+                setSortOpen(false);
+                setFurnishingOpen(false);
+                setGenderOpen(false);
+              }}
+              className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${isBudgetActive
+                ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
+                : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                }`}
+            >
+              <IndianRupee className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+              <span>{budgetButtonText}</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform ${budgetOpen ? "rotate-180" : ""
+                  }`}
+              />
+            </button>
+
+            {/* Desktop (lg and up) Popover */}
+            {budgetOpen && (
+              <div className="hidden lg:block absolute left-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 p-4 z-50">
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+                  <span className="text-xs sm:text-sm font-semibold text-gray-800">
+                    Monthly Budget (₹)
+                  </span>
+                  {isBudgetActive && (
+                    <button
+                      type="button"
+                      onClick={handleClearBudget}
+                      className="text-[11px] text-red-500 hover:text-red-600 font-medium cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <form onSubmit={handleBudgetSubmit} className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] font-medium text-gray-500 mb-1 block">
+                        Min Budget
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-xs text-gray-400">
+                          ₹
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="500"
+                          placeholder="0"
+                          value={localMin}
+                          onChange={(e) => setLocalMin(e.target.value)}
+                          className="w-full pl-6 pr-2 py-1.5 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#0066FF] focus:bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-medium text-gray-500 mb-1 block">
+                        Max Budget
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-xs text-gray-400">
+                          ₹
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="500"
+                          placeholder="Any"
+                          value={localMax}
+                          onChange={(e) => setLocalMax(e.target.value)}
+                          className="w-full pl-6 pr-2 py-1.5 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#0066FF] focus:bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {isBudgetRangeInvalid && (
+                    <p className="text-[11px] text-red-500 font-medium">
+                      Min budget cannot be greater than Max budget
+                    </p>
+                  )}
+
+                  {/* Quick Budget Presets */}
+                  <div className="pt-1">
+                    <p className="text-[11px] font-medium text-gray-400 mb-1.5">
+                      Quick Ranges
+                    </p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handlePresetBudget(undefined, 10000)}
+                        className="px-2.5 py-1 text-[11px] rounded-md bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-600 transition-colors text-center cursor-pointer border border-gray-100"
+                      >
+                        Under ₹10k
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePresetBudget(10000, 20000)}
+                        className="px-2.5 py-1 text-[11px] rounded-md bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-600 transition-colors text-center cursor-pointer border border-gray-100"
+                      >
+                        ₹10k - ₹20k
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePresetBudget(20000, 35000)}
+                        className="px-2.5 py-1 text-[11px] rounded-md bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-600 transition-colors text-center cursor-pointer border border-gray-100"
+                      >
+                        ₹20k - ₹35k
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePresetBudget(35000, undefined)}
+                        className="px-2.5 py-1 text-[11px] rounded-md bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-600 transition-colors text-center cursor-pointer border border-gray-100"
+                      >
+                        Above ₹35k
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => setBudgetOpen(false)}
+                      className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isBudgetRangeInvalid}
+                      className="px-4 py-1.5 text-xs font-semibold text-white bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 rounded-lg cursor-pointer shadow-xs transition-colors"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Mobile & Tablet Modal Dialog */}
+            {budgetOpen && (
+              <div
+                className="fixed inset-0 z-[70] flex items-end justify-center lg:hidden bg-black/50 backdrop-blur-xs p-0"
+                onClick={() => setBudgetOpen(false)}
+              >
+                <div
+                  className="w-full sm:max-w-md bg-white rounded-t-3xl rounded-b-none p-5 pb-28 max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+                    <div className="flex items-center gap-2">
+                      <IndianRupee className="w-4 h-4 text-[#0066FF]" />
+                      <h3 className="text-base font-semibold text-gray-900">
+                        Monthly Budget (₹)
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setBudgetOpen(false)}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
+                      aria-label="Close"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleBudgetSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[11px] font-medium text-gray-500 mb-1 block">
+                        <label className="text-xs font-medium text-gray-500 mb-1.5 block">
                           Min Budget
                         </label>
                         <div className="relative">
-                          <span className="absolute left-3 top-2 text-xs text-gray-400">
+                          <span className="absolute left-3 top-2.5 text-sm text-gray-400">
                             ₹
                           </span>
                           <input
@@ -574,17 +816,17 @@ export default function ListingFilterBar({
                             placeholder="0"
                             value={localMin}
                             onChange={(e) => setLocalMin(e.target.value)}
-                            className="w-full pl-6 pr-2 py-1.5 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#0066FF] focus:bg-white"
+                            className="w-full pl-7 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#0066FF] focus:bg-white"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-medium text-gray-500 mb-1 block">
+                        <label className="text-xs font-medium text-gray-500 mb-1.5 block">
                           Max Budget
                         </label>
                         <div className="relative">
-                          <span className="absolute left-3 top-2 text-xs text-gray-400">
+                          <span className="absolute left-3 top-2.5 text-sm text-gray-400">
                             ₹
                           </span>
                           <input
@@ -594,256 +836,226 @@ export default function ListingFilterBar({
                             placeholder="Any"
                             value={localMax}
                             onChange={(e) => setLocalMax(e.target.value)}
-                            className="w-full pl-6 pr-2 py-1.5 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#0066FF] focus:bg-white"
+                            className="w-full pl-7 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#0066FF] focus:bg-white"
                           />
                         </div>
                       </div>
                     </div>
 
                     {isBudgetRangeInvalid && (
-                      <p className="text-[11px] text-red-500 font-medium">
+                      <p className="text-xs text-red-500 font-medium">
                         Min budget cannot be greater than Max budget
                       </p>
                     )}
 
-                    {/* Quick Budget Presets */}
-                    <div className="pt-1">
-                      <p className="text-[11px] font-medium text-gray-400 mb-1.5">
+                    {/* Quick Budget Presets on Mobile/Tablet */}
+                    <div>
+                      <p className="text-xs font-medium text-gray-400 mb-2">
                         Quick Ranges
                       </p>
-                      <div className="grid grid-cols-2 gap-1.5">
+                      <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
                           onClick={() => handlePresetBudget(undefined, 10000)}
-                          className="px-2.5 py-1 text-[11px] rounded-md bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-600 transition-colors text-center cursor-pointer border border-gray-100"
+                          className="py-2.5 px-3 text-xs rounded-xl bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-700 font-medium border border-gray-100 text-center cursor-pointer transition-colors"
                         >
-                          Under ₹10k
+                          Under ₹10,000
                         </button>
                         <button
                           type="button"
                           onClick={() => handlePresetBudget(10000, 20000)}
-                          className="px-2.5 py-1 text-[11px] rounded-md bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-600 transition-colors text-center cursor-pointer border border-gray-100"
+                          className="py-2.5 px-3 text-xs rounded-xl bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-700 font-medium border border-gray-100 text-center cursor-pointer transition-colors"
                         >
-                          ₹10k - ₹20k
+                          ₹10,000 - ₹20,000
                         </button>
                         <button
                           type="button"
                           onClick={() => handlePresetBudget(20000, 35000)}
-                          className="px-2.5 py-1 text-[11px] rounded-md bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-600 transition-colors text-center cursor-pointer border border-gray-100"
+                          className="py-2.5 px-3 text-xs rounded-xl bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-700 font-medium border border-gray-100 text-center cursor-pointer transition-colors"
                         >
-                          ₹20k - ₹35k
+                          ₹20,000 - ₹35,000
                         </button>
                         <button
                           type="button"
                           onClick={() => handlePresetBudget(35000, undefined)}
-                          className="px-2.5 py-1 text-[11px] rounded-md bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-600 transition-colors text-center cursor-pointer border border-gray-100"
+                          className="py-2.5 px-3 text-xs rounded-xl bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-700 font-medium border border-gray-100 text-center cursor-pointer transition-colors"
                         >
-                          Above ₹35k
+                          Above ₹35,000
                         </button>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                      <button
-                        type="button"
-                        onClick={() => setBudgetOpen(false)}
-                        className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
-                      >
-                        Cancel
-                      </button>
+                    <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+                      {isBudgetActive && (
+                        <button
+                          type="button"
+                          onClick={handleClearBudget}
+                          className="w-1/3 py-2.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl cursor-pointer transition-colors"
+                        >
+                          Clear
+                        </button>
+                      )}
                       <button
                         type="submit"
                         disabled={isBudgetRangeInvalid}
-                        className="px-4 py-1.5 text-xs font-semibold text-white bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 rounded-lg cursor-pointer shadow-xs transition-colors"
+                        className="flex-1 py-2.5 text-xs font-semibold text-white bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 rounded-xl cursor-pointer shadow-sm transition-colors text-center"
                       >
-                        Apply
+                        Apply Budget
                       </button>
                     </div>
                   </form>
                 </div>
-              )}
+              </div>
+            )}
+          </div>
 
-              {/* Mobile & Tablet Modal Dialog */}
-              {budgetOpen && (
-                <div
-                  className="fixed inset-0 z-[70] flex items-end justify-center lg:hidden bg-black/50 backdrop-blur-xs p-0"
-                  onClick={() => setBudgetOpen(false)}
-                >
-                  <div
-                    className="w-full sm:max-w-md bg-white rounded-t-3xl rounded-b-none p-5 pb-28 max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200"
-                    onClick={(e) => e.stopPropagation()}
+          {/* 3. Furnishing Dropdown */}
+          <div className="relative shrink-0" ref={furnishingRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setFurnishingOpen(!furnishingOpen);
+                setCategoryOpen(false);
+                setSortOpen(false);
+                setBudgetOpen(false);
+                setGenderOpen(false);
+              }}
+              className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${selectedFurnishing !== "all"
+                ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
+                : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                }`}
+            >
+              <Armchair className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+              <span>{furnishingLabels[selectedFurnishing]}</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform ${furnishingOpen ? "rotate-180" : ""
+                  }`}
+              />
+            </button>
+
+            {/* Desktop (lg and up) Dropdown */}
+            {furnishingOpen && (
+              <div className="hidden lg:block absolute left-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
+                <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                  Furnishing
+                </div>
+                {furnishingOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      onSelectFurnishing(opt.value);
+                      setFurnishingOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${selectedFurnishing === opt.value
+                      ? "bg-blue-50 text-[#0066FF] font-semibold"
+                      : "text-gray-700 hover:bg-gray-50"
+                      }`}
                   >
-                    <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
-                      <div className="flex items-center gap-2">
-                        <IndianRupee className="w-4 h-4 text-[#0066FF]" />
-                        <h3 className="text-base font-semibold text-gray-900">
-                          Monthly Budget (₹)
-                        </h3>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setBudgetOpen(false)}
-                        className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
-                        aria-label="Close"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Mobile & Tablet Modal Dialog */}
+            {furnishingOpen && (
+              <div
+                className="fixed inset-0 z-[70] flex items-end justify-center lg:hidden bg-black/50 backdrop-blur-xs p-0"
+                onClick={() => setFurnishingOpen(false)}
+              >
+                <div
+                  className="w-full sm:max-w-md bg-white rounded-t-3xl rounded-b-none p-5 pb-28 max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-2">
+                    <div className="flex items-center gap-2">
+                      <Armchair className="w-4 h-4 text-[#0066FF]" />
+                      <h3 className="text-base font-semibold text-gray-900">
+                        Furnishing
+                      </h3>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setFurnishingOpen(false)}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
+                      aria-label="Close"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
 
-                    <form onSubmit={handleBudgetSubmit} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs font-medium text-gray-500 mb-1.5 block">
-                            Min Budget
-                          </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-2.5 text-sm text-gray-400">
-                              ₹
-                            </span>
-                            <input
-                              type="number"
-                              min="0"
-                              step="500"
-                              placeholder="0"
-                              value={localMin}
-                              onChange={(e) => setLocalMin(e.target.value)}
-                              className="w-full pl-7 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#0066FF] focus:bg-white"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-medium text-gray-500 mb-1.5 block">
-                            Max Budget
-                          </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-2.5 text-sm text-gray-400">
-                              ₹
-                            </span>
-                            <input
-                              type="number"
-                              min="0"
-                              step="500"
-                              placeholder="Any"
-                              value={localMax}
-                              onChange={(e) => setLocalMax(e.target.value)}
-                              className="w-full pl-7 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#0066FF] focus:bg-white"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {isBudgetRangeInvalid && (
-                        <p className="text-xs text-red-500 font-medium">
-                          Min budget cannot be greater than Max budget
-                        </p>
-                      )}
-
-                      {/* Quick Budget Presets on Mobile/Tablet */}
-                      <div>
-                        <p className="text-xs font-medium text-gray-400 mb-2">
-                          Quick Ranges
-                        </p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handlePresetBudget(undefined, 10000)}
-                            className="py-2.5 px-3 text-xs rounded-xl bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-700 font-medium border border-gray-100 text-center cursor-pointer transition-colors"
-                          >
-                            Under ₹10,000
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handlePresetBudget(10000, 20000)}
-                            className="py-2.5 px-3 text-xs rounded-xl bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-700 font-medium border border-gray-100 text-center cursor-pointer transition-colors"
-                          >
-                            ₹10,000 - ₹20,000
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handlePresetBudget(20000, 35000)}
-                            className="py-2.5 px-3 text-xs rounded-xl bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-700 font-medium border border-gray-100 text-center cursor-pointer transition-colors"
-                          >
-                            ₹20,000 - ₹35,000
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handlePresetBudget(35000, undefined)}
-                            className="py-2.5 px-3 text-xs rounded-xl bg-gray-50 hover:bg-blue-50 hover:text-[#0066FF] text-gray-700 font-medium border border-gray-100 text-center cursor-pointer transition-colors"
-                          >
-                            Above ₹35,000
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
-                        {isBudgetActive && (
-                          <button
-                            type="button"
-                            onClick={handleClearBudget}
-                            className="w-1/3 py-2.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl cursor-pointer transition-colors"
-                          >
-                            Clear
-                          </button>
+                  <div className="divide-y divide-gray-50 py-1">
+                    {furnishingOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          onSelectFurnishing(opt.value);
+                          setFurnishingOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${selectedFurnishing === opt.value
+                          ? "bg-blue-50 text-[#0066FF] font-semibold"
+                          : "text-gray-700 hover:bg-gray-50"
+                          }`}
+                      >
+                        <span>{opt.label}</span>
+                        {selectedFurnishing === opt.value && (
+                          <Check className="w-4 h-4 text-[#0066FF]" />
                         )}
-                        <button
-                          type="submit"
-                          disabled={isBudgetRangeInvalid}
-                          className="flex-1 py-2.5 text-xs font-semibold text-white bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 rounded-xl cursor-pointer shadow-sm transition-colors text-center"
-                        >
-                          Apply Budget
-                        </button>
-                      </div>
-                    </form>
+                      </button>
+                    ))}
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
 
-            {/* 3. Furnishing Dropdown */}
-            <div className="relative shrink-0" ref={furnishingRef}>
+          {/* Property Type Dropdown */}
+          {onSelectPropertyType && selectedCategory === "Property" && (
+            <div className="relative shrink-0" ref={propertyTypeRef}>
               <button
                 type="button"
                 onClick={() => {
-                  setFurnishingOpen(!furnishingOpen);
+                  setPropertyTypeOpen(!propertyTypeOpen);
+                  setCategoryOpen(false);
                   setSortOpen(false);
                   setBudgetOpen(false);
+                  setFurnishingOpen(false);
+                  setBhkOpen(false);
                   setGenderOpen(false);
                 }}
-                className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${
-                  selectedFurnishing !== "all"
-                    ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <Armchair className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                <span>{furnishingLabels[selectedFurnishing]}</span>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform ${
-                    furnishingOpen ? "rotate-180" : ""
+                className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${selectedPropertyType !== "all"
+                  ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
+                  : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
                   }`}
+              >
+                <Building className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                <span>{propertyTypeLabels[selectedPropertyType] || "Property Type"}</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${propertyTypeOpen ? "rotate-180" : ""
+                    }`}
                 />
               </button>
 
               {/* Desktop (lg and up) Dropdown */}
-              {furnishingOpen && (
-                <div className="hidden lg:block absolute left-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
+              {propertyTypeOpen && (
+                <div className="hidden lg:block absolute left-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
                   <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                    Furnishing
+                    Property Type
                   </div>
-                  {furnishingOptions.map((opt) => (
+                  {propertyTypeOptions.map((opt) => (
                     <button
                       key={opt.value}
                       type="button"
                       onClick={() => {
-                        onSelectFurnishing(opt.value);
-                        setFurnishingOpen(false);
+                        onSelectPropertyType(opt.value);
+                        setPropertyTypeOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${
-                        selectedFurnishing === opt.value
-                          ? "bg-blue-50 text-[#0066FF] font-semibold"
-                          : "text-gray-700 hover:bg-gray-50"
-                      }`}
+                      className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${selectedPropertyType === opt.value
+                        ? "bg-blue-50 text-[#0066FF] font-semibold"
+                        : "text-gray-700 hover:bg-gray-50"
+                        }`}
                     >
                       {opt.label}
                     </button>
@@ -852,10 +1064,10 @@ export default function ListingFilterBar({
               )}
 
               {/* Mobile & Tablet Modal Dialog */}
-              {furnishingOpen && (
+              {propertyTypeOpen && (
                 <div
                   className="fixed inset-0 z-[70] flex items-end justify-center lg:hidden bg-black/50 backdrop-blur-xs p-0"
-                  onClick={() => setFurnishingOpen(false)}
+                  onClick={() => setPropertyTypeOpen(false)}
                 >
                   <div
                     className="w-full sm:max-w-md bg-white rounded-t-3xl rounded-b-none p-5 pb-28 max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200"
@@ -863,14 +1075,14 @@ export default function ListingFilterBar({
                   >
                     <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-2">
                       <div className="flex items-center gap-2">
-                        <Armchair className="w-4 h-4 text-[#0066FF]" />
+                        <Building className="w-4 h-4 text-[#0066FF]" />
                         <h3 className="text-base font-semibold text-gray-900">
-                          Furnishing
+                          Property Type
                         </h3>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setFurnishingOpen(false)}
+                        onClick={() => setPropertyTypeOpen(false)}
                         className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
                         aria-label="Close"
                       >
@@ -879,22 +1091,21 @@ export default function ListingFilterBar({
                     </div>
 
                     <div className="divide-y divide-gray-50 py-1">
-                      {furnishingOptions.map((opt) => (
+                      {propertyTypeOptions.map((opt) => (
                         <button
                           key={opt.value}
                           type="button"
                           onClick={() => {
-                            onSelectFurnishing(opt.value);
-                            setFurnishingOpen(false);
+                            onSelectPropertyType(opt.value);
+                            setPropertyTypeOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
-                            selectedFurnishing === opt.value
-                              ? "bg-blue-50 text-[#0066FF] font-semibold"
-                              : "text-gray-700 hover:bg-gray-50"
-                          }`}
+                          className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${selectedPropertyType === opt.value
+                            ? "bg-blue-50 text-[#0066FF] font-semibold"
+                            : "text-gray-700 hover:bg-gray-50"
+                            }`}
                         >
                           <span>{opt.label}</span>
-                          {selectedFurnishing === opt.value && (
+                          {selectedPropertyType === opt.value && (
                             <Check className="w-4 h-4 text-[#0066FF]" />
                           )}
                         </button>
@@ -904,278 +1115,65 @@ export default function ListingFilterBar({
                 </div>
               )}
             </div>
+          )}
 
-            {/* Property Type Dropdown */}
-            {onSelectPropertyType && selectedCategory === "Property" && (
-              <div className="relative shrink-0" ref={propertyTypeRef}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPropertyTypeOpen(!propertyTypeOpen);
-                    setSortOpen(false);
-                    setBudgetOpen(false);
-                    setFurnishingOpen(false);
-                    setBhkOpen(false);
-                    setGenderOpen(false);
-                  }}
-                  className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${
-                    selectedPropertyType !== "all"
-                      ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
-                      : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <Building className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                  <span>{propertyTypeLabels[selectedPropertyType] || "Property Type"}</span>
-                  <ChevronDown
-                    className={`w-3.5 h-3.5 transition-transform ${
-                      propertyTypeOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                {/* Desktop (lg and up) Dropdown */}
-                {propertyTypeOpen && (
-                  <div className="hidden lg:block absolute left-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
-                    <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                      Property Type
-                    </div>
-                    {propertyTypeOptions.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => {
-                          onSelectPropertyType(opt.value);
-                          setPropertyTypeOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${
-                          selectedPropertyType === opt.value
-                            ? "bg-blue-50 text-[#0066FF] font-semibold"
-                            : "text-gray-700 hover:bg-gray-50"
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Mobile & Tablet Modal Dialog */}
-                {propertyTypeOpen && (
-                  <div
-                    className="fixed inset-0 z-[70] flex items-end justify-center lg:hidden bg-black/50 backdrop-blur-xs p-0"
-                    onClick={() => setPropertyTypeOpen(false)}
-                  >
-                    <div
-                      className="w-full sm:max-w-md bg-white rounded-t-3xl rounded-b-none p-5 pb-28 max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-2">
-                        <div className="flex items-center gap-2">
-                          <Building className="w-4 h-4 text-[#0066FF]" />
-                          <h3 className="text-base font-semibold text-gray-900">
-                            Property Type
-                          </h3>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setPropertyTypeOpen(false)}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
-                          aria-label="Close"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-
-                      <div className="divide-y divide-gray-50 py-1">
-                        {propertyTypeOptions.map((opt) => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => {
-                              onSelectPropertyType(opt.value);
-                              setPropertyTypeOpen(false);
-                            }}
-                            className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
-                              selectedPropertyType === opt.value
-                                ? "bg-blue-50 text-[#0066FF] font-semibold"
-                                : "text-gray-700 hover:bg-gray-50"
-                            }`}
-                          >
-                            <span>{opt.label}</span>
-                            {selectedPropertyType === opt.value && (
-                              <Check className="w-4 h-4 text-[#0066FF]" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* BHK Dropdown */}
-            {onSelectBhk && selectedCategory === "Property" && (
-              <div className="relative shrink-0" ref={bhkRef}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBhkOpen(!bhkOpen);
-                    setSortOpen(false);
-                    setBudgetOpen(false);
-                    setFurnishingOpen(false);
-                    setPropertyTypeOpen(false);
-                    setGenderOpen(false);
-                  }}
-                  className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${
-                    selectedBhk !== "all"
-                      ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
-                      : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <Bed className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                  <span>{bhkLabels[selectedBhk] || "BHK"}</span>
-                  <ChevronDown
-                    className={`w-3.5 h-3.5 transition-transform ${
-                      bhkOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                {/* Desktop (lg and up) Dropdown */}
-                {bhkOpen && (
-                  <div className="hidden lg:block absolute left-0 mt-2 w-44 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
-                    <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                      BHK / Bedrooms
-                    </div>
-                    {bhkOptions.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => {
-                          onSelectBhk(opt.value);
-                          setBhkOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${
-                          selectedBhk === opt.value
-                            ? "bg-blue-50 text-[#0066FF] font-semibold"
-                            : "text-gray-700 hover:bg-gray-50"
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Mobile & Tablet Modal Dialog */}
-                {bhkOpen && (
-                  <div
-                    className="fixed inset-0 z-[70] flex items-end justify-center lg:hidden bg-black/50 backdrop-blur-xs p-0"
-                    onClick={() => setBhkOpen(false)}
-                  >
-                    <div
-                      className="w-full sm:max-w-md bg-white rounded-t-3xl rounded-b-none p-5 pb-28 max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-2">
-                        <div className="flex items-center gap-2">
-                          <Bed className="w-4 h-4 text-[#0066FF]" />
-                          <h3 className="text-base font-semibold text-gray-900">
-                            BHK / Bedrooms
-                          </h3>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setBhkOpen(false)}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
-                          aria-label="Close"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-
-                      <div className="divide-y divide-gray-50 py-1">
-                        {bhkOptions.map((opt) => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => {
-                              onSelectBhk(opt.value);
-                              setBhkOpen(false);
-                            }}
-                            className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
-                              selectedBhk === opt.value
-                                ? "bg-blue-50 text-[#0066FF] font-semibold"
-                                : "text-gray-700 hover:bg-gray-50"
-                            }`}
-                          >
-                            <span>{opt.label}</span>
-                            {selectedBhk === opt.value && (
-                              <Check className="w-4 h-4 text-[#0066FF]" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 4. Gender Dropdown Pill */}
-            <div className="relative shrink-0" ref={genderRef}>
+          {/* BHK Dropdown */}
+          {onSelectBhk && selectedCategory === "Property" && (
+            <div className="relative shrink-0" ref={bhkRef}>
               <button
                 type="button"
                 onClick={() => {
-                  setGenderOpen(!genderOpen);
+                  setBhkOpen(!bhkOpen);
+                  setCategoryOpen(false);
                   setSortOpen(false);
                   setBudgetOpen(false);
                   setFurnishingOpen(false);
                   setPropertyTypeOpen(false);
-                  setBhkOpen(false);
+                  setGenderOpen(false);
                 }}
-                className="bg-[#0066FF] hover:bg-blue-700 text-white text-xs sm:text-sm font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-full flex items-center gap-2 cursor-pointer transition-colors shadow-sm whitespace-nowrap"
-              >
-                <span>{selectedCategory === "Property" ? "Tenant Gender" : "Gender"}: {selectedGender}</span>
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform ${
-                    genderOpen ? "rotate-180" : ""
+                className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${selectedBhk !== "all"
+                  ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
+                  : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
                   }`}
+              >
+                <Bed className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                <span>{bhkLabels[selectedBhk] || "BHK"}</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${bhkOpen ? "rotate-180" : ""
+                    }`}
                 />
               </button>
 
               {/* Desktop (lg and up) Dropdown */}
-              {genderOpen && (
-                <div className="hidden lg:block absolute right-0 mt-2 w-36 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
+              {bhkOpen && (
+                <div className="hidden lg:block absolute left-0 mt-2 w-44 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
                   <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                    {selectedCategory === "Property" ? "Tenant Gender" : "Gender Preference"}
+                    BHK / Bedrooms
                   </div>
-                  {genderOptions.map((opt) => (
+                  {bhkOptions.map((opt) => (
                     <button
-                      key={opt}
+                      key={opt.value}
                       type="button"
                       onClick={() => {
-                        onSelectGender(opt);
-                        setGenderOpen(false);
+                        onSelectBhk(opt.value);
+                        setBhkOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${
-                        selectedGender === opt
-                          ? "bg-blue-50 text-[#0066FF] font-semibold"
-                          : "text-gray-700 hover:bg-gray-50"
-                      }`}
+                      className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${selectedBhk === opt.value
+                        ? "bg-blue-50 text-[#0066FF] font-semibold"
+                        : "text-gray-700 hover:bg-gray-50"
+                        }`}
                     >
-                      {opt === "Any" ? "Any Gender" : opt}
+                      {opt.label}
                     </button>
                   ))}
                 </div>
               )}
 
               {/* Mobile & Tablet Modal Dialog */}
-              {genderOpen && (
+              {bhkOpen && (
                 <div
                   className="fixed inset-0 z-[70] flex items-end justify-center lg:hidden bg-black/50 backdrop-blur-xs p-0"
-                  onClick={() => setGenderOpen(false)}
+                  onClick={() => setBhkOpen(false)}
                 >
                   <div
                     className="w-full sm:max-w-md bg-white rounded-t-3xl rounded-b-none p-5 pb-28 max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200"
@@ -1183,14 +1181,14 @@ export default function ListingFilterBar({
                   >
                     <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-2">
                       <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-[#0066FF]" />
+                        <Bed className="w-4 h-4 text-[#0066FF]" />
                         <h3 className="text-base font-semibold text-gray-900">
-                          {selectedCategory === "Property" ? "Tenant Gender" : "Gender Preference"}
+                          BHK / Bedrooms
                         </h3>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setGenderOpen(false)}
+                        onClick={() => setBhkOpen(false)}
                         className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
                         aria-label="Close"
                       >
@@ -1199,22 +1197,21 @@ export default function ListingFilterBar({
                     </div>
 
                     <div className="divide-y divide-gray-50 py-1">
-                      {genderOptions.map((opt) => (
+                      {bhkOptions.map((opt) => (
                         <button
-                          key={opt}
+                          key={opt.value}
                           type="button"
                           onClick={() => {
-                            onSelectGender(opt);
-                            setGenderOpen(false);
+                            onSelectBhk(opt.value);
+                            setBhkOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
-                            selectedGender === opt
-                              ? "bg-blue-50 text-[#0066FF] font-semibold"
-                              : "text-gray-700 hover:bg-gray-50"
-                          }`}
+                          className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${selectedBhk === opt.value
+                            ? "bg-blue-50 text-[#0066FF] font-semibold"
+                            : "text-gray-700 hover:bg-gray-50"
+                            }`}
                         >
-                          <span>{opt === "Any" ? "Any Gender" : opt}</span>
-                          {selectedGender === opt && (
+                          <span>{opt.label}</span>
+                          {selectedBhk === opt.value && (
                             <Check className="w-4 h-4 text-[#0066FF]" />
                           )}
                         </button>
@@ -1224,20 +1221,215 @@ export default function ListingFilterBar({
                 </div>
               )}
             </div>
+          )}
 
-            {/* 5. Reset Filters button */}
-            {hasActiveFilters && onResetFilters && (
-              <button
-                type="button"
-                onClick={onResetFilters}
-                className="text-xs sm:text-sm text-red-500 hover:text-red-700 font-medium px-2 py-1.5 rounded-full flex items-center gap-1 cursor-pointer transition-colors shrink-0 whitespace-nowrap"
-                title="Reset all filters and sorting to defaults"
+          {/* 4. Gender Dropdown Pill */}
+          <div className="relative shrink-0" ref={genderRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setGenderOpen(!genderOpen);
+                setCategoryOpen(false);
+                setSortOpen(false);
+                setBudgetOpen(false);
+                setFurnishingOpen(false);
+                setPropertyTypeOpen(false);
+                setBhkOpen(false);
+              }}
+              className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${selectedGender !== "Any"
+                ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
+                : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                }`}
+            >
+              <Users
+                className={`w-3.5 h-3.5 shrink-0 ${selectedGender !== "Any" ? "text-[#0066FF]" : "text-gray-500"
+                  }`}
+              />
+              <span>{selectedCategory === "Property" ? "Tenant Gender" : "Gender"}: {selectedGender}</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform ${genderOpen ? "rotate-180" : ""
+                  }`}
+              />
+            </button>
+
+            {/* Desktop (lg and up) Dropdown */}
+            {genderOpen && (
+              <div className="hidden lg:block absolute left-0 mt-2 w-36 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
+                <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                  {selectedCategory === "Property" ? "Tenant Gender" : "Gender Preference"}
+                </div>
+                {genderOptions.map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => {
+                      onSelectGender(opt);
+                      setGenderOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${selectedGender === opt
+                      ? "bg-blue-50 text-[#0066FF] font-semibold"
+                      : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                  >
+                    {opt === "Any" ? "Any Gender" : opt}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Mobile & Tablet Modal Dialog */}
+            {genderOpen && (
+              <div
+                className="fixed inset-0 z-[70] flex items-end justify-center lg:hidden bg-black/50 backdrop-blur-xs p-0"
+                onClick={() => setGenderOpen(false)}
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset</span>
-              </button>
+                <div
+                  className="w-full sm:max-w-md bg-white rounded-t-3xl rounded-b-none p-5 pb-28 max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-2">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-[#0066FF]" />
+                      <h3 className="text-base font-semibold text-gray-900">
+                        {selectedCategory === "Property" ? "Tenant Gender" : "Gender Preference"}
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setGenderOpen(false)}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
+                      aria-label="Close"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="divide-y divide-gray-50 py-1">
+                    {genderOptions.map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          onSelectGender(opt);
+                          setGenderOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${selectedGender === opt
+                          ? "bg-blue-50 text-[#0066FF] font-semibold"
+                          : "text-gray-700 hover:bg-gray-50"
+                          }`}
+                      >
+                        <span>{opt === "Any" ? "Any Gender" : opt}</span>
+                        {selectedGender === opt && (
+                          <Check className="w-4 h-4 text-[#0066FF]" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
+
+          {/* Mobile Sorting Filter Pill */}
+          <div className="relative shrink-0 md:hidden" ref={sortMobileRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setSortOpen(!sortOpen);
+                setCategoryOpen(false);
+                setBudgetOpen(false);
+                setFurnishingOpen(false);
+                setPropertyTypeOpen(false);
+                setBhkOpen(false);
+                setGenderOpen(false);
+              }}
+              className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${selectedSort !== "relevance"
+                ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
+                : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                }`}
+            >
+              <ArrowUpDown
+                className={`w-3.5 h-3.5 shrink-0 ${selectedSort !== "relevance"
+                  ? "text-[#0066FF]"
+                  : "text-gray-500"
+                  }`}
+              />
+              <span>
+                {selectedSort === "relevance"
+                  ? "Sort"
+                  : sortLabels[selectedSort]}
+              </span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform ${sortOpen ? "rotate-180" : ""
+                  }`}
+              />
+            </button>
+
+            {/* Mobile Modal Dialog */}
+            {sortOpen && (
+              <div
+                className="fixed inset-0 z-[70] flex items-end justify-center md:hidden bg-black/50 backdrop-blur-xs p-0"
+                onClick={() => setSortOpen(false)}
+              >
+                <div
+                  className="w-full sm:max-w-md bg-white rounded-t-3xl rounded-b-none p-5 pb-28 max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-2">
+                    <div className="flex items-center gap-2">
+                      <ArrowUpDown className="w-4 h-4 text-[#0066FF]" />
+                      <h3 className="text-base font-semibold text-gray-900">
+                        Sort Listings
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSortOpen(false)}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 cursor-pointer"
+                      aria-label="Close"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="divide-y divide-gray-50 py-1">
+                    {sortOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          onSelectSort(opt.value);
+                          setSortOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${selectedSort === opt.value
+                          ? "bg-blue-50 text-[#0066FF] font-semibold"
+                          : "text-gray-700 hover:bg-gray-50"
+                          }`}
+                      >
+                        <span>{opt.label}</span>
+                        {selectedSort === opt.value && (
+                          <Check className="w-4 h-4 text-[#0066FF]" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Reset Filters button */}
+          {hasActiveFilters && onResetFilters && (
+            <button
+              type="button"
+              onClick={onResetFilters}
+              className="text-xs sm:text-sm text-red-500 hover:text-red-700 font-medium px-2.5 py-1.5 rounded-full flex items-center gap-1 cursor-pointer transition-colors shrink-0 whitespace-nowrap hover:bg-red-50"
+              title="Reset all filters and sorting to defaults"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
       </div>
 
