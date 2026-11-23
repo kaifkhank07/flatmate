@@ -247,6 +247,46 @@ export class UserDeletionService {
       deletedProfile: !!userProfile,
     };
   }
+
+  /**
+   * Restore a soft-deleted user account.
+   * Resets soft-deletion flags and reactivates the account.
+   * Note: Listings (Property, FlatmateRequirement) intentionally remain in status: 'closed'
+   * so obsolete listings are not automatically published without explicit user review.
+   *
+   * @param userId The ObjectId string or Types.ObjectId of the user.
+   */
+  public async restoreUserCascade(
+    userId: string | Types.ObjectId
+  ): Promise<boolean> {
+    const userIdStr = userId.toString();
+    if (!Types.ObjectId.isValid(userIdStr)) {
+      throw new Error('Invalid user ID format');
+    }
+
+    const userObjId = new Types.ObjectId(userIdStr);
+    const user = await User.findById(userObjId);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (!user.isDeleted && user.accountStatus === 'active') {
+      logger.info(`[UserDeletionService] User ${userIdStr} is already active.`);
+      return true;
+    }
+
+    user.isDeleted = false;
+    user.accountStatus = 'active';
+    user.deletedAt = undefined;
+    user.deletedBy = undefined;
+    user.deactiveAt = undefined;
+    user.deactiveBy = undefined;
+    await user.save();
+
+    logger.info(`[UserDeletionService] User ${userIdStr} restored successfully.`);
+    return true;
+  }
 }
 
 export const userDeletionService = new UserDeletionService();

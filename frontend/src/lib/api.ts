@@ -45,6 +45,8 @@ const AUTH_ENDPOINTS_TO_SKIP_REFRESH = [
   '/auth/mobile/register/verify-otp',
   '/auth/mobile/send-otp',
   '/auth/mobile/verify-otp',
+  '/auth/mobile/restore/send-otp',
+  '/auth/mobile/restore/verify-otp',
   '/auth/mobile/refresh-token',
   '/auth/mobile/logout',
   '/users/logout',
@@ -131,7 +133,12 @@ apiClient.interceptors.response.use(
       error.response?.data?.message ||
       error.message ||
       'An unexpected error occurred';
-    return Promise.reject(new Error(message));
+    const customError: any = new Error(message);
+    customError.response = error.response;
+    customError.data = error.response?.data;
+    customError.errors = error.response?.data?.errors;
+    customError.code = error.response?.data?.errors?.code || error.response?.data?.code;
+    return Promise.reject(customError);
   }
 );
 

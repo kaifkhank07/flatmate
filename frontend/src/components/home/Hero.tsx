@@ -14,13 +14,25 @@ export default function Hero() {
       className="relative min-h-screen h-screen flex flex-col lg:justify-between gap-4 sm:gap-6 md:gap-8 lg:gap-12 overflow-hidden pt-40 sm:pt-60 lg:pt-32 pb-4 sm:pb-6 lg:pb-8"
     >
       {/* HERO BACKGROUND IMAGE */}
-      <div
+      {/* <div
         className="absolute inset-0 bg-cover bg-center"
         style={{
           backgroundImage: `url(${assets.homeherobg})`,
         }}
         aria-hidden="true"
-      />
+      /> */}
+
+      <picture className="absolute inset-0" aria-hidden="true">
+        <source
+          media="(max-width: 767px)"
+          srcSet={assets.homeherobgmobile}
+        />
+        <img
+          src={assets.homeherobg}
+          alt=""
+          className="w-full h-full object-cover object-center"
+        />
+      </picture>
 
       {/* OVERLAY */}
       <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/60 via-black/20 to-black/40 pointer-events-none"

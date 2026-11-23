@@ -74,6 +74,22 @@ export interface VerifyMobileLoginOTPRequest {
   otp: string;
 }
 
+export interface SendRestoreOTPRequest {
+  mobile: string;
+}
+
+export interface VerifyRestoreOTPRequest {
+  mobile: string;
+  otp: string;
+}
+
+export interface SoftDeletedAccountInfo {
+  isOpen: boolean;
+  message: string;
+  mobile: string;
+  matchedField: 'email' | 'mobile';
+}
+
 export interface LoginRequest {
   email?: string;
   mobile?: string;

@@ -4,7 +4,10 @@ export const useAssets = () => {
   return {
     logo: "/assets/Images/logo.png",
     favicon: "/assets/Images/logo.png",
-    homeherobg: "/assets/Images/image-01.png",
+    // homeherobg: "/assets/Images/image-01.png",
+    // homeherobg: "/assets/Images/image-01.png",
+    homeherobg: "/assets/Images/image-05.jpeg",
+    homeherobgmobile: "/assets/Images/image-07.jpeg",
 
     community: "/assets/Images/community.png",
     property01: "/assets/Images/property-01.png",

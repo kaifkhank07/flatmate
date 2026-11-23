@@ -33,8 +33,9 @@ import { useAssets } from "@/data/assets";
 import { useListingStore } from "@/store/useListingStore";
 import { getMediaUrl } from "@/lib/api";
 import { deletePropertyApi } from "@/lib/apiServices";
-import { ImageGalleryModal } from "@/components/listing/shared/modals";
 import DeleteConfirmModal from "@/components/listing/shared/modals/DeleteConfirmModal";
+import ListingMediaGallery from "@/components/listing/shared/ListingMediaGallery";
+import RichTextRenderer from "@/components/listing/shared/RichTextRenderer";
 
 const getAmenityIcon = (name: string) => {
   const lower = name.toLowerCase();
@@ -66,7 +67,6 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
 
   const [showCallModal, setShowCallModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
   const userObj = listing.userId || listing.ownerId;
   const name = listingData?.name || userObj?.name || "Property Owner";
@@ -132,12 +132,16 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
     : "Immediate";
 
   // Images
-  const backendImages = listing.images?.map((i: any) => (typeof i === "string" ? i : i.url)).filter(Boolean) || [];
-  const imageList = backendImages.length > 0
-    ? backendImages
-    : listingData?.images && listingData.images.length > 0
-      ? listingData.images
-      : [];
+  const rawImages = listing.images || listingData?.images || [];
+  const imageList = Array.isArray(rawImages) && rawImages.length > 0
+    ? rawImages
+      .map((img: any) => {
+        if (!img) return null;
+        if (typeof img === "string") return resolveImageUrl(img);
+        return resolveImageUrl(img.url);
+      })
+      .filter(Boolean) as string[]
+    : [];
 
   // Amenities
   const rawAmenities = listing.amenities || listingData?.amenities || [];
@@ -171,6 +175,13 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
 
   return (
     <section className="w-full py-6 md:py-8 lg:py-12 px-4 sm:px-6 lg:px-16 overflow-hidden">
+      {/* Top Image Gallery */}
+      {imageList.length > 0 && (
+        <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto mb-6 sm:mb-8 md:mb-10">
+          <ListingMediaGallery images={imageList} title={propertyTitle} />
+        </div>
+      )}
+
       <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 drop-shadow-md p-6 sm:p-10 md:p-14 transition-all bg-white">
         <div className="flex flex-col lg:flex-row items-center md:items-start gap-8 md:gap-14 lg:gap-16">
 
@@ -448,38 +459,6 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
               </div>
             </div>
 
-            {/* Images */}
-            {imageList.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Property Media</h3>
-                <div className="w-full overflow-x-auto pb-3 pt-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                  <div className="flex items-center gap-3 sm:gap-4 min-w-max">
-                    {imageList.map((imgSrc: string, idx: number) => {
-                      const displaySrc = imgSrc.startsWith("http") || imgSrc.startsWith("blob:") || imgSrc.startsWith("data:") ? imgSrc : resolveImageUrl(imgSrc);
-                      return (
-                        <div
-                          key={idx}
-                          onClick={() => setSelectedImageIndex(idx)}
-                          className="relative group h-36 sm:h-44 md:h-52 w-48 sm:w-60 md:w-72 rounded-[20px] sm:rounded-[24px] overflow-hidden border border-gray-200 shadow-sm bg-gray-100 cursor-pointer shrink-0 transition-all hover:shadow-md hover:scale-[1.01]"
-                        >
-                          <img
-                            src={displaySrc}
-                            alt={`${propertyTitle} ${idx + 1}`}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-all flex items-center justify-center">
-                            <div className="w-10 h-10 rounded-full bg-white/80 backdrop-blur-md text-gray-900 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:scale-100 scale-95 shadow-md">
-                              <Maximize2 className="w-5 h-5" />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Amenities */}
             {amenitiesList.length > 0 && (
               <div className="space-y-3">
@@ -536,20 +515,11 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
             {/* Description */}
             <div className="space-y-3">
               <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Description</h3>
-              <p className="text-gray-800 text-sm sm:text-lg font-regular leading-relaxed">{description}</p>
+              <RichTextRenderer content={description} />
             </div>
           </div>
         </div>
       </div>
-
-      <ImageGalleryModal
-        isOpen={selectedImageIndex !== null && selectedImageIndex !== undefined && imageList.length > 0}
-        onClose={() => setSelectedImageIndex(null)}
-        images={imageList.map((img: string) => img.startsWith("http") || img.startsWith("blob:") || img.startsWith("data:") ? img : resolveImageUrl(img))}
-        selectedIndex={selectedImageIndex ?? 0}
-        onSelectIndex={(idx) => setSelectedImageIndex(idx)}
-        title={propertyTitle}
-      />
 
       <DeleteConfirmModal
         isOpen={showDeleteModal}

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Types } from 'mongoose';
+import { validateDescriptionContact } from '../../utils/contactFilter';
 
 const objectIdString = z
   .string()
@@ -112,7 +113,15 @@ export const createPropertySchema = z.object({
     description: z
       .string({ required_error: 'Description is required' })
       .trim()
-      .min(1, 'Description is required'),
+      .min(1, 'Description is required')
+      .refine(
+        (val) => !validateDescriptionContact(val).hasContact,
+        (val) => ({
+          message:
+            validateDescriptionContact(val).message ||
+            'Contact details (phone numbers or email addresses) are not allowed in the listing description.',
+        })
+      ),
     propertyType: propertyTypeSchema,
     propertyDetails: propertyDetailsSchema,
     brokerageDetails: brokerageDetailsSchema,

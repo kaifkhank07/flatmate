@@ -578,10 +578,10 @@ export default function ChatManager() {
   };
 
   return (
-    <section className="relative w-full py-2 sm:py-4 md:py-6 lg:py-8">
+    <section className="relative w-full pt-2 sm:pt-4 md:pt-6 lg:pt-8 pb-24 sm:pb-28 lg:pb-8">
       <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto px-3 sm:px-6 lg:px-16">
         {/* Chat Interface Container */}
-        <div className="w-full h-[80vh] sm:h-[80vh] md:h-[80vh] lg:h-[calc(100vh-120px)] max-h-[80vh] sm:max-h-[80vh] md:max-h-[80vh] lg:max-h-[850px] rounded-[20px] sm:rounded-[28px] lg:rounded-[32px] border border-gray-200/80 overflow-hidden flex flex-col lg:flex-row bg-white shadow-xs">
+        <div className="w-full h-[calc(100dvh-175px)] sm:h-[calc(100dvh-185px)] md:h-[calc(100dvh-195px)] lg:h-[calc(100vh-120px)] max-h-[calc(100dvh-175px)] sm:max-h-[calc(100dvh-185px)] md:max-h-[calc(100dvh-195px)] lg:max-h-[850px] min-h-[460px] sm:min-h-[500px] rounded-[20px] sm:rounded-[28px] lg:rounded-[32px] border border-gray-200/80 overflow-hidden flex flex-col lg:flex-row bg-white shadow-xs">
 
           {/* LEFT SIDEBAR: Conversation List */}
           <div
@@ -1066,7 +1066,7 @@ export default function ChatManager() {
 
       {/* BLOCK USER MODAL */}
       {showBlockModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 pb-24 sm:pb-28 lg:pb-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
@@ -1127,7 +1127,7 @@ export default function ChatManager() {
 
       {/* UNBLOCK USER MODAL */}
       {showUnblockModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 pb-24 sm:pb-28 lg:pb-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
@@ -1167,8 +1167,8 @@ export default function ChatManager() {
 
       {/* REPORT CHAT/USER MODAL */}
       {showReportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 space-y-4 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 pb-24 sm:pb-28 lg:pb-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 max-h-[85vh] overflow-y-auto shadow-2xl border border-gray-100 space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
                 <Flag className="w-6 h-6" />
@@ -1258,7 +1258,7 @@ export default function ChatManager() {
 
       {/* TOAST NOTIFICATION PILL */}
       {statusNotification && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-gray-900 text-white rounded-2xl shadow-xl text-xs sm:text-sm animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-24 sm:bottom-28 lg:bottom-6 right-4 sm:right-6 z-[60] flex items-center gap-2.5 px-4 py-3 bg-gray-900 text-white rounded-2xl shadow-xl text-xs sm:text-sm animate-in fade-in slide-in-from-bottom-3 duration-200">
           <Check className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{statusNotification}</span>
         </div>

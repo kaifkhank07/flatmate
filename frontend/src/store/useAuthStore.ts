@@ -11,6 +11,8 @@ import {
   AuthApiResponse,
   RegistrationResponseData,
   LoginResponseData,
+  VerifyRestoreOTPRequest,
+  SoftDeletedAccountInfo,
 } from '@/types/auth';
 import { useNotificationStore } from './useNotificationStore';
 
@@ -40,9 +42,12 @@ interface AuthState {
   registrationStep: 'details' | 'otp' | 'success';
   loginStep: 'phone' | 'otp';
   tempOtp: string | null;
+  softDeletedAccountPrompt: SoftDeletedAccountInfo | null;
+  isRestoringAccount: boolean;
 
   // Actions
   clearError: () => void;
+  clearSoftDeletedPrompt: () => void;
   clearProfileError: () => void;
   clearPreferencesError: () => void;
   resetAuth: () => void;
@@ -53,6 +58,8 @@ interface AuthState {
   login: (data: LoginRequest) => Promise<boolean>;
   register: (data: RegisterWithMobileOTPRequest) => Promise<boolean>;
   verifyRegistrationOTP: (data: VerifyRegistrationOTPRequest) => Promise<boolean>;
+  sendRestoreOTP: (mobile: string) => Promise<boolean>;
+  verifyRestoreOTP: (data: VerifyRestoreOTPRequest) => Promise<boolean>;
   sendLoginOTP: (mobile: string) => Promise<boolean>;
   verifyLoginOTP: (data: VerifyMobileLoginOTPRequest) => Promise<boolean>;
 
@@ -97,8 +104,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   registrationStep: 'details',
   loginStep: 'phone',
   tempOtp: null,
+  softDeletedAccountPrompt: null,
+  isRestoringAccount: false,
 
   clearError: () => set({ error: null }),
+  clearSoftDeletedPrompt: () => set({ softDeletedAccountPrompt: null }),
   clearProfileError: () => set({ profileError: null }),
   clearPreferencesError: () => set({ preferencesError: null }),
   resetAuth: () => {
@@ -115,6 +125,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       error: null,
       profileError: null,
       preferencesError: null,
+      softDeletedAccountPrompt: null,
+      isRestoringAccount: false,
     });
   },
   setRegistrationStep: (step) => set({ registrationStep: step }),
@@ -165,7 +177,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    * POST /api/auth/mobile/register
    */
   register: async (data: RegisterWithMobileOTPRequest) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, softDeletedAccountPrompt: null });
     try {
       const response = await apiClient.post<AuthApiResponse<RegistrationResponseData>>(
         '/auth/mobile/register',
@@ -180,6 +192,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           tempOtp: receivedOtp,
           isLoading: false,
           error: null,
+          isRestoringAccount: false,
         });
         return true;
       } else {
@@ -190,9 +203,106 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return false;
       }
     } catch (err: any) {
+      const errorCode = err?.code || err?.errors?.code || err?.data?.errors?.code;
+      const canRestore = err?.errors?.canRestore ?? err?.data?.errors?.canRestore;
+      const matchedField = err?.errors?.matchedField || err?.data?.errors?.matchedField || 'mobile';
+      const targetMobile = err?.errors?.mobile || err?.data?.errors?.mobile || data.mobile;
+
+      if (errorCode === 'SOFT_DELETED_ACCOUNT' && canRestore) {
+        set({
+          isLoading: false,
+          error: null,
+          softDeletedAccountPrompt: {
+            isOpen: true,
+            message: err.message || 'An account with these details was previously deleted.',
+            mobile: targetMobile,
+            matchedField,
+          },
+        });
+        return false;
+      }
+
       set({
         isLoading: false,
         error: err.message || 'Registration failed. Please try again.',
+      });
+      return false;
+    }
+  },
+
+  /**
+   * Send Restore Account OTP
+   * POST /api/auth/mobile/restore/send-otp
+   */
+  sendRestoreOTP: async (mobile: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await apiClient.post<AuthApiResponse>(
+        '/auth/mobile/restore/send-otp',
+        { mobile }
+      );
+
+      if (response.data?.success) {
+        set({
+          isLoading: false,
+          isRestoringAccount: true,
+          registrationStep: 'otp',
+          softDeletedAccountPrompt: null,
+          error: null,
+        });
+        return true;
+      } else {
+        set({
+          isLoading: false,
+          error: response.data?.message || 'Failed to send restoration OTP',
+        });
+        return false;
+      }
+    } catch (err: any) {
+      set({
+        isLoading: false,
+        error: err.message || 'Failed to send restoration OTP. Please try again.',
+      });
+      return false;
+    }
+  },
+
+  /**
+   * Verify Restore Account OTP and Login
+   * POST /api/auth/mobile/restore/verify-otp
+   */
+  verifyRestoreOTP: async (data: VerifyRestoreOTPRequest) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await apiClient.post<AuthApiResponse<{ user: User }>>(
+        '/auth/mobile/restore/verify-otp',
+        data
+      );
+
+      const responseData = response.data?.data;
+
+      if (response.data?.success) {
+        set({
+          user: responseData?.user || null,
+          isAuthenticated: true,
+          registrationStep: 'success',
+          isRestoringAccount: false,
+          isLoading: false,
+          error: null,
+        });
+        get().fetchProfile();
+        return true;
+      } else {
+        set({
+          isLoading: false,
+          error: response.data?.message || 'Account restoration failed',
+        });
+        return false;
+      }
+    } catch (err: any) {
+      set({
+        isLoading: false,
+        error: err.message || 'Account restoration failed. Please try again.',
       });
       return false;
     }
@@ -217,6 +327,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           user: responseData?.user || null,
           isAuthenticated: true,
           registrationStep: 'success',
+          isRestoringAccount: false,
           isLoading: false,
           error: null,
         });

@@ -540,12 +540,13 @@ export async function restoreUser(userId: string) {
 }
 
 export async function createUserApi(payload: {
-  email?: string;
-  mobile?: string;
-  password?: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  mobile: string;
   userType?: "owner" | "flatmate" | "agent" | "builder";
 }) {
-  return apiFetch<UserItem>("/users/register", {
+  return apiFetch<UserItem>("/users", {
     method: "POST",
     body: JSON.stringify(payload),
   });

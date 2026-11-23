@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { User as UserIcon, Mail, Phone, ArrowLeft } from "lucide-react";
+import { User as UserIcon, Mail, Phone, ArrowLeft, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import LineRoll from "../utils/LineRoll";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -13,7 +13,20 @@ interface SignUpProps {
 
 export default function SignUp({ onSwitchToLogin }: SignUpProps) {
   const router = useRouter();
-  const { register, verifyRegistrationOTP, checkProfileCompletionStatus, tempOtp, isLoading, error, clearError } = useAuthStore();
+  const {
+    register,
+    verifyRegistrationOTP,
+    sendRestoreOTP,
+    verifyRestoreOTP,
+    checkProfileCompletionStatus,
+    softDeletedAccountPrompt,
+    isRestoringAccount,
+    clearSoftDeletedPrompt,
+    tempOtp,
+    isLoading,
+    error,
+    clearError,
+  } = useAuthStore();
 
   const [formData, setFormData] = useState<{
     firstName: string;
@@ -28,11 +41,17 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
     mobileNumber: "",
     userType: "flatmate",
   });
-  const [step, setStep] = useState<"details" | "otp">("details");
+  const [step, setStep] = useState<"details" | "restore" | "otp">("details");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [localError, setLocalError] = useState("");
 
   const activeError = localError || error;
+
+  React.useEffect(() => {
+    if (softDeletedAccountPrompt?.isOpen) {
+      setStep("restore");
+    }
+  }, [softDeletedAccountPrompt]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -79,6 +98,11 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
     if (success) {
       setOtp(["", "", "", "", "", ""]);
       setStep("otp");
+    } else {
+      const currentPrompt = useAuthStore.getState().softDeletedAccountPrompt;
+      if (currentPrompt?.isOpen) {
+        setStep("restore");
+      }
     }
   };
 
@@ -112,10 +136,18 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
     setLocalError("");
     clearError();
 
-    const success = await verifyRegistrationOTP({
-      mobile: formData.mobileNumber,
-      otp: fullOtp,
-    });
+    let success = false;
+    if (isRestoringAccount) {
+      success = await verifyRestoreOTP({
+        mobile: formData.mobileNumber,
+        otp: fullOtp,
+      });
+    } else {
+      success = await verifyRegistrationOTP({
+        mobile: formData.mobileNumber,
+        otp: fullOtp,
+      });
+    }
 
     if (success) {
       const isCompleted = await checkProfileCompletionStatus();
@@ -226,11 +258,10 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
                       if (localError) setLocalError("");
                       if (error) clearError();
                     }}
-                    className={`py-2 px-3 text-xs sm:text-sm font-medium rounded-full border transition-all text-center cursor-pointer ${
-                      isSelected
+                    className={`py-2 px-3 text-xs sm:text-sm font-medium rounded-full border transition-all text-center cursor-pointer ${isSelected
                         ? "bg-slate-900 text-white border-slate-900 shadow-sm"
                         : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
-                    }`}
+                      }`}
                   >
                     {item.label}
                   </button>
@@ -267,6 +298,86 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
         </form>
       )}
 
+      {step === "restore" && (
+        <div className="space-y-6">
+          <div>
+            <button
+              type="button"
+              onClick={() => {
+                clearError();
+                clearSoftDeletedPrompt();
+                setLocalError("");
+                setStep("details");
+              }}
+              className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-3 transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" /> Edit Registration Details
+            </button>
+            <h1 className="text-gray-900 text-2xl sm:text-3xl lg:text-4xl font-regular tracking-tight mb-2">
+              Account Previously Deleted
+            </h1>
+            <p className="text-gray-500 text-sm sm:text-base leading-relaxed">
+              An account associated with this{" "}
+              <span className="font-semibold text-gray-800">
+                {softDeletedAccountPrompt?.matchedField === "email"
+                  ? "email address"
+                  : "mobile number"}
+              </span>{" "}
+              was previously deleted.
+            </p>
+            <p className="text-gray-500 text-xs sm:text-sm mt-1">
+              Would you like to restore your existing account, or register with different details?
+            </p>
+          </div>
+
+          <div className="space-y-3 pt-1">
+            {/* Option 1: Restore Existing Account */}
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={async () => {
+                const targetMobile =
+                  softDeletedAccountPrompt?.mobile || formData.mobileNumber;
+                const ok = await sendRestoreOTP(targetMobile);
+                if (ok) {
+                  setOtp(["", "", "", "", "", ""]);
+                  setStep("otp");
+                }
+              }}
+              className="w-full bg-accent hover:bg-accent/80 text-white font-medium py-3.5 rounded-full transition-colors text-base shadow-sm hover:shadow-md active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <RotateCcw className="w-4 h-4" />
+              {isLoading ? "Sending OTP..." : "Restore Existing Account"}
+            </button>
+
+            {/* Option 2: Create a New Account */}
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={() => {
+                // Clear all previously entered registration form fields and reset form to initial state
+                setFormData({
+                  firstName: "",
+                  lastName: "",
+                  email: "",
+                  mobileNumber: "",
+                  userType: "flatmate",
+                });
+                setLocalError("");
+                clearError();
+                clearSoftDeletedPrompt();
+                setStep("details");
+              }}
+              className="w-full bg-white hover:bg-gray-50 text-gray-700 font-medium py-3.5 rounded-full border border-gray-300 transition-colors text-base shadow-sm active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              Create a New Account
+            </button>
+          </div>
+
+          {activeError && <p className="text-xs text-red-500 text-center">{activeError}</p>}
+        </div>
+      )}
+
       {step === "otp" && (
         <form onSubmit={handleOtpSubmit} className="space-y-6">
           <div>
@@ -274,6 +385,7 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
               type="button"
               onClick={() => {
                 clearError();
+                clearSoftDeletedPrompt();
                 setLocalError("");
                 setStep("details");
               }}
@@ -282,37 +394,13 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
               <ArrowLeft className="w-4 h-4" /> Edit Registration Details
             </button>
             <h1 className="text-gray-900 text-2xl sm:text-3xl lg:text-4xl font-regular tracking-tight mb-3">
-              Verification Code
+              {isRestoringAccount ? "Restore Account" : "Verification Code"}
             </h1>
             <p className="text-gray-500 text-sm sm:text-base leading-relaxed">
-              Enter the 6-digit verification code sent to +91 {formData.mobileNumber}
+              {isRestoringAccount
+                ? `Enter the 6-digit verification code sent to +91 ${formData.mobileNumber} to restore your account`
+                : `Enter the 6-digit verification code sent to +91 ${formData.mobileNumber}`}
             </p>
-
-            {/* Commented: Real OTP is now dispatched via MSG91, so hiding OTP render / auto-fill banner */}
-            {/* {tempOtp && (
-              <div className="mt-4 bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between gap-3 text-left">
-                <div>
-                  <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider">
-                    Verification OTP
-                  </p>
-                  <p className="text-xl font-bold text-blue-900 tracking-widest mt-0.5">
-                    {tempOtp}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const digits = tempOtp.split("");
-                    setOtp(digits);
-                    if (localError) setLocalError("");
-                    if (error) clearError();
-                  }}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full transition-colors cursor-pointer shrink-0"
-                >
-                  Auto-fill OTP
-                </button>
-              </div>
-            )} */}
           </div>
 
           <div className="space-y-2">
@@ -344,7 +432,13 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
             disabled={isLoading}
             className="w-full bg-accent hover:bg-accent/80 text-white font-medium py-3.5 rounded-full transition-colors text-base shadow-sm hover:shadow-md active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isLoading ? "Verifying..." : "Verify & Register"}
+            {isLoading
+              ? isRestoringAccount
+                ? "Restoring Account..."
+                : "Verifying..."
+              : isRestoringAccount
+                ? "Verify & Restore Account"
+                : "Verify & Register"}
           </button>
         </form>
       )}

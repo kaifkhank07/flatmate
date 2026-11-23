@@ -339,9 +339,9 @@ export function getCategoryFilters(cat: ListingCategory): {
   listingType?: ListingType;
 } {
   if (cat === "Flat") {
-    return { sourceType: "flatmate_requirement", postType: "property" };
-  } else if (cat === "Flatmate") {
     return { sourceType: "flatmate_requirement", postType: "partner" };
+  } else if (cat === "Flatmate") {
+    return { sourceType: "flatmate_requirement", postType: "property" };
   } else if (cat === "Property") {
     return { sourceType: "property", postType: undefined };
   } else {
@@ -396,7 +396,11 @@ export interface FlatmateListingItem {
 
 export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListingItem {
   const itemDistanceStr =
-    typeof item.distance === "number" ? `${item.distance} Km From Your Search` : "";
+    typeof item.distance === "number"
+      ? item.distance === 0
+        ? "Same Location"
+        : `${item.distance} Km Away`
+      : "";
 
   const getUserAvatarUrl = (userObj: any): string | undefined => {
     if (!userObj) return undefined;
@@ -587,7 +591,7 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
 
     const postedBy = flatmate.postedBy ? flatmate.postedBy.toUpperCase() : undefined;
 
-    const category: "Flat" | "Flatmate" | "Property" = isPropertyPost ? "Flat" : "Flatmate";
+    const category: "Flat" | "Flatmate" | "Property" = isPropertyPost ? "Flatmate" : "Flat";
 
     const avatarType: "male1" | "female1" | "female2" | "female3" | "male2" | "female4" =
       gender === "Male" ? "male1" : "female1";
@@ -613,7 +617,7 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       lookingForGender,
       lookingForType,
       category,
-      avatarBg: isPropertyPost ? "bg-[#FFF5EB]" : "bg-[#F0FDF4]",
+      avatarBg: isPropertyPost ? "bg-[#F0FDF4]" : "bg-[#FFF5EB]",
       avatarType,
       status,
       bhk,

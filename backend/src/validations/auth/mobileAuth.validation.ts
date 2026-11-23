@@ -32,3 +32,19 @@ export const verifyMobileLoginOtpSchema = z.object({
     otp: z.string().min(4, 'OTP is required').max(8),
   }),
 });
+
+export const sendRestoreAccountOtpSchema = z.object({
+  body: z.object({
+    mobile: z
+      .string()
+      .min(8, 'Invalid mobile number')
+      .regex(/^[0-9+\s-]{8,15}$/, 'Invalid mobile number format'),
+  }),
+});
+
+export const verifyRestoreAccountOtpSchema = z.object({
+  body: z.object({
+    mobile: z.string().min(8, 'Mobile number is required'),
+    otp: z.string().min(4, 'OTP is required').max(8),
+  }),
+});

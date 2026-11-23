@@ -12,7 +12,7 @@ import { OTP } from '../../models/auth/otp.model';
 import { calculateProfileCompletion, parseProfileImageInput } from './profile.controller';
 import { deleteFile, extractKeyFromUrl } from '../../services/aws/s3.service';
 import { sendEmail } from '../../services/email/email.service';
-import { sendMobileOTP } from '../../services/sms/msg91.service';
+import { sendMobileOTP, normalizePhoneNumber } from '../../services/sms/msg91.service';
 import { config } from '../../config/env';
 
 import { comparePassword, hashPassword, hashSecret } from '../../utils/password.util';
@@ -46,16 +46,30 @@ export const registerUser = async (req: Request, res: Response): Promise<Respons
 
     // Check duplicate email
     if (email) {
-      const existingEmail = await User.findOne({ email: email.toLowerCase(), isDeleted: false });
+      const existingEmail = await User.findOne({ email: email.toLowerCase() });
       if (existingEmail) {
+        if (existingEmail.isDeleted) {
+          return sendError(
+            res,
+            'An account with this email was previously deleted. Please contact support to restore.',
+            409
+          );
+        }
         return sendError(res, 'User with this email already exists', 409);
       }
     }
 
     // Check duplicate mobile
     if (mobile) {
-      const existingMobile = await User.findOne({ mobile, isDeleted: false });
+      const existingMobile = await User.findOne({ mobile });
       if (existingMobile) {
+        if (existingMobile.isDeleted) {
+          return sendError(
+            res,
+            'An account with this mobile number was previously deleted. Please contact support to restore.',
+            409
+          );
+        }
         return sendError(res, 'User with this mobile number already exists', 409);
       }
     }
@@ -107,7 +121,15 @@ export const registerUser = async (req: Request, res: Response): Promise<Respons
     delete userJson.password;
 
     return sendSuccess(res, 'User registered successfully', userJson, 201);
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'email';
+      return sendError(
+        res,
+        `An account with this ${field} already exists or was previously deleted. Please contact support to reactivate.`,
+        409
+      );
+    }
     logger.error('[UserController] Failed to register user:', error);
     return sendError(res, 'Failed to register user', 500);
   }
@@ -345,9 +367,15 @@ export const updateCurrentUser = async (req: Request, res: Response): Promise<Re
       const existingEmail = await User.findOne({
         email: email.toLowerCase(),
         _id: { $ne: req.user._id },
-        isDeleted: false,
       });
       if (existingEmail) {
+        if (existingEmail.isDeleted) {
+          return sendError(
+            res,
+            'An account with this email was previously deleted. Please contact support to restore.',
+            409
+          );
+        }
         return sendError(res, 'Email is already in use by another account', 409);
       }
       req.user.email = email.toLowerCase();
@@ -358,9 +386,15 @@ export const updateCurrentUser = async (req: Request, res: Response): Promise<Re
       const existingMobile = await User.findOne({
         mobile,
         _id: { $ne: req.user._id },
-        isDeleted: false,
       });
       if (existingMobile) {
+        if (existingMobile.isDeleted) {
+          return sendError(
+            res,
+            'An account with this mobile number was previously deleted. Please contact support to restore.',
+            409
+          );
+        }
         return sendError(res, 'Mobile number is already in use by another account', 409);
       }
       req.user.mobile = mobile;
@@ -1130,24 +1164,105 @@ export const restoreUser = async (req: Request, res: Response): Promise<Response
   try {
     const { userId } = req.params;
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return sendError(res, 'User not found', 404);
-    }
-
-    user.isDeleted = false;
-    user.accountStatus = 'active';
-    user.deletedAt = undefined;
-    user.deletedBy = undefined;
-    user.deactiveAt = undefined;
-    user.deactiveBy = undefined;
-    await user.save();
+    await userDeletionService.restoreUserCascade(userId);
 
     logger.info(`User ${userId} restored by admin ${req.admin?._id}`);
 
     return sendSuccess(res, 'User restored successfully');
-  } catch (error) {
+  } catch (error: any) {
     logger.error('[UserController] Failed to restore user:', error);
-    return sendError(res, 'Failed to restore user', 500);
+    return sendError(res, error.message || 'Failed to restore user', 500);
+  }
+};
+
+/**
+ * Create a new user by Admin without OTP
+ * POST /api/users
+ */
+export const createUserByAdmin = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { firstName, lastName, email, mobile, userType } = req.body;
+
+    const cleanEmail = email.toLowerCase().trim();
+
+    let normalizedMobile: string;
+    try {
+      normalizedMobile = normalizePhoneNumber(mobile);
+    } catch (normErr: any) {
+      return sendError(res, normErr.message || 'Invalid mobile number format', 400);
+    }
+
+    // Check duplicate email
+    const existingEmail = await User.findOne({ email: cleanEmail });
+    if (existingEmail) {
+      if (existingEmail.isDeleted) {
+        return sendError(
+          res,
+          'An account with this email was previously deleted. You can restore it using the restore action in the table.',
+          409
+        );
+      }
+      return sendError(res, 'User with this email already exists', 409);
+    }
+
+    // Check duplicate mobile
+    const existingMobile = await User.findOne({ mobile: normalizedMobile });
+    if (existingMobile) {
+      if (existingMobile.isDeleted) {
+        return sendError(
+          res,
+          'An account with this mobile number was previously deleted. You can restore it using the restore action in the table.',
+          409
+        );
+      }
+      return sendError(res, 'User with this mobile number already exists', 409);
+    }
+
+    // Create User (created by admin, active, verified, no password/OTP required)
+    const user = await User.create({
+      email: cleanEmail,
+      mobile: normalizedMobile,
+      userType: userType || 'flatmate',
+      accountStatus: 'active',
+      emailVerified: true,
+      mobileVerified: true,
+      profileVerified: false,
+      verificationStatus: 'not_submitted',
+      isDeleted: false,
+    });
+
+    // Create UserProfile with firstName and lastName
+    await UserProfile.create({
+      userId: user._id,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      profileCompletion: 20,
+    });
+
+    logger.info(`[UserController] User ${user._id} created by admin ${req.admin?._id}`);
+
+    // Send welcome notification to user
+    createNotification({
+      recipientType: 'USER',
+      recipientId: user._id,
+      eventType: 'USER_REGISTERED',
+      category: 'ACCOUNT_AND_VERIFICATION',
+      title: 'Welcome to FlatMate!',
+      message: 'Your account has been created by the administrator. You can now log in and explore.',
+      actionUrl: '/profile',
+      priority: 'NORMAL',
+    }).catch((err) => logger.warn('[UserController] Failed to create welcome notification for user', err));
+
+    const userJson = user.toObject();
+    delete userJson.password;
+
+    return sendSuccess(res, 'User account created successfully', userJson, 201);
+  } catch (error: any) {
+    if (error?.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'email';
+      return sendError(res, `An account with this ${field} already exists.`, 409);
+    }
+    logger.error('[UserController] Failed to create user by admin:', error);
+    return sendError(res, 'Failed to create user', 500);
   }
 };

@@ -8,6 +8,7 @@ import { PropertyListingItem, FlatmateRequirementItem } from "@/types/listing";
 import PropertyDetails from "./details/PropertyDetails";
 import FlatmateRequirementPropertyDetails from "./details/FlatmateRequirementPropertyDetails";
 import FlatmateRequirementPartnerDetails from "./details/FlatmateRequirementPartnerDetails";
+import RelatedListings from "./RelatedListings";
 
 interface ListingDetailsProps {
   slug?: string;
@@ -63,22 +64,32 @@ export default function ListingDetails({ slug: propSlug, listingData }: ListingD
     );
   }
 
-  // 1. Property listing — sourceType: "property"
-  if (selectedListing.sourceType === "property") {
-    return (
-      <PropertyDetails
-        listing={selectedListing as PropertyListingItem}
-        slug={activeSlug}
-        listingData={listingData}
-      />
-    );
-  }
+  const renderDetails = () => {
+    // 1. Property listing — sourceType: "property"
+    if (selectedListing.sourceType === "property") {
+      return (
+        <PropertyDetails
+          listing={selectedListing as PropertyListingItem}
+          slug={activeSlug}
+          listingData={listingData}
+        />
+      );
+    }
 
-  // 2 & 3. Flatmate Requirement listings — sourceType: "flatmate_requirement"
-  if (selectedListing.sourceType === "flatmate_requirement") {
-    const flatmateListing = selectedListing as FlatmateRequirementItem;
+    // 2 & 3. Flatmate Requirement listings — sourceType: "flatmate_requirement"
+    if (selectedListing.sourceType === "flatmate_requirement") {
+      const flatmateListing = selectedListing as FlatmateRequirementItem;
 
-    if (flatmateListing.postType === "property") {
+      if (flatmateListing.postType === "partner") {
+        return (
+          <FlatmateRequirementPartnerDetails
+            listing={flatmateListing}
+            slug={activeSlug}
+            listingData={listingData}
+          />
+        );
+      }
+
       return (
         <FlatmateRequirementPropertyDetails
           listing={flatmateListing}
@@ -88,30 +99,21 @@ export default function ListingDetails({ slug: propSlug, listingData }: ListingD
       );
     }
 
-    if (flatmateListing.postType === "partner") {
-      return (
-        <FlatmateRequirementPartnerDetails
-          listing={flatmateListing}
-          slug={activeSlug}
-          listingData={listingData}
-        />
-      );
-    }
-
     return (
-      <FlatmateRequirementPropertyDetails
-        listing={flatmateListing}
+      <PropertyDetails
+        listing={selectedListing as PropertyListingItem}
         slug={activeSlug}
         listingData={listingData}
       />
     );
-  }
+  };
 
   return (
-    <PropertyDetails
-      listing={selectedListing as PropertyListingItem}
-      slug={activeSlug}
-      listingData={listingData}
-    />
+    <>
+      {renderDetails()}
+      {selectedListing?._id && (
+        <RelatedListings listingId={selectedListing._id} />
+      )}
+    </>
   );
 }

@@ -27,9 +27,9 @@ export default function Authentication({ initialMode = "login" }: Authentication
             <Image
               src={assets.logo}
               alt="Flatmate Logo"
-              width={140}
-              height={44}
-              className="h-12 sm:h-12 md:h-16 lg:h-20 w-auto object-contain"
+              width={180}
+              height={56}
+              className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto object-contain"
               priority
             />
           </Link>

@@ -50,15 +50,27 @@ function WhyChooseUsCard({ item }: { item: WhyChooseUsItem }) {
       }, 0);
     }
 
+    // if (iconContainerRef.current) {
+    //   tl.to(iconContainerRef.current, {
+    //     backgroundColor: "rgba(255, 255, 255, 0.2)",
+    //   }, 0);
+    // }
+
+    // if (iconRef.current) {
+    //   tl.to(iconRef.current, {
+    //     color: "#FFFFFF",
+    //   }, 0);
+    // }
     if (iconContainerRef.current) {
       tl.to(iconContainerRef.current, {
-        backgroundColor: "rgba(255, 255, 255, 0.2)",
+        // backgroundColor: "rgba(255, 255, 255, 0.2)",
+        backgroundColor: "#FFFFFF",
       }, 0);
     }
 
     if (iconRef.current) {
       tl.to(iconRef.current, {
-        color: "#FFFFFF",
+        color: "#000000",
       }, 0);
     }
 
@@ -92,15 +104,26 @@ function WhyChooseUsCard({ item }: { item: WhyChooseUsItem }) {
       }, 0);
     }
 
+    // if (iconContainerRef.current) {
+    //   tl.to(iconContainerRef.current, {
+    //     backgroundColor: "rgba(0, 102, 249, 0.1)",
+    //   }, 0);
+    // }
+
+    // if (iconRef.current) {
+    //   tl.to(iconRef.current, {
+    //     color: "#0066F9",
+    //   }, 0);
+    // }
     if (iconContainerRef.current) {
       tl.to(iconContainerRef.current, {
-        backgroundColor: "rgba(0, 102, 249, 0.1)",
+        backgroundColor: iconBackground,
       }, 0);
     }
 
     if (iconRef.current) {
       tl.to(iconRef.current, {
-        color: "#0066F9",
+        color: iconColor,
       }, 0);
     }
 
@@ -109,6 +132,14 @@ function WhyChooseUsCard({ item }: { item: WhyChooseUsItem }) {
 
   const IconComponent = item.icon;
 
+  const iconColor = "#FFFFFF";
+  // const iconBackground = item.iconBg
+  //   ? `${item.iconBg}1A`
+  //   : "rgba(0, 102, 249, 0.1)";
+  const iconBackground = item.iconBg
+    ? `${item.iconBg}`
+    : "rgba(0, 102, 249, 0.1)";
+
   return (
     <div
       ref={cardRef}
@@ -116,11 +147,25 @@ function WhyChooseUsCard({ item }: { item: WhyChooseUsItem }) {
       onMouseLeave={handleMouseLeave}
       className="h-full rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col items-start gap-4 drop-shadow-md bg-white text-brand-dark shadow-[0_4px_25px_rgba(0,0,0,0.04)] border border-gray-100/90 cursor-pointer"
     >
-      <div
+      {/* <div
         ref={iconContainerRef}
         className="p-1 rounded-full w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-brand-blue/10"
       >
         <div ref={iconRef} className="text-brand-blue flex items-center justify-center">
+          <IconComponent className="w-5 h-5" />
+        </div>
+      </div> */}
+
+      <div
+        ref={iconContainerRef}
+        style={{ backgroundColor: iconBackground }}
+        className="p-1 rounded-full w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center"
+      >
+        <div
+          ref={iconRef}
+          style={{ color: iconColor }}
+          className="flex items-center justify-center"
+        >
           <IconComponent className="w-5 h-5" />
         </div>
       </div>

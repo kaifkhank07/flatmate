@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { Types } from 'mongoose';
 import { propertyDetailsSchema } from './property.validation';
+import { validateDescriptionContact } from '../../utils/contactFilter';
 
 const objectIdString = z
   .string()
@@ -18,7 +19,18 @@ export const createFlatmateRequirementSchema = z.object({
         .min(1, 'Title cannot be empty')
         .max(200, 'Title cannot exceed 200 characters'),
       slug: z.string().trim().optional(),
-      description: z.string().trim().optional(),
+      description: z
+        .string()
+        .trim()
+        .optional()
+        .refine(
+          (val) => !val || !validateDescriptionContact(val).hasContact,
+          (val) => ({
+            message:
+              validateDescriptionContact(val || '').message ||
+              'Contact details (phone numbers or email addresses) are not allowed in the listing description.',
+          })
+        ),
       postType: z.enum(['property', 'partner'], {
         required_error: 'Post type is required',
       }),
@@ -124,7 +136,18 @@ export const updateFlatmateRequirementSchema = z.object({
         .max(200, 'Title cannot exceed 200 characters')
         .optional(),
       slug: z.string().trim().optional(),
-      description: z.string().trim().optional(),
+      description: z
+        .string()
+        .trim()
+        .optional()
+        .refine(
+          (val) => !val || !validateDescriptionContact(val).hasContact,
+          (val) => ({
+            message:
+              validateDescriptionContact(val || '').message ||
+              'Contact details (phone numbers or email addresses) are not allowed in the listing description.',
+          })
+        ),
       postType: z.enum(['property', 'partner']).optional(),
       propertyType: z
         .enum(['room', 'flat', 'pg', 'shared_apartment'])

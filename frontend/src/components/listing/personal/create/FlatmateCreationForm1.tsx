@@ -34,6 +34,8 @@ import {
   PropertyAmenityItem,
 } from "@/lib/apiServices";
 import { ViewReveal } from "@/components/animation";
+import RichTextEditor, { isRichTextEmpty } from "@/components/listing/shared/RichTextEditor";
+import { validateDescriptionContact } from "@/utils/contactFilter";
 
 interface FlatmateCreationFormProps {
   onBack: () => void;
@@ -283,6 +285,17 @@ export default function FlatmateCreationForm1({
       return;
     }
 
+    if (isRichTextEmpty(description)) {
+      setErrorMessage("Description is required.");
+      return;
+    }
+
+    const contactCheck = validateDescriptionContact(description);
+    if (contactCheck.hasContact) {
+      setErrorMessage(contactCheck.message || "Contact details are not allowed in the listing description.");
+      return;
+    }
+
     if (!rent || isNaN(Number(rent)) || Number(rent) <= 0) {
       setErrorMessage("Please enter a valid monthly rent amount.");
       return;
@@ -425,8 +438,8 @@ export default function FlatmateCreationForm1({
         <div className="bg-white border border-gray-100 rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 md:p-12 space-y-8 sm:space-y-10 md:space-y-12">
           <ViewReveal duration={800}>
             <SectionHeading
-              title="Create Flat Requirement"
-              description="Fill in Requirement details, select location, preferences, amenities, and upload media assets"
+              title="Create Room / Flat Requirement"
+              description="Fill in Requirement details, select location, preferences."
               align="center"
             />
           </ViewReveal>
@@ -546,13 +559,11 @@ export default function FlatmateCreationForm1({
                 <label className="block text-sm sm:text-base font-regular text-black">
                   Description <span className="text-rose-500">*</span>
                 </label>
-                <textarea
-                  rows={4}
+                <RichTextEditor
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={setDescription}
                   placeholder="e.g. I am looking for a room with roommate."
-                  className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none resize-none"
-                  required
+                  restrictContactInfo={true}
                 />
               </div>
             </div>
@@ -644,7 +655,7 @@ export default function FlatmateCreationForm1({
                 {/* Available From */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Available From <span className="text-rose-500">*</span>
+                    Move-in Date From <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -694,7 +705,7 @@ export default function FlatmateCreationForm1({
             {/* SECTION 3: PREFERENCES & LIFESTYLE */}
             <div className="space-y-4 pt-2">
               <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
-                PREFERENCES & LIFESTYLE
+                PREFERENCES
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -739,7 +750,7 @@ export default function FlatmateCreationForm1({
               {/* Lifestyle Preferences Grid */}
               <div className="space-y-3">
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  User Preferences ({selectedPreferences.length} /3 minimum selected) <span className="text-rose-500">*</span>
+                  Lifestyle Preferences ({selectedPreferences.length} /3 minimum selected) <span className="text-rose-500">*</span>
                 </label>
 
                 {loadingPreferences ? (

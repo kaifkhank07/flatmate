@@ -19,6 +19,7 @@ import {
   deleteUserByAdmin,
   hardDeleteUserByAdmin,
   restoreUser,
+  createUserByAdmin,
 } from '../../controllers/auth/user.controller';
 import { authenticateUser } from '../../middlewares/auth.middleware';
 import { authenticateAdmin, requireSuperAdmin } from '../../middlewares/admin.middleware';
@@ -26,6 +27,7 @@ import { validate } from '../../middlewares/validate.middleware';
 import { uploadSingleImage } from '../../middlewares/upload.middleware';
 import {
   createUserSchema,
+  createUserByAdminSchema,
   loginUserSchema,
   updateUserSchema,
   updateUserByAdminSchema,
@@ -58,6 +60,7 @@ router.patch('/profile/complete', authenticateUser, markProfileAsCompleted);
 // Admin Operations on Users (Admins Only)
 // ==========================================
 router.get('/', authenticateAdmin, getUsers);
+router.post('/', authenticateAdmin, validate(createUserByAdminSchema), createUserByAdmin);
 router.get('/:userId', authenticateAdmin, getUserDetails);
 router.get('/:userId/profile', authenticateAdmin, getUserProfileByAdmin);
 router.put(

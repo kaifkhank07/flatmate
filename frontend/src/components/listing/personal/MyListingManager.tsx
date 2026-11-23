@@ -341,10 +341,10 @@ export default function MyListingManager() {
             </div>
           ) : filteredItems.length > 0 ? (
             <div className="space-y-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
                 {filteredItems.map((item) => (
-                  <div key={item.id} className="relative group w-full">
-                    <ListingCard item={item.cardData} isMylisting={true} />
+                  <div key={item.id} className="relative group w-full h-full flex flex-col">
+                    <ListingCard item={item.cardData} isMylisting={true} className="flex-1" />
 
                     {/* Status Overlay Row */}
                     <div className="absolute top-3 right-3 z-20 flex items-center gap-2">

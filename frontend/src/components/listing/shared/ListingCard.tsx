@@ -10,9 +10,14 @@ import { getMediaUrl } from "@/lib/api";
 interface ListingCardProps {
   item: FlatmateListingItem;
   isMylisting?: boolean;
+  className?: string;
 }
 
-export default function ListingCard({ item, isMylisting = false }: ListingCardProps) {
+export default function ListingCard({
+  item,
+  isMylisting = false,
+  className = "",
+}: ListingCardProps) {
   // Format distance text to make the distance number bold (e.g. "2.8 Km" bold, "From Your Search" normal)
   const renderDistance = (distanceStr: string) => {
     if (!distanceStr) return null;
@@ -30,9 +35,21 @@ export default function ListingCard({ item, isMylisting = false }: ListingCardPr
 
   const href = isMylisting ? `/my-listings/${item.id}` : `/listing/${item.id}`;
 
+  // const isProperty = item.sourceType === "property" || item.category === "Property";
+  // // If property, show property image (with fallback to user image). Otherwise show user image.
+  // const rawImage = isProperty ? (item.propertyImage || item.userImage) : item.userImage;
+  // const displayImage = getMediaUrl(rawImage);
+
   const isProperty = item.sourceType === "property" || item.category === "Property";
-  // If property, show property image (with fallback to user image). Otherwise show user image.
-  const rawImage = isProperty ? (item.propertyImage || item.userImage) : item.userImage;
+  const isFlatmateRequirement = item.sourceType === "flatmate_requirement";
+
+  // Select image based on listing source
+  const rawImage = isProperty
+    ? item.propertyImage || item.userImage
+    : isFlatmateRequirement
+      ? item.propertyImage || item.userImage
+      : item.userImage;
+
   const displayImage = getMediaUrl(rawImage);
 
   const [imageError, setImageError] = useState(false);
@@ -46,7 +63,7 @@ export default function ListingCard({ item, isMylisting = false }: ListingCardPr
   return (
     <Link
       href={href}
-      className="bg-white rounded-[24px] sm:rounded-[32px] flex flex-row items-stretch overflow-hidden transition-all duration-300 drop-shadow-md border border-gray-200/90 hover:-translate-y-1 w-full min-h-[125px] xs:min-h-[135px] sm:min-h-[150px] md:min-h-[160px]"
+      className={`bg-white rounded-[24px] sm:rounded-[32px] flex flex-row items-stretch overflow-hidden transition-all duration-300 drop-shadow-md border border-gray-200/90 hover:-translate-y-1 w-full h-full min-h-[140px] xs:min-h-[150px] sm:min-h-[175px] md:min-h-[190px] lg:min-h-[204px] ${className}`}
     >
       {/* Avatar / Property Image Container Box Left */}
       <div className="w-24 xs:w-28 sm:w-36 md:w-44 shrink-0 relative flex items-center justify-center rounded-[24px] sm:rounded-[32px] drop-shadow-md border border-gray-200/90 overflow-hidden self-stretch bg-gray-100">
@@ -70,7 +87,7 @@ export default function ListingCard({ item, isMylisting = false }: ListingCardPr
       </div>
 
       {/* Info Content Right */}
-      <div className="flex-1 min-w-0 w-full flex flex-col justify-between gap-2.5 sm:gap-4 lg:gap-8 p-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+      <div className="flex-1 min-w-0 w-full flex flex-col justify-between gap-2.5 sm:gap-4 lg:gap-6 p-3 sm:px-4 lg:px-6 py-3 sm:py-4">
         {/* Top Header Row */}
         <div className="flex items-start justify-between gap-1.5 sm:gap-3">
           {/* Name & Location */}
@@ -90,31 +107,29 @@ export default function ListingCard({ item, isMylisting = false }: ListingCardPr
           </div>
         </div>
 
-        {/* Badges row if BHK, Floor, Posted By, or Brokerage present */}
-        {(item.bhk || item.floor || item.postedBy || item.brokerage) && (
-          <div className="hidden lg:flex items-center gap-1.5 flex-wrap -mt-1 sm:-mt-2">
-            {item.bhk && (
-              <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] sm:text-xs font-medium border border-blue-100">
-                {item.bhk}
-              </span>
-            )}
-            {item.floor && (
-              <span className="px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-[10px] sm:text-xs font-medium border border-slate-200">
-                {item.floor}
-              </span>
-            )}
-            {item.postedBy && (
-              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] sm:text-xs font-medium border border-emerald-100 capitalize">
-                By {item.postedBy}
-              </span>
-            )}
-            {item.brokerage && (
-              <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] sm:text-xs font-medium border border-amber-100">
-                {item.brokerage}
-              </span>
-            )}
-          </div>
-        )}
+        {/* Badges row with fixed height for consistent card height across all listing types */}
+        <div className="hidden lg:flex items-center gap-1.5 h-[26px] min-h-[26px] -mt-1 sm:-mt-2 overflow-hidden">
+          {item.bhk && (
+            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] sm:text-xs font-medium border border-blue-100 shrink-0">
+              {item.bhk}
+            </span>
+          )}
+          {item.floor && (
+            <span className="px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-[10px] sm:text-xs font-medium border border-slate-200 shrink-0">
+              {item.floor}
+            </span>
+          )}
+          {item.postedBy && (
+            <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] sm:text-xs font-medium border border-emerald-100 capitalize shrink-0">
+              By {item.postedBy}
+            </span>
+          )}
+          {item.brokerage && (
+            <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] sm:text-xs font-medium border border-amber-100 shrink-0">
+              {item.brokerage}
+            </span>
+          )}
+        </div>
 
         {/* Bottom Details Grid */}
         <div className="w-full pt-1.5 grid grid-cols-3 gap-1 sm:gap-4 border-t-2 border-accent border-dashed">

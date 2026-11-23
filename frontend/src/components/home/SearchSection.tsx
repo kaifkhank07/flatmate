@@ -44,8 +44,8 @@ export default function SearchSection({
 
   const categories: { label: ListingCategory; displayLabel: string }[] = [
     { label: "All", displayLabel: "All Listing" },
-    { label: "Flat", displayLabel: "Flat" },
-    { label: "Flatmate", displayLabel: "Flatmate" },
+    { label: "Flatmate", displayLabel: "Accommodation Seekers" },
+    { label: "Flat", displayLabel: "Rooms Available" },
     { label: "Property", displayLabel: "Entire Property" },
   ];
 
@@ -174,9 +174,8 @@ export default function SearchSection({
       className={`relative z-30 w-full max-w-8xl 3xl:max-w-[1450px] mx-auto px-4 sm:px-6 lg:px-16 ${className}`}
     >
       <div
-        className={`bg-white rounded-2xl sm:rounded-3xl flex flex-col md:grid ${
-          selectedCategory === "Property" ? "md:grid-cols-5" : "md:grid-cols-4"
-        } items-stretch p-2 md:p-0 md:pl-2 lg:pl-4`}
+        className={`bg-white rounded-2xl sm:rounded-3xl flex flex-col md:grid ${selectedCategory === "Property" ? "md:grid-cols-5" : "md:grid-cols-4"
+          } items-stretch p-2 md:p-0 md:pl-2 lg:pl-4`}
       >
         {/* Direct Location Search Input - Takes 2 Columns */}
         <div className="relative md:col-span-2 px-4 lg:px-6 py-3 lg:py-5 border-b md:border-b-0 md:border-r border-gray-200 flex items-center justify-between group rounded-2xl md:rounded-none transition-colors">
@@ -259,7 +258,7 @@ export default function SearchSection({
           >
             <div>
               <span className="block text-gray-800 text-xs sm:text-sm lg:text-xl font-medium tracking-tight">
-                Looking For
+                Browse Listings
               </span>
 
               <span className="block text-xs lg:text-sm text-gray-600 font-medium mt-0.5">
@@ -270,9 +269,8 @@ export default function SearchSection({
             </div>
 
             <ChevronDown
-              className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-brand-dark transition-transform duration-200 ${
-                categoryOpen ? "rotate-180 text-brand-dark" : ""
-              }`}
+              className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-brand-dark transition-transform duration-200 ${categoryOpen ? "rotate-180 text-brand-dark" : ""
+                }`}
             />
           </button>
 
@@ -290,11 +288,10 @@ export default function SearchSection({
                     }
                     setCategoryOpen(false);
                   }}
-                  className={`w-full text-left px-5 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
-                    selectedCategory === cat.label
-                      ? "bg-brand-ice text-brand-blue font-semibold"
-                      : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
-                  }`}
+                  className={`w-full text-left px-5 py-2.5 text-sm font-medium transition-colors cursor-pointer ${selectedCategory === cat.label
+                    ? "bg-brand-ice text-brand-blue font-semibold"
+                    : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
+                    }`}
                 >
                   {cat.displayLabel}
                 </button>
@@ -326,9 +323,8 @@ export default function SearchSection({
               </div>
 
               <ChevronDown
-                className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-brand-dark transition-transform duration-200 shrink-0 ${
-                  propertyTypeOpen ? "rotate-180 text-brand-dark" : ""
-                }`}
+                className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-brand-dark transition-transform duration-200 shrink-0 ${propertyTypeOpen ? "rotate-180 text-brand-dark" : ""
+                  }`}
               />
             </button>
 
@@ -342,11 +338,10 @@ export default function SearchSection({
                       setSelectedPropertyType(opt.value);
                       setPropertyTypeOpen(false);
                     }}
-                    className={`w-full text-left px-5 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
-                      selectedPropertyType === opt.value
-                        ? "bg-brand-ice text-brand-blue font-semibold"
-                        : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
-                    }`}
+                    className={`w-full text-left px-5 py-2.5 text-sm font-medium transition-colors cursor-pointer ${selectedPropertyType === opt.value
+                      ? "bg-brand-ice text-brand-blue font-semibold"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-brand-blue"
+                      }`}
                   >
                     {opt.label}
                   </button>

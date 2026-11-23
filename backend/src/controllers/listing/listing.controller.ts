@@ -1889,3 +1889,320 @@ export const getMyListings = async (
     );
   }
 };
+
+/**
+ * Helper to escape regex special characters
+ */
+const escapeRegex = (str: string): string => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+/**
+ * Get location-based related listings for a given listing ID or slug
+ * GET /api/listings/related/:id
+ * GET /api/listings/:id/related
+ */
+export const getRelatedListings = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const rawId = req.params.id || req.params.slug;
+    if (!rawId || !rawId.trim()) {
+      return sendError(res, 'Listing identifier is required', 400);
+    }
+
+    const trimmedId = rawId.trim();
+    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit as string, 10) || 6));
+
+    // 1. Find the current listing in either Property or FlatmateRequirement
+    let currentListing: any = null;
+    let currentSourceType: 'property' | 'flatmate_requirement' | null = null;
+
+    if (Types.ObjectId.isValid(trimmedId)) {
+      const prop = await Property.findById(trimmedId).populate('location').lean();
+      if (prop) {
+        currentListing = prop;
+        currentSourceType = 'property';
+      } else {
+        const flat = await FlatmateRequirement.findById(trimmedId).populate('location').lean();
+        if (flat) {
+          currentListing = flat;
+          currentSourceType = 'flatmate_requirement';
+        }
+      }
+    }
+
+    if (!currentListing) {
+      const slugLower = trimmedId.toLowerCase();
+      const propBySlug = await Property.findOne({ slug: slugLower }).populate('location').lean();
+      if (propBySlug) {
+        currentListing = propBySlug;
+        currentSourceType = 'property';
+      } else {
+        const flatBySlug = await FlatmateRequirement.findOne({ slug: slugLower }).populate('location').lean();
+        if (flatBySlug) {
+          currentListing = flatBySlug;
+          currentSourceType = 'flatmate_requirement';
+        }
+      }
+    }
+
+    if (!currentListing || !currentSourceType) {
+      return sendError(res, 'Listing not found', 404);
+    }
+
+    const currentListingId = currentListing._id.toString();
+    const currentPostType = currentListing.postType; // For flatmate_requirement: 'property' | 'partner'
+
+    // 2. Extract Location Information of Current Listing
+    const curLoc = currentListing.location as any;
+    if (!curLoc) {
+      return sendSuccess(res, 'Related listings fetched successfully', {
+        listings: [],
+        count: 0,
+      });
+    }
+
+    const curLocIdStr = curLoc._id ? curLoc._id.toString() : '';
+    const currentCity = (curLoc.address?.city || curLoc.address?.district || curLoc.name || '').trim();
+    const currentLocality = (curLoc.address?.locality || curLoc.address?.subLocality || '').trim();
+
+    const currentLat =
+      typeof curLoc.latitude === 'number' && !isNaN(curLoc.latitude)
+        ? curLoc.latitude
+        : curLoc.geoLocation?.coordinates?.[1] ?? curLoc.googleMaps?.location?.lat;
+
+    const currentLng =
+      typeof curLoc.longitude === 'number' && !isNaN(curLoc.longitude)
+        ? curLoc.longitude
+        : curLoc.geoLocation?.coordinates?.[0] ?? curLoc.googleMaps?.location?.lng;
+
+    const hasCoordinates =
+      typeof currentLat === 'number' &&
+      typeof currentLng === 'number' &&
+      !isNaN(currentLat) &&
+      !isNaN(currentLng);
+
+    // 3. Geographic Search like Public Listings Filter (find nearest locations by distance)
+    const locationDistanceMap = new Map<string, number>();
+    let candidateLocationIds: Types.ObjectId[] = [];
+
+    if (hasCoordinates) {
+      // Query active locations to calculate distance for nearest location matching
+      const activeLocations = await Location.find(
+        { isActive: true },
+        { _id: 1, latitude: 1, longitude: 1, geoLocation: 1, googleMaps: 1 }
+      ).lean();
+
+      activeLocations.forEach((loc: any) => {
+        const locIdStr = loc._id.toString();
+
+        // If it's the exact same location document
+        if (curLocIdStr && locIdStr === curLocIdStr) {
+          locationDistanceMap.set(locIdStr, 0);
+          candidateLocationIds.push(loc._id);
+          return;
+        }
+
+        const lat =
+          typeof loc.latitude === 'number' && !isNaN(loc.latitude)
+            ? loc.latitude
+            : loc.geoLocation?.coordinates?.[1] ?? loc.googleMaps?.location?.lat;
+        const lng =
+          typeof loc.longitude === 'number' && !isNaN(loc.longitude)
+            ? loc.longitude
+            : loc.geoLocation?.coordinates?.[0] ?? loc.googleMaps?.location?.lng;
+
+        if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
+          const dist = calculateHaversineDistance(currentLat!, currentLng!, lat, lng);
+          locationDistanceMap.set(locIdStr, dist);
+
+          // Exclude locations in distant cities (> 50 km away)
+          if (dist <= 50) {
+            candidateLocationIds.push(loc._id);
+          }
+        }
+      });
+    } else {
+      // Non-geographic fallback: match by city / address text
+      if (currentCity) {
+        const cityRegex = new RegExp(escapeRegex(currentCity), 'i');
+        const matchingLocs = await Location.find({
+          $or: [
+            { 'address.city': cityRegex },
+            { 'address.district': cityRegex },
+            { name: cityRegex },
+            { formattedAddress: cityRegex },
+          ],
+          isActive: true,
+        })
+          .select('_id')
+          .lean();
+
+        candidateLocationIds = matchingLocs.map((l: any) => l._id);
+      } else if (curLoc._id) {
+        candidateLocationIds = [curLoc._id];
+      }
+    }
+
+    if (candidateLocationIds.length === 0) {
+      return sendSuccess(res, 'Related listings fetched successfully', {
+        listings: [],
+        count: 0,
+      });
+    }
+
+    // 4. Query matching listings from the appropriate collection
+    let candidateDocs: any[] = [];
+
+    if (currentSourceType === 'property') {
+      candidateDocs = await Property.find({
+        _id: { $ne: new Types.ObjectId(currentListingId) },
+        status: 'approved',
+        location: { $in: candidateLocationIds },
+      })
+        .select('_id location createdAt rent')
+        .lean();
+    } else {
+      candidateDocs = await FlatmateRequirement.find({
+        _id: { $ne: new Types.ObjectId(currentListingId) },
+        status: 'approved',
+        postType: currentPostType,
+        location: { $in: candidateLocationIds },
+      })
+        .select('_id location createdAt rent')
+        .lean();
+    }
+
+    if (candidateDocs.length === 0) {
+      return sendSuccess(res, 'Related listings fetched successfully', {
+        listings: [],
+        count: 0,
+      });
+    }
+
+    // 5. Sort candidate listings by Distance ASC (nearest location first), then CreatedAt DESC
+    const rankedCandidates = candidateDocs.map((doc: any) => {
+      const locIdStr = doc.location ? doc.location.toString() : '';
+      const distance = locationDistanceMap.get(locIdStr);
+      return {
+        id: doc._id,
+        distance,
+        createdAt: doc.createdAt ? new Date(doc.createdAt).getTime() : 0,
+      };
+    });
+
+    rankedCandidates.sort((a, b) => {
+      const distA = a.distance !== undefined ? a.distance : Number.MAX_VALUE;
+      const distB = b.distance !== undefined ? b.distance : Number.MAX_VALUE;
+
+      if (distA !== distB) {
+        return distA - distB; // Lowest distance first (nearest locations!)
+      }
+      return b.createdAt - a.createdAt; // Newest first
+    });
+
+    // 6. Apply Configurable Limit
+    const topCandidates = rankedCandidates.slice(0, limit);
+    const topIds = topCandidates.map((c) => c.id);
+    const distanceMap = new Map(topCandidates.map((c) => [c.id.toString(), c.distance]));
+
+    // 8. Fetch Full Populated Documents for the Top Listings
+    const [fullProps, fullFlats] = await Promise.all([
+      currentSourceType === 'property'
+        ? Property.find({ _id: { $in: topIds } })
+          .populate('userId', 'email mobile userType accountStatus profileVerified isOnline')
+          .populate('location')
+          .populate('amenities')
+          .populate('images')
+          .populate('videos')
+          .lean()
+        : [],
+      currentSourceType === 'flatmate_requirement'
+        ? FlatmateRequirement.find({ _id: { $in: topIds } })
+          .populate('userId', 'email mobile userType accountStatus profileVerified isOnline')
+          .populate('location')
+          .populate('images')
+          .populate('videos')
+          .populate('userPreferences')
+          .populate('amenities')
+          .lean()
+        : [],
+    ]);
+
+    // 9. Enrich User Profile Details
+    const rawDocs = currentSourceType === 'property' ? fullProps : fullFlats;
+    const userIds = rawDocs.map((d: any) => d.userId?._id || d.userId).filter(Boolean);
+
+    const profiles =
+      userIds.length > 0
+        ? await UserProfile.find({ userId: { $in: userIds } }).populate('avatar').lean()
+        : [];
+    const profileMap = new Map(profiles.map((p: any) => [p.userId.toString(), p]));
+
+    const enrichUserData = (user: any) => {
+      if (!user) return user;
+      const uId = typeof user === 'object' && user._id ? user._id.toString() : user.toString();
+      const profile = profileMap.get(uId);
+
+      const userObj = typeof user === 'object' ? user : { _id: user };
+      const firstName = profile?.firstName || '';
+      const lastName = profile?.lastName || '';
+      const fullName = `${firstName} ${lastName}`.trim();
+      const gender = profile?.gender || (userObj as any).gender || '';
+      const imageUrl = profile?.image?.url || (profile?.avatar as any)?.image?.url || null;
+
+      return {
+        ...userObj,
+        name: fullName || (userObj as any).name || (userObj as any).email || 'User',
+        gender: gender || '',
+        email: (userObj as any).email || '',
+        contact: (userObj as any).mobile || (userObj as any).contact || '',
+        mobile: (userObj as any).mobile || (userObj as any).contact || '',
+        image: imageUrl,
+        avatar: imageUrl,
+        profileImage: imageUrl,
+      };
+    };
+
+    const docMap = new Map(rawDocs.map((d: any) => [d._id.toString(), d]));
+
+    // 10. Assemble Final Output in Ranked Order
+    const relatedListings = topCandidates
+      .map((cand) => {
+        const doc = docMap.get(cand.id.toString());
+        if (!doc) return null;
+
+        const dist = distanceMap.get(cand.id.toString());
+        const resultItem: any = {
+          ...doc,
+          userId: enrichUserData(doc.userId),
+          sourceType: currentSourceType,
+        };
+
+        if (dist !== undefined) {
+          resultItem.distance = dist;
+          resultItem.distanceUnit = 'km';
+        }
+
+        return resultItem;
+      })
+      .filter(Boolean);
+
+    return sendSuccess(res, 'Related listings fetched successfully', {
+      listings: relatedListings,
+      count: relatedListings.length,
+      currentListing: {
+        id: currentListingId,
+        sourceType: currentSourceType,
+        postType: currentPostType,
+        city: currentCity,
+        locality: currentLocality,
+      },
+    });
+  } catch (error: any) {
+    logger.error('[ListingController] getRelatedListings error:', error);
+    return sendError(res, 'Failed to fetch related listings', 500);
+  }
+};

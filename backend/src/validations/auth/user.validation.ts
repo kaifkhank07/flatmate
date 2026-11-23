@@ -62,3 +62,16 @@ export const verifyDeleteUserSchema = z.object({
     otp: z.string().trim().min(4, 'OTP is required').max(10, 'Invalid OTP format'),
   }),
 });
+
+export const createUserByAdminSchema = z.object({
+  body: z.object({
+    firstName: z.string().min(1, 'First name is required').trim(),
+    lastName: z.string().min(1, 'Last name is required').trim(),
+    email: z.string().email('Invalid email address').trim(),
+    mobile: z
+      .string()
+      .min(8, 'Invalid mobile number')
+      .regex(/^[0-9+\s-]{8,15}$/, 'Invalid mobile number format'),
+    userType: userTypeSchema.optional(),
+  }),
+});

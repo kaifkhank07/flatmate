@@ -1,31 +1,32 @@
-import { Building2, House, LucideIcon, Users } from "lucide-react";
+import { useAssets } from "./assets";
 
 export interface LookingFirItem {
-    title: string,
-    subtitle: string,
-    href: string,
-    icon: LucideIcon;
+    title: string;
+    subtitle: string;
+    href: string;
+    icon: string;
 }
 
 export const useLookingFor = (): LookingFirItem[] => {
+    const assets = useAssets();
     return [
         {
-            title: "Find a Room / Flat",
-            subtitle: "Find a Room to Share with Others",
+            title: "Rooms Available",
+            subtitle: "Find Rooms & Shared Flats",
             href: "/listing?category=Flat",
-            icon: House,
+            icon: assets.listingicon1,
         },
         {
-            title: "Find a Flatmate",
-            subtitle: "Find Someone to Share Your Space",
+            title: "Accommodation Seekers",
+            subtitle: "Find People Looking for a Room or Flat",
             href: "/listing?category=Flatmate",
-            icon: Users,
+            icon: assets.listingicon2,
         },
         {
-            title: "Find an Entire Flat / House",
-            subtitle: "Find a Property Available for Rent",
+            title: "Entire Properties",
+            subtitle: "Find Complete Flats & Properties",
             href: "/listing?category=Property",
-            icon: Building2,
+            icon: assets.listingicon3,
         },
-    ]
-}
+    ];
+};

@@ -18,6 +18,7 @@ import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
 import { createNotification, notifyAdmins } from '../../services/notification/notification.service';
 import { config } from '../../config/env';
+import { userDeletionService } from '../../services/deletion';
 
 /**
  * Generate a random 6-digit numeric OTP string
@@ -44,14 +45,66 @@ export const registerWithMobileOTP = async (req: Request, res: Response): Promis
     }
 
     // Check duplicate email
-    const existingEmail = await User.findOne({ email: cleanEmail, isDeleted: false });
+    const existingEmail = await User.findOne({ email: cleanEmail });
     if (existingEmail) {
+      if (existingEmail.isDeleted) {
+        // Option A: Reject restoration if the email belongs to a deleted account with a different mobile
+        if (existingEmail.mobile && existingEmail.mobile !== normalizedMobile) {
+          return sendError(
+            res,
+            'This email belongs to a previously deleted account registered with a different mobile number. For security, restoration is not permitted.',
+            409,
+            {
+              code: 'DELETED_ACCOUNT_MOBILE_MISMATCH',
+              canRestore: false,
+            }
+          );
+        }
+
+        return sendError(
+          res,
+          'An account with this email was previously deleted. Would you like to restore your account or create a new one?',
+          409,
+          {
+            code: 'SOFT_DELETED_ACCOUNT',
+            canRestore: true,
+            matchedField: 'email',
+            mobile: normalizedMobile,
+          }
+        );
+      }
       return sendError(res, 'User with this email already exists', 409);
     }
 
     // Check duplicate mobile
-    const existingMobile = await User.findOne({ mobile: normalizedMobile, isDeleted: false });
+    const existingMobile = await User.findOne({ mobile: normalizedMobile });
     if (existingMobile) {
+      if (existingMobile.isDeleted) {
+        // Option A: Reject restoration if the mobile belongs to a deleted account with a different email
+        if (existingMobile.email && cleanEmail && existingMobile.email !== cleanEmail) {
+          return sendError(
+            res,
+            'This mobile number belongs to a previously deleted account registered with a different email address. For security, restoration is not permitted.',
+            409,
+            {
+              code: 'DELETED_ACCOUNT_EMAIL_MISMATCH',
+              canRestore: false,
+            }
+          );
+        }
+
+        return sendError(
+          res,
+          'An account with this mobile number was previously deleted. Would you like to restore your account or create a new one?',
+          409,
+          {
+            code: 'SOFT_DELETED_ACCOUNT',
+            canRestore: true,
+            matchedField: 'mobile',
+            mobile: normalizedMobile,
+          }
+        );
+      }
       return sendError(res, 'User with this mobile number already exists', 409);
     }
 
@@ -146,7 +199,15 @@ export const registerWithMobileOTP = async (req: Request, res: Response): Promis
       },
       201
     );
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'email';
+      return sendError(
+        res,
+        `An account with this ${field} already exists or was previously deleted. Please contact support to reactivate.`,
+        409
+      );
+    }
     logger.error('[MobileAuth] Failed to register user with mobile OTP:', error);
     return sendError(res, 'Failed to register user', 500);
   }
@@ -259,10 +320,14 @@ export const sendMobileLoginOTP = async (req: Request, res: Response): Promise<R
       return sendError(res, normErr.message || 'Invalid mobile number format', 400);
     }
 
-    const user = await User.findOne({ mobile: normalizedMobile, isDeleted: false });
+    const user = await User.findOne({ mobile: normalizedMobile });
 
     if (!user) {
       return sendError(res, 'No account found with this mobile number. Please register first.', 404);
+    }
+
+    if (user.isDeleted) {
+      return sendError(res, 'This account has been deleted. Please contact support to restore.', 403);
     }
 
     if (user.accountStatus === 'inactive') {
@@ -440,5 +505,183 @@ export const logoutMobileUser = async (req: Request, res: Response): Promise<Res
     logger.error('[MobileAuth] Failed to logout user:', error);
     clearAuthCookies(res);
     return sendSuccess(res, 'Logged out successfully');
+  }
+};
+
+/**
+ * Request Restore Account Mobile OTP
+ * POST /api/auth/mobile/restore/send-otp
+ */
+export const sendRestoreAccountOTP = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { mobile } = req.body;
+
+    let normalizedMobile: string;
+    try {
+      normalizedMobile = normalizePhoneNumber(mobile);
+    } catch (normErr: any) {
+      return sendError(res, normErr.message || 'Invalid mobile number format', 400);
+    }
+
+    const user = await User.findOne({ mobile: normalizedMobile, isDeleted: true });
+
+    if (!user) {
+      return sendError(res, 'No deleted account found with this mobile number.', 404);
+    }
+
+    // Rate Limit Check: 60 seconds
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+    const recentOtp = await OTP.findOne({
+      identifier: normalizedMobile,
+      type: 'mobile_verification',
+      createdAt: { $gte: oneMinuteAgo },
+    });
+
+    if (recentOtp && config.isProduction) {
+      return sendError(res, 'Please wait a minute before requesting another OTP', 429);
+    }
+
+    const rawOtp = generateRandomOTP();
+    const otpHash = hashSecret(rawOtp);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    await OTP.create({
+      userId: user._id,
+      identifier: normalizedMobile,
+      type: 'mobile_verification',
+      otpHash,
+      expiresAt,
+      attempts: 0,
+      isUsed: false,
+    });
+
+    try {
+      await sendMobileOTP({
+        mobile: normalizedMobile,
+        otp: rawOtp,
+      });
+
+      if (!config.isProduction) {
+        logger.info(
+          `[MobileAuth] Restore Account OTP dispatched | mobile=${normalizedMobile} | OTP=${rawOtp}`
+        );
+      }
+    } catch (smsErr) {
+      logger.error(`[MobileAuth] Failed to send Restore SMS to ${normalizedMobile}:`, smsErr);
+      return sendError(res, 'Failed to send OTP SMS. Please try again.', 500);
+    }
+
+    return sendSuccess(res, 'Restoration OTP sent successfully to your mobile number');
+  } catch (error) {
+    logger.error('[MobileAuth] Failed to send restore account OTP:', error);
+    return sendError(res, 'Failed to send restore account OTP', 500);
+  }
+};
+
+/**
+ * Verify Restore Account Mobile OTP and restore account
+ * POST /api/auth/mobile/restore/verify-otp
+ */
+export const verifyRestoreAccountOTP = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { mobile, otp } = req.body;
+
+    let normalizedMobile: string;
+    try {
+      normalizedMobile = normalizePhoneNumber(mobile);
+    } catch (normErr: any) {
+      return sendError(res, normErr.message || 'Invalid mobile number format', 400);
+    }
+
+    const otpRecord = await OTP.findOne({
+      identifier: normalizedMobile,
+      type: 'mobile_verification',
+      isUsed: false,
+      expiresAt: { $gt: new Date() },
+    }).sort({ createdAt: -1 });
+
+    if (!otpRecord) {
+      return sendError(res, 'Invalid or expired OTP', 400);
+    }
+
+    if (otpRecord.attempts >= 5) {
+      return sendError(res, 'Maximum OTP verification attempts exceeded', 429);
+    }
+
+    const inputHash = hashSecret(otp);
+
+    if (otpRecord.otpHash !== inputHash) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      return sendError(res, 'Invalid OTP', 400);
+    }
+
+    // Mark OTP verified and used
+    otpRecord.isUsed = true;
+    otpRecord.verifiedAt = new Date();
+    await otpRecord.save();
+
+    // Find User with isDeleted: true
+    const user = await User.findOne({ mobile: normalizedMobile, isDeleted: true });
+    if (!user) {
+      return sendError(res, 'Deleted account not found', 404);
+    }
+
+    // Restore user using cascade service (keeps listings closed as confirmed)
+    await userDeletionService.restoreUserCascade(user._id);
+
+    // Refresh user state
+    user.mobileVerified = true;
+    user.lastLoginAt = new Date();
+    await user.save();
+
+    // Generate JWT Tokens
+    const accessToken = generateAccessToken({
+      userId: user._id.toString(),
+      type: 'user',
+    });
+
+    const refreshToken = generateRefreshToken({
+      id: user._id.toString(),
+      type: 'user',
+    });
+
+    const refreshTokenHash = hashSecret(refreshToken);
+
+    // Save session
+    await UserSession.create({
+      userId: user._id,
+      refreshTokenHash,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    });
+
+    const userJson = user.toObject();
+    delete userJson.password;
+
+    // Set HTTP-only Cookies
+    setAuthCookies(res, accessToken, refreshToken);
+
+    logger.info(`[MobileAuth] Soft-deleted account successfully restored and logged in: ${user._id}`);
+
+    // Send restoration notification
+    createNotification({
+      recipientType: 'USER',
+      recipientId: user._id,
+      eventType: 'USER_REGISTERED',
+      category: 'ACCOUNT_AND_VERIFICATION',
+      title: 'Welcome Back!',
+      message: 'Your FlatMate account has been successfully restored. Your listings remain closed in your dashboard for your review.',
+      actionUrl: '/profile',
+      priority: 'NORMAL',
+    }).catch((err) => logger.warn('[MobileAuth] Failed to create restore notification for user', err));
+
+    return sendSuccess(res, 'Account successfully restored and logged in', {
+      user: userJson,
+    });
+  } catch (error) {
+    logger.error('[MobileAuth] Failed to verify restore account OTP:', error);
+    return sendError(res, 'Failed to restore account', 500);
   }
 };

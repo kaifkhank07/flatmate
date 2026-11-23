@@ -3,6 +3,7 @@ import {
     getListings,
     getListingBySlug,
     getMyListings,
+    getRelatedListings,
 } from '../../controllers/listing/listing.controller';
 import { validate } from '../../middlewares/validate.middleware';
 import {
@@ -34,6 +35,18 @@ router.get(
     validate(getMyListingsQuerySchema),
     getMyListings
 );
+
+/**
+ * @route   GET /api/listings/related/:id
+ * @route   GET /api/listings/:id/related
+ * @desc    Get location-based related listings for a listing ID or slug
+ * @access  Public
+ *
+ * IMPORTANT:
+ * Must be declared before /:slug to avoid parameter collisions.
+ */
+router.get('/related/:id', getRelatedListings);
+router.get('/:id/related', getRelatedListings);
 
 /**
  * @route   GET /api/listings/slug/:slug

@@ -36,6 +36,8 @@ import {
 } from "@/lib/apiServices";
 import { PropertyType } from "@/types/listing";
 import { ViewReveal } from "@/components/animation";
+import RichTextEditor, { isRichTextEmpty } from "@/components/listing/shared/RichTextEditor";
+import { validateDescriptionContact } from "@/utils/contactFilter";
 
 interface PropertyCreationFormProps {
   onBack: () => void;
@@ -263,8 +265,14 @@ export default function PropertyCreationForm({
       return;
     }
 
-    if (!description.trim()) {
+    if (isRichTextEmpty(description)) {
       setErrorMessage("Description is required.");
+      return;
+    }
+
+    const contactCheck = validateDescriptionContact(description);
+    if (contactCheck.hasContact) {
+      setErrorMessage(contactCheck.message || "Contact details are not allowed in the listing description.");
       return;
     }
 
@@ -580,13 +588,11 @@ export default function PropertyCreationForm({
                 <label className="block text-sm sm:text-base font-regular text-black">
                   Description <span className="text-rose-500">*</span>
                 </label>
-                <textarea
-                  rows={4}
+                <RichTextEditor
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={setDescription}
                   placeholder="Provide Property Highlights, Rules, Nearby Landmarks…"
-                  className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none resize-none"
-                  required
+                  restrictContactInfo={true}
                 />
               </div>
 

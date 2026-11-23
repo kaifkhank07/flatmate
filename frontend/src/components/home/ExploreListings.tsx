@@ -249,10 +249,10 @@ function ListingCard({
   return (
     <Link
       href={`/listing/${item.slug}`}
-      className="group hover:-translate-y-1 transition-all duration-300 overflow-hidden shrink-0 w-[320px] sm:w-[360px] md:w-[380px] lg:w-[400px] bg-[#F2FAFD] rounded-2xl sm:rounded-3xl border border-gray-100/80 shadow-md flex flex-col justify-between"
+      className="group hover:-translate-y-1 transition-all duration-300 overflow-hidden shrink-0 w-[320px] sm:w-[360px] md:w-[380px] lg:w-[400px] h-[490px] sm:h-[530px] md:h-[540px] bg-[#F2FAFD] rounded-2xl sm:rounded-3xl border border-gray-100/80 shadow-md flex flex-col justify-between"
     >
       {/* Image */}
-      <div className="relative h-56 sm:h-64 w-full">
+      <div className="relative h-56 sm:h-64 w-full shrink-0">
         <div className="relative w-full h-full overflow-hidden rounded-t-2xl sm:rounded-t-3xl">
           <Image
             src={item.image}
@@ -273,27 +273,31 @@ function ListingCard({
       </div>
 
       {/* Content */}
-      <div className="p-5 sm:p-6 flex flex-col justify-between flex-1 gap-2.5">
-        <div>
-          <h3 className="text-black text-sm sm:text-base md:text-lg font-medium tracking-tight uppercase mb-1">
+      <div className="p-5 sm:p-6 flex flex-col justify-between flex-1 min-h-0">
+        <div className="space-y-1.5 sm:space-y-2">
+          {/* Title: Maximum 1 line */}
+          <h3 className="text-black text-sm sm:text-base md:text-lg font-medium tracking-tight uppercase line-clamp-1">
             {item.title}
           </h3>
 
-          <p className="text-black text-sm sm:text-base md:text-lg font-medium tracking-tight">
+          {/* Location: Maximum 2 lines with min-height for uniform alignment */}
+          <p className="text-black text-sm sm:text-base md:text-lg font-medium tracking-tight line-clamp-2 leading-snug min-h-[2.5rem] sm:min-h-[2.75rem] md:min-h-[3rem]">
             Location:{" "}
             <span className="text-black/80 font-regular">
               {item.location}
             </span>
           </p>
 
-          <p className="text-black text-sm sm:text-base md:text-lg font-medium tracking-tight">
+          {/* Price: Maximum 1 line */}
+          <p className="text-black text-sm sm:text-base md:text-lg font-medium tracking-tight line-clamp-1 leading-snug">
             Price:{" "}
             <span className="text-black/80 font-regular">
               {item.price}
             </span>
           </p>
 
-          <p className="text-black text-sm sm:text-base md:text-lg font-medium tracking-tight">
+          {/* Details: Maximum 2 lines with min-height for uniform alignment */}
+          <p className="text-black text-sm sm:text-base md:text-lg font-medium tracking-tight line-clamp-2 leading-snug min-h-[2.5rem] sm:min-h-[2.75rem] md:min-h-[3rem]">
             Details:{" "}
             <span className="text-black/80 font-regular">
               {item.details}
@@ -301,13 +305,15 @@ function ListingCard({
           </p>
         </div>
 
-        {/* Parking */}
-        {item.parkingAvailable && (
-          <div className="bg-brand-blue text-white text-base sm:text-lg font-regular px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 w-fit shadow-sm mt-3">
-            <Bike size={20} />
-            Parking Available
-          </div>
-        )}
+        {/* Parking button aligned at bottom, maintaining consistent layout when not present */}
+        <div className="mt-auto pt-3 min-h-[44px] sm:min-h-[48px] flex items-center">
+          {item.parkingAvailable && (
+            <div className="bg-brand-blue text-white text-sm sm:text-base md:text-lg font-regular px-3.5 py-1.5 sm:py-2 rounded-xl flex items-center justify-center gap-1.5 w-fit shadow-sm">
+              <Bike size={20} className="shrink-0" />
+              <span>Parking Available</span>
+            </div>
+          )}
+        </div>
       </div>
     </Link>
   );
@@ -367,7 +373,7 @@ export default function ExploreListings() {
             {Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={index}
-                className="shrink-0 w-[320px] sm:w-[360px] md:w-[380px] lg:w-[400px] h-[420px] bg-[#F2FAFD] rounded-2xl sm:rounded-3xl animate-pulse"
+                className="shrink-0 w-[320px] sm:w-[360px] md:w-[380px] lg:w-[400px] h-[490px] sm:h-[530px] md:h-[540px] bg-[#F2FAFD] rounded-2xl sm:rounded-3xl animate-pulse"
               />
             ))}
           </div>

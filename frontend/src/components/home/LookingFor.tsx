@@ -2,6 +2,8 @@
 
 import React, { useRef, useEffect } from "react";
 import gsap from "gsap";
+import Image from "next/image";
+import { ChevronRight } from "lucide-react";
 import SectionHeading from "@/components/utils/SectionHeading";
 import { useLookingFor, LookingFirItem } from "@/data/lookingfor";
 import { ViewReveal } from "../animation";
@@ -9,10 +11,10 @@ import { useRouter } from "next/navigation";
 
 function LookingForCard({ item }: { item: LookingFirItem }) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const iconContainerRef = useRef<HTMLDivElement>(null);
-  const iconRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const subtitleRef = useRef<HTMLSpanElement>(null);
+  const chevronRef = useRef<HTMLSpanElement>(null);
+  const imageRef = useRef<HTMLDivElement>(null);
 
   const hoverTl = useRef<gsap.core.Timeline | null>(null);
 
@@ -43,7 +45,6 @@ function LookingForCard({ item }: { item: LookingFirItem }) {
         cardRef.current,
         {
           backgroundColor: "#0066F9",
-          borderColor: "#0066F9",
           y: -4,
         },
         0
@@ -60,31 +61,32 @@ function LookingForCard({ item }: { item: LookingFirItem }) {
       );
     }
 
-    if (descriptionRef.current) {
+    if (subtitleRef.current) {
       tl.to(
-        descriptionRef.current,
-        {
-          color: "rgba(255, 255, 255, 0.85)",
-        },
-        0
-      );
-    }
-
-    if (iconContainerRef.current) {
-      tl.to(
-        iconContainerRef.current,
-        {
-          backgroundColor: "rgba(255, 255, 255, 0.2)",
-        },
-        0
-      );
-    }
-
-    if (iconRef.current) {
-      tl.to(
-        iconRef.current,
+        subtitleRef.current,
         {
           color: "#FFFFFF",
+        },
+        0
+      );
+    }
+
+    if (chevronRef.current) {
+      tl.to(
+        chevronRef.current,
+        {
+          x: 4,
+          color: "#FFFFFF",
+        },
+        0
+      );
+    }
+
+    if (imageRef.current) {
+      tl.to(
+        imageRef.current,
+        {
+          scale: 1.08,
         },
         0
       );
@@ -109,8 +111,7 @@ function LookingForCard({ item }: { item: LookingFirItem }) {
       tl.to(
         cardRef.current,
         {
-          backgroundColor: "#F2FAFD",
-          borderColor: "rgba(243, 244, 246, 0.9)",
+          backgroundColor: "#F2F8FE",
           y: 0,
         },
         0
@@ -121,37 +122,38 @@ function LookingForCard({ item }: { item: LookingFirItem }) {
       tl.to(
         titleRef.current,
         {
-          color: "#000000",
+          color: "#111827",
         },
         0
       );
     }
 
-    if (descriptionRef.current) {
+    if (subtitleRef.current) {
       tl.to(
-        descriptionRef.current,
-        {
-          color: "#000000",
-        },
-        0
-      );
-    }
-
-    if (iconContainerRef.current) {
-      tl.to(
-        iconContainerRef.current,
-        {
-          backgroundColor: "#FFFFFF",
-        },
-        0
-      );
-    }
-
-    if (iconRef.current) {
-      tl.to(
-        iconRef.current,
+        subtitleRef.current,
         {
           color: "#0066F9",
+        },
+        0
+      );
+    }
+
+    if (chevronRef.current) {
+      tl.to(
+        chevronRef.current,
+        {
+          x: 0,
+          color: "#0066F9",
+        },
+        0
+      );
+    }
+
+    if (imageRef.current) {
+      tl.to(
+        imageRef.current,
+        {
+          scale: 1,
         },
         0
       );
@@ -160,41 +162,52 @@ function LookingForCard({ item }: { item: LookingFirItem }) {
     hoverTl.current = tl;
   };
 
-  const IconComponent = item.icon;
-
   return (
     <div
       ref={cardRef}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={() => router.push(item.href)}
-      className="h-full bg-[#F2FAFD] rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col items-start gap-4 drop-shadow-md border border-gray-100/90 cursor-pointer"
+      className="group relative bg-[#F2F8FE] rounded-3xl sm:rounded-[36px] p-7 sm:p-9 flex flex-col justify-between min-h-[260px] sm:min-h-[260px] lg:min-h-[340px] cursor-pointer overflow-hidden transition-shadow shadow-sm hover:shadow-md"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          router.push(item.href);
+        }
+      }}
     >
-      <div
-        ref={iconContainerRef}
-        className="p-4 rounded-full w-fit flex items-center justify-center bg-white text-brand-blue shadow-sm border border-brand-blue/15 mb-6 sm:mb-10 md:mb-16"
-      >
-        <div
-          ref={iconRef}
-          className="text-brand-blue flex items-center justify-center"
+      {/* Top text & link */}
+      <div className="space-y-2 sm:space-y-3 lg:space-y-4 z-10">
+        <h2
+          ref={titleRef}
+          className="font-roboto-serif text-2xl sm:text-2xl lg:text-[30px] text-[#111827] font-normal tracking-tight leading-tight"
         >
-          <IconComponent className="w-6 h-6" />
+          {item.title}
+        </h2>
+
+        <div className="flex items-center gap-1.5 font-regular text-[#0066F9] text-base sm:text-base lg:text-xl">
+          <span ref={subtitleRef}>{item.subtitle}</span>
+          {/* <span ref={chevronRef} className="inline-flex items-center">
+            <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+          </span> */}
         </div>
       </div>
 
-      <h3
-        ref={titleRef}
-        className="text-black text-lg sm:text-xl md:text-2xl font-regular tracking-tight"
+      {/* Bottom Right Illustration */}
+      <div
+        ref={imageRef}
+        className="absolute bottom-0 right-2 sm:right-4 z-10 origin-bottom-right pointer-events-none"
       >
-        {item.title}
-      </h3>
-
-      <p
-        ref={descriptionRef}
-        className="text-black text-sm sm:text-base md:text-lg font-regular leading-relaxed tracking-wide"
-      >
-        {item.subtitle}
-      </p>
+        <Image
+          src={item.icon}
+          alt={item.title}
+          className="object-contain max-h-[120px] sm:max-h-[80px] lg:max-h-[140px] w-auto drop-shadow-sm"
+          width={150}
+          height={150}
+        />
+      </div>
     </div>
   );
 }

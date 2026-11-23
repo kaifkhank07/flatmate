@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   MapPin,
   Phone,
@@ -29,12 +30,13 @@ import {
 } from "lucide-react";
 import LineRoll from "@/components/utils/LineRoll";
 import { FlatmateRequirementItem } from "@/types/listing";
-import { useAssets } from "@/data/assets";
 import { useListingStore } from "@/store/useListingStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getMediaUrl } from "@/lib/api";
 import { toggleWishlistApi, checkWishlistStatusApi, addRecentlyViewedApi } from "@/lib/apiServices";
-import { CallModal, ChatModal, ReportModal, ImageGalleryModal } from "@/components/listing/shared/modals";
+import { CallModal, ChatModal, ReportModal } from "@/components/listing/shared/modals";
+import ListingMediaGallery from "@/components/listing/shared/ListingMediaGallery";
+import RichTextRenderer from "@/components/listing/shared/RichTextRenderer";
 
 const getAmenityIcon = (name: string) => {
   const lower = name.toLowerCase();
@@ -74,7 +76,7 @@ export default function FlatmateRequirementPropertyDetails({
   listing,
   listingData,
 }: FlatmateRequirementPropertyDetailsProps) {
-  const assets = useAssets();
+  const router = useRouter();
   const { options } = useListingStore();
   const { user, isAuthenticated } = useAuthStore();
   const resolveImageUrl = (url?: string) => getMediaUrl(url);
@@ -82,7 +84,6 @@ export default function FlatmateRequirementPropertyDetails({
   const [showCallModal, setShowCallModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
@@ -137,6 +138,22 @@ export default function FlatmateRequirementPropertyDetails({
     }
   };
 
+  const handleCallClick = () => {
+    if (!isAuthenticated) {
+      router.push(`/login?redirect=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : "")}`);
+      return;
+    }
+    setShowCallModal(true);
+  };
+
+  const handleChatClick = () => {
+    if (!isAuthenticated) {
+      router.push(`/login?redirect=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : "")}`);
+      return;
+    }
+    setShowChatModal(true);
+  };
+
   const userObj = listing.userId;
   const ownerId = typeof userObj === "object" ? userObj?._id : userObj;
   const isOwner = Boolean(user?._id && ownerId && String(user._id) === String(ownerId));
@@ -177,12 +194,16 @@ export default function FlatmateRequirementPropertyDetails({
     : "Immediate";
 
   // Images
-  const backendImages = listing.images?.map((i) => i.url) || [];
-  const imageList = backendImages.length > 0
-    ? backendImages
-    : listingData?.images && listingData.images.length > 0
-      ? listingData.images
-      : [assets.property01, assets.property02];
+  const rawImages = listing.images || listingData?.images || [];
+  const imageList = Array.isArray(rawImages) && rawImages.length > 0
+    ? rawImages
+      .map((img: any) => {
+        if (!img) return null;
+        if (typeof img === "string") return resolveImageUrl(img);
+        return resolveImageUrl(img.url);
+      })
+      .filter(Boolean) as string[]
+    : [];
 
   // User Preferences
   const rawPreferences = listing.userPreferences || listingData?.lifestylePreferences || [];
@@ -236,12 +257,20 @@ export default function FlatmateRequirementPropertyDetails({
 
   return (
     <section className="w-full py-6 md:py-8 lg:py-12 px-4 sm:px-6 lg:px-16 overflow-hidden">
+      {/* Top Image Gallery */}
+      {imageList.length > 0 && (
+        <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto mb-6 sm:mb-8 md:mb-10">
+          <ListingMediaGallery images={imageList} title={postTitle} />
+        </div>
+      )}
+
       <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 p-6 sm:p-10 md:p-14 transition-all bg-white">
         <div className="flex flex-col lg:flex-row items-center md:items-start gap-8 md:gap-14 lg:gap-16">
 
-          {/* LEFT SIDE: Creator Avatar & Action Buttons */}
-          <div className="flex flex-col items-center gap-3 md:gap-4 shrink-0 w-full md:w-56 lg:w-64">
-            <div className="relative w-48 h-48 sm:w-56 sm:h-56 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-[#F59E0B] shadow-inner">
+          {/* LEFT SIDE / TOP (Mobile): Creator Avatar & Action Buttons */}
+          <div className="flex flex-row lg:flex-col items-center lg:items-center gap-4 sm:gap-5 lg:gap-4 shrink-0 w-full lg:w-64 pb-6 lg:pb-0 border-b border-gray-100 lg:border-b-0">
+            {/* Avatar */}
+            <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-56 lg:h-56 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-[#F59E0B] shadow-inner">
               {userImage ? (
                 <img src={userImage} alt={name} className="w-full h-full object-cover" />
               ) : (
@@ -253,31 +282,34 @@ export default function FlatmateRequirementPropertyDetails({
               )}
             </div>
 
-            <h2 className="text-xl sm:text-2xl font-regular text-[#1E3A8A] text-center tracking-tight">
-              {name}
-            </h2>
+            {/* Right side on mobile (Name & Buttons) / Below on desktop */}
+            <div className="flex-1 lg:w-full flex flex-col items-start lg:items-center gap-2 lg:gap-3">
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-medium lg:font-regular text-[#1E3A8A] text-left lg:text-center tracking-tight leading-tight">
+                {name}
+              </h2>
 
-            {isAuthenticated && !isOwner && (
-              <div className="flex flex-row lg:flex-col justify-center gap-3 w-full items-center">
-                <button
-                  type="button"
-                  onClick={() => setShowCallModal(true)}
-                  className="w-28 py-2 px-3 bg-blue-700 hover:bg-accent text-white font-light text-sm sm:text-base md:text-lg rounded-full flex items-center justify-center gap-2.5 transition-all cursor-pointer"
-                >
-                  <Phone size={20} />
-                  <span>Call</span>
-                </button>
+              {!isOwner && (
+                <div className="flex flex-row lg:flex-col justify-start lg:justify-center gap-2.5 sm:gap-3 w-full items-center flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleCallClick}
+                    className="w-24 sm:w-28 py-1.5 sm:py-2 px-3 bg-blue-700 hover:bg-accent text-white font-medium text-xs sm:text-sm lg:text-base rounded-full flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer shadow-sm active:scale-95"
+                  >
+                    <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
+                    <span>Contact</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowChatModal(true)}
-                  className="w-28 py-2 px-3 bg-accent hover:bg-blue-700 text-white font-light text-sm sm:text-base md:text-lg rounded-full flex items-center justify-center gap-2.5 transition-all cursor-pointer"
-                >
-                  <MessageSquare size={20} />
-                  <span>Chat</span>
-                </button>
-              </div>
-            )}
+                  <button
+                    type="button"
+                    onClick={handleChatClick}
+                    className="w-24 sm:w-28 py-1.5 sm:py-2 px-3 bg-accent hover:bg-blue-700 text-white font-medium text-xs sm:text-sm lg:text-base rounded-full flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer shadow-sm active:scale-95"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
+                    <span>Chat</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* RIGHT SIDE: Flatmate Requirement Info */}
@@ -363,7 +395,9 @@ export default function FlatmateRequirementPropertyDetails({
                   </div>
                 </div> */}
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Available From</span>
+                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">
+                    Move-in Date From
+                  </span>
                   <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{availableFromDate}</p>
                 </div>
               </div>
@@ -427,39 +461,10 @@ export default function FlatmateRequirementPropertyDetails({
               </div>
             )}
 
-            {/* Photos if available */}
-            {/* {imageList.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Photos</h3>
-                <div className="w-full overflow-x-auto pb-3 pt-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                  <div className="flex items-center gap-3 sm:gap-4 min-w-max">
-                    {imageList.map((imgSrc: string, idx: number) => (
-                      <div
-                        key={idx}
-                        onClick={() => setSelectedImageIndex(idx)}
-                        className="relative group h-36 sm:h-44 md:h-52 w-48 sm:w-60 md:w-72 rounded-[20px] sm:rounded-[24px] overflow-hidden border border-gray-200 shadow-sm bg-gray-100 cursor-pointer shrink-0 transition-all hover:shadow-md hover:scale-[1.01]"
-                      >
-                        <img
-                          src={imgSrc}
-                          alt={`${postTitle} ${idx + 1}`}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-all flex items-center justify-center">
-                          <div className="w-10 h-10 rounded-full bg-white/80 backdrop-blur-md text-gray-900 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:scale-100 scale-95 shadow-md">
-                            <Maximize2 className="w-5 h-5" />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )} */}
-
             {/* Description */}
             <div className="space-y-3">
               <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Description</h3>
-              <p className="text-gray-800 text-sm sm:text-lg font-regular leading-relaxed">{description}</p>
+              <RichTextRenderer content={description} />
             </div>
 
             {/* Report Footer */}
@@ -503,15 +508,6 @@ export default function FlatmateRequirementPropertyDetails({
         targetType="flatmaterequirement"
         targetId={listing._id}
         ownerId={ownerId ? String(ownerId) : undefined}
-      />
-
-      <ImageGalleryModal
-        isOpen={selectedImageIndex !== null && selectedImageIndex !== undefined && imageList.length > 0}
-        onClose={() => setSelectedImageIndex(null)}
-        images={imageList}
-        selectedIndex={selectedImageIndex ?? 0}
-        onSelectIndex={(idx) => setSelectedImageIndex(idx)}
-        title={postTitle}
       />
     </section>
   );

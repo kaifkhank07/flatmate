@@ -34,6 +34,8 @@ import {
   PropertyAmenityItem,
 } from "@/lib/apiServices";
 import { ViewReveal } from "@/components/animation";
+import RichTextEditor, { isRichTextEmpty } from "@/components/listing/shared/RichTextEditor";
+import { validateDescriptionContact } from "@/utils/contactFilter";
 
 interface FlatmateEditForm2Props {
   initialData: any;
@@ -329,6 +331,17 @@ export default function FlatmateEditForm2({
       return;
     }
 
+    if (isRichTextEmpty(description)) {
+      setErrorMessage("Description is required.");
+      return;
+    }
+
+    const contactCheck = validateDescriptionContact(description);
+    if (contactCheck.hasContact) {
+      setErrorMessage(contactCheck.message || "Contact details are not allowed in the listing description.");
+      return;
+    }
+
     if (!rent || isNaN(Number(rent)) || Number(rent) <= 0) {
       setErrorMessage("Please enter a valid monthly rent amount.");
       return;
@@ -598,13 +611,11 @@ export default function FlatmateEditForm2({
                 <label className="block text-sm sm:text-base font-regular text-black">
                   Description <span className="text-rose-500">*</span>
                 </label>
-                <textarea
-                  rows={4}
+                <RichTextEditor
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={setDescription}
                   placeholder="e.g. I am looking for a flatmate."
-                  className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none resize-none"
-                  required
+                  restrictContactInfo={true}
                 />
               </div>
 

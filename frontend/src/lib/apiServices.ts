@@ -1,5 +1,10 @@
 import apiClient from "@/lib/api";
-import { ApiResponse, PropertyListingItem, FlatmateRequirementItem } from "@/types/listing";
+import {
+  ApiResponse,
+  PropertyListingItem,
+  FlatmateRequirementItem,
+  UnifiedListingItem,
+} from "@/types/listing";
 
 export interface AutocompleteSuggestion {
   placeId: string;
@@ -323,6 +328,29 @@ export interface GetMyListingsParams {
  */
 export async function getMyListingsApi(params?: GetMyListingsParams) {
   const res = await apiClient.get<ApiResponse<{ listings: any[]; items?: any[]; total: number; page: number; limit: number; pagination?: any }>>('/listings/my-listings', { params });
+  return res.data;
+}
+
+/**
+ * Fetch location-based related listings for a listing ID or slug
+ * GET /api/listings/related/:id
+ */
+export async function getRelatedListingsApi(idOrSlug: string, limit = 6) {
+  const res = await apiClient.get<
+    ApiResponse<{
+      listings: UnifiedListingItem[];
+      count: number;
+      currentListing?: {
+        id: string;
+        sourceType: string;
+        postType?: string;
+        city?: string;
+        locality?: string;
+      };
+    }>
+  >(`/listings/related/${encodeURIComponent(idOrSlug)}`, {
+    params: { limit },
+  });
   return res.data;
 }
 
