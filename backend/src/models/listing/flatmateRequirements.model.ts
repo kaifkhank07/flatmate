@@ -56,6 +56,12 @@ export type OccupationPreference =
   | 'other'
   | 'any';
 
+export type OccupancyPreference =
+  | 'single'
+  | 'double'
+  | 'triple'
+  | 'four_or_more';
+
 export type MaintenanceFrequency =
   | 'monthly'
   | 'yearly'
@@ -95,9 +101,11 @@ export interface IFlatmateRequirement extends Document {
   };
   furnishing: FurnishingType;
   parking: boolean;
+  brokerage: boolean;
 
   availableFrom: Date;
   genderPreference: GenderPreference;
+  occupancyPreference?: OccupancyPreference;
   occupationPreference: OccupationPreference;
 
   userPreferences: Types.ObjectId[];
@@ -212,6 +220,11 @@ const flatmateRequirementSchema = new Schema<IFlatmateRequirement>(
       default: false,
     },
 
+    brokerage: {
+      type: Boolean,
+      default: false,
+    },
+
     availableFrom: {
       type: Date,
       required: [true, 'Available from date is required'],
@@ -221,6 +234,12 @@ const flatmateRequirementSchema = new Schema<IFlatmateRequirement>(
       type: String,
       enum: ['male', 'female', 'other', 'any'],
       default: 'any',
+    },
+
+    occupancyPreference: {
+      type: String,
+      enum: ['single', 'double', 'triple', 'four_or_more'],
+      default: 'single',
     },
 
     occupationPreference: {
@@ -343,6 +362,8 @@ const flatmateRequirementSchema = new Schema<IFlatmateRequirement>(
 flatmateRequirementSchema.index({ status: 1 });
 flatmateRequirementSchema.index({ rent: 1 });
 flatmateRequirementSchema.index({ availableFrom: 1 });
+flatmateRequirementSchema.index({ occupancyPreference: 1 });
+flatmateRequirementSchema.index({ brokerage: 1 });
 flatmateRequirementSchema.index({ 'propertyDetails.bedrooms': 1 });
 
 export const FlatmateRequirement = model<IFlatmateRequirement>(

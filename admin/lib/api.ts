@@ -984,6 +984,8 @@ export type FlatmatePropertyType = "room" | "flat" | "pg" | "shared_apartment";
 export type LegacyPropertyType = "flat" | "room" | "pg" | "shared_apartment" | "entire_property";
 export type FurnishingType = "fully_furnished" | "semi_furnished" | "unfurnished";
 export type GenderPreference = "male" | "female" | "other" | "any";
+export type TenantPreference = "anyone" | "bachelors" | "family";
+export type OccupancyPreference = "single" | "double" | "triple" | "four_or_more";
 export type OccupationPreference = "student" | "working_professional" | "self_employed" | "business_owner" | "freelancer" | "other" | "any";
 export type ListingStatus = "draft" | "pending" | "approved" | "rejected" | "blocked" | "closed" | "expired";
 
@@ -997,6 +999,7 @@ export interface PropertyItem {
   propertyType?: PropertyType | string;
   listingType?: PropertyType | string;
   propertyDetails?: PropertyDetails;
+  brokerage?: boolean;
   brokerageDetails?: BrokerageDetails;
   postedBy?: PropertyPostedBy;
   location?: any;
@@ -1009,6 +1012,7 @@ export interface PropertyItem {
   furnishing?: FurnishingType;
   parking?: boolean;
   availableFrom?: string;
+  tenantPreference?: TenantPreference;
   genderPreference?: GenderPreference;
   occupationPreference?: OccupationPreference;
   area?: number;
@@ -1212,10 +1216,12 @@ export interface FlatmateRequirementItem {
   furnishing?: FurnishingType;
 
   parking?: boolean;
+  brokerage?: boolean;
 
   availableFrom: string;
 
   genderPreference?: GenderPreference;
+  occupancyPreference?: OccupancyPreference;
 
   occupationPreference?: OccupationPreference;
 

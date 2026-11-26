@@ -40,30 +40,24 @@ export default function ListingMediaGallery({
       <div className={`w-full relative group ${className}`}>
         {/* DESKTOP / TABLET: Responsive Grid Layout (sm and up) */}
         <div className="hidden sm:block">
+          {/* 1 Image: Full width single image */}
           {images.length === 1 && (
             <div
               onClick={() => handleOpenGallery(0)}
-              className="relative h-[340px] md:h-[440px] lg:h-[500px] w-full rounded-[28px] sm:rounded-[36px] overflow-hidden border border-gray-200 shadow-sm bg-gray-100 cursor-pointer transition-all hover:shadow-md"
+              className="relative h-[340px] md:h-[440px] lg:h-[500px] w-full rounded-[28px] sm:rounded-[36px] overflow-hidden border border-gray-200 shadow-sm bg-gray-100 cursor-pointer transition-all hover:shadow-md group/single"
             >
               <img
                 src={images[0]}
                 alt={`${title} 1`}
-                className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.02]"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover/single:scale-[1.02]"
               />
-              <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
-                <button
-                  type="button"
-                  className="absolute bottom-5 right-5 bg-white/95 hover:bg-white text-gray-900 text-xs sm:text-sm font-medium px-4 py-2.5 rounded-full shadow-lg border border-gray-200 backdrop-blur-md flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 active:scale-95"
-                >
-                  <Maximize2 className="w-4 h-4 text-gray-700" />
-                  <span>View full screen</span>
-                </button>
-              </div>
+              <div className="absolute inset-0 bg-black/0 group-hover/single:bg-black/10 transition-colors" />
             </div>
           )}
 
+          {/* 2 Images: Balanced two-column grid */}
           {images.length === 2 && (
-            <div className="grid grid-cols-2 gap-3 h-[320px] md:h-[420px] lg:h-[480px] w-full rounded-[28px] sm:rounded-[36px] overflow-hidden border border-gray-200 shadow-sm bg-gray-100 relative">
+            <div className="grid grid-cols-2 gap-2.5 h-[340px] md:h-[440px] lg:h-[500px] w-full rounded-[28px] sm:rounded-[36px] overflow-hidden border border-gray-200 shadow-sm bg-gray-100 relative">
               {images.map((img, idx) => (
                 <div
                   key={idx}
@@ -78,19 +72,76 @@ export default function ListingMediaGallery({
                   <div className="absolute inset-0 bg-black/0 group-hover/item:bg-black/15 transition-colors" />
                 </div>
               ))}
-              <button
-                type="button"
-                onClick={() => handleOpenGallery(0)}
-                className="absolute bottom-5 right-5 bg-white/95 hover:bg-white text-gray-900 text-xs sm:text-sm font-medium px-4 py-2.5 rounded-full shadow-lg border border-gray-200 backdrop-blur-md flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 active:scale-95 z-10"
-              >
-                <Images className="w-4 h-4 text-gray-700" />
-                <span>View 2 photos</span>
-              </button>
             </div>
           )}
 
-          {images.length >= 3 && (
-            <div className="grid grid-cols-4 grid-rows-2 gap-2.5 h-[360px] md:h-[440px] lg:h-[500px] w-full rounded-[28px] sm:rounded-[36px] overflow-hidden border border-gray-200 shadow-sm bg-gray-100 relative">
+          {/* 3 Images: 1 large on left (spans 2 rows) + 2 stacked on right */}
+          {images.length === 3 && (
+            <div className="grid grid-cols-2 grid-rows-2 gap-2.5 h-[340px] md:h-[440px] lg:h-[500px] w-full rounded-[28px] sm:rounded-[36px] overflow-hidden border border-gray-200 shadow-sm bg-gray-100 relative">
+              {/* Featured main image (Left, spans 2 rows) */}
+              <div
+                onClick={() => handleOpenGallery(0)}
+                className="col-span-1 row-span-2 relative h-full w-full overflow-hidden cursor-pointer group/hero"
+              >
+                <img
+                  src={images[0]}
+                  alt={`${title} 1`}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover/hero:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover/hero:bg-black/15 transition-colors" />
+              </div>
+
+              {/* Secondary top image (Right top) */}
+              <div
+                onClick={() => handleOpenGallery(1)}
+                className="col-span-1 row-span-1 relative h-full w-full overflow-hidden cursor-pointer group/thumb"
+              >
+                <img
+                  src={images[1]}
+                  alt={`${title} 2`}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover/thumb:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover/thumb:bg-black/15 transition-colors" />
+              </div>
+
+              {/* Secondary bottom image (Right bottom) */}
+              <div
+                onClick={() => handleOpenGallery(2)}
+                className="col-span-1 row-span-1 relative h-full w-full overflow-hidden cursor-pointer group/thumb"
+              >
+                <img
+                  src={images[2]}
+                  alt={`${title} 3`}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover/thumb:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover/thumb:bg-black/15 transition-colors" />
+              </div>
+            </div>
+          )}
+
+          {/* 4 Images: Balanced 2x2 grid */}
+          {images.length === 4 && (
+            <div className="grid grid-cols-2 grid-rows-2 gap-2.5 h-[340px] md:h-[440px] lg:h-[500px] w-full rounded-[28px] sm:rounded-[36px] overflow-hidden border border-gray-200 shadow-sm bg-gray-100 relative">
+              {images.map((img, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => handleOpenGallery(idx)}
+                  className="col-span-1 row-span-1 relative h-full w-full overflow-hidden cursor-pointer group/item"
+                >
+                  <img
+                    src={img}
+                    alt={`${title} ${idx + 1}`}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover/item:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover/item:bg-black/15 transition-colors" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 5 or More Images: 1 Main (2x2) + 4 Thumbnails on right */}
+          {images.length >= 5 && (
+            <div className="grid grid-cols-4 grid-rows-2 gap-2.5 h-[340px] md:h-[440px] lg:h-[500px] w-full rounded-[28px] sm:rounded-[36px] overflow-hidden border border-gray-200 shadow-sm bg-gray-100 relative">
               {/* Primary Main Image (2 cols, 2 rows) */}
               <div
                 onClick={() => handleOpenGallery(0)}
@@ -135,15 +186,17 @@ export default function ListingMediaGallery({
                 );
               })}
 
-              {/* View All Photos Button */}
-              <button
-                type="button"
-                onClick={() => handleOpenGallery(0)}
-                className="absolute bottom-5 right-5 bg-white/95 hover:bg-white text-gray-900 text-xs sm:text-sm font-medium px-4 py-2.5 rounded-full shadow-lg border border-gray-200 backdrop-blur-md flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 active:scale-95 z-10"
-              >
-                <Images className="w-4 h-4 text-gray-700" />
-                <span>Show all {images.length} photos</span>
-              </button>
+              {/* View All Photos Button - Only show when images.length > 5 */}
+              {images.length > 5 && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenGallery(0)}
+                  className="absolute bottom-5 right-5 bg-white/95 hover:bg-white text-gray-900 text-xs sm:text-sm font-medium px-4 py-2.5 rounded-full shadow-lg border border-gray-200 backdrop-blur-md flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 active:scale-95 z-10"
+                >
+                  <Images className="w-4 h-4 text-gray-700" />
+                  <span>Show all {images.length} photos</span>
+                </button>
+              )}
             </div>
           )}
         </div>

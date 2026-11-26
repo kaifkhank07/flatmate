@@ -169,6 +169,7 @@ export const createProperty = async (req: Request, res: Response): Promise<Respo
             ...(body.propertyDetails.bedrooms && { bedrooms: body.propertyDetails.bedrooms }),
           }
         : undefined,
+      brokerage: body.brokerage !== undefined ? Boolean(body.brokerage) : (body.brokerageDetails ? Boolean(body.brokerageDetails.applicable) : false),
       brokerageDetails: body.brokerageDetails
         ? {
             applicable: Boolean(body.brokerageDetails.applicable),
@@ -188,8 +189,9 @@ export const createProperty = async (req: Request, res: Response): Promise<Respo
       furnishing: body.furnishing || 'semi_furnished',
       parking: typeof body.parking === 'object' ? Boolean(body.parking?.available) : Boolean(body.parking),
       availableFrom: parseValidDate(body.availableFrom) || now,
-      genderPreference: body.genderPreference || 'any',
-      occupationPreference: body.occupationPreference || 'any',
+      tenantPreference: body.tenantPreference || 'anyone',
+      genderPreference: body.genderPreference,
+      occupationPreference: body.occupationPreference,
       amenities: amenitiesList,
       houseRules: body.houseRules || [],
       images: imageIds,
@@ -327,12 +329,18 @@ export const getProperties = async (req: Request, res: Response): Promise<Respon
       }
     }
 
-    // Gender Preference filter
+    // Tenant Preference filter
+    if (req.query.tenantPreference && req.query.tenantPreference !== 'all') {
+      filter.tenantPreference = req.query.tenantPreference;
+    }
+    if (req.query.brokerage !== undefined) {
+      filter.brokerage = String(req.query.brokerage) === 'true';
+    }
+
+    // Legacy Gender / Occupation filter fallback
     if (req.query.genderPreference && req.query.genderPreference !== 'all') {
       filter.genderPreference = req.query.genderPreference;
     }
-
-    // Occupation Preference filter
     if (req.query.occupationPreference && req.query.occupationPreference !== 'all') {
       filter.occupationPreference = req.query.occupationPreference;
     }
@@ -523,12 +531,21 @@ export const updateProperty = async (req: Request, res: Response): Promise<Respo
       }
       property.propertyDetails = updatedDetails;
     }
+    if (body.brokerage !== undefined) {
+      property.brokerage = Boolean(body.brokerage);
+    }
     if (body.brokerageDetails !== undefined) {
       property.brokerageDetails = {
         applicable: Boolean(body.brokerageDetails.applicable),
         ...(body.brokerageDetails.type && { type: body.brokerageDetails.type }),
         ...(body.brokerageDetails.value !== undefined && { value: Number(body.brokerageDetails.value) }),
       };
+      if (body.brokerage === undefined) {
+        property.brokerage = Boolean(body.brokerageDetails.applicable);
+      }
+    }
+    if (body.tenantPreference !== undefined) {
+      property.tenantPreference = body.tenantPreference;
     }
     if (body.postedBy !== undefined) {
       property.postedBy = body.postedBy;

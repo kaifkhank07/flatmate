@@ -130,6 +130,9 @@ export async function sendMobileOTP(
         CODE: otp,
         VAR1: otp,
         var1: otp,
+        domain: msg91Config.appDomain,
+        DOMAIN: msg91Config.appDomain,
+        Domain: msg91Config.appDomain,
       }),
     });
 

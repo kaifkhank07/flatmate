@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Phone, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import LineRoll from "../utils/LineRoll";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useOtpInput } from "@/hooks/useOtpInput";
+import { useWebOTP } from "@/hooks/useWebOTP";
 
 interface LoginProps {
   onSwitchToSignUp?: () => void;
@@ -12,14 +14,48 @@ interface LoginProps {
 
 export default function Login({ onSwitchToSignUp }: LoginProps) {
   const router = useRouter();
-  const { sendLoginOTP, verifyLoginOTP, checkProfileCompletionStatus, tempOtp, isLoading, error, clearError } = useAuthStore();
+  const { sendLoginOTP, verifyLoginOTP, checkProfileCompletionStatus, isLoading, error, clearError } = useAuthStore();
 
   const [mobileNumber, setMobileNumber] = useState("");
   const [step, setStep] = useState<"phone" | "otp">("phone");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [localError, setLocalError] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendCount, setResendCount] = useState(0);
 
   const activeError = localError || error;
+
+  // 6-digit OTP input controller with native iOS & Android autofill support
+  const {
+    otp,
+    fullOtp,
+    applyFullOtp,
+    resetOtp,
+    getInputProps,
+  } = useOtpInput({
+    idPrefix: "otp-input",
+    onChange: () => {
+      if (localError) setLocalError("");
+      if (error) clearError();
+    },
+  });
+
+  // Android WebOTP API listener (automatically canceled on step change or unmount)
+  useWebOTP({
+    enabled: step === "otp",
+    triggerKey: resendCount,
+    onReceiveOTP: (receivedCode) => {
+      applyFullOtp(receivedCode);
+    },
+  });
+
+  // Resend cooldown timer
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resendCooldown > 0) {
+      timer = setTimeout(() => setResendCooldown((prev) => prev - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,33 +68,28 @@ export default function Login({ onSwitchToSignUp }: LoginProps) {
 
     const success = await sendLoginOTP(mobileNumber);
     if (success) {
-      setOtp(["", "", "", "", "", ""]);
+      resetOtp();
+      setResendCooldown(30);
+      setResendCount((c) => c + 1);
       setStep("otp");
     }
   };
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) value = value[value.length - 1];
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || isLoading) return;
+    setLocalError("");
+    clearError();
 
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-input-${index + 1}`);
-      if (nextInput) nextInput.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-input-${index - 1}`);
-      if (prevInput) prevInput.focus();
+    const success = await sendLoginOTP(mobileNumber);
+    if (success) {
+      setResendCooldown(30);
+      setResendCount((c) => c + 1);
+      resetOtp();
     }
   };
 
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const fullOtp = otp.join("");
     if (fullOtp.length < 6) {
       setLocalError("Please enter complete 6-digit verification code");
       return;
@@ -191,31 +222,35 @@ export default function Login({ onSwitchToSignUp }: LoginProps) {
 
           <div className="space-y-2">
             <div className="flex justify-between items-center gap-1.5 sm:gap-2 py-2">
-              {otp.map((digit, index) => (
+              {otp.map((_, index) => (
                 <input
-                  key={index}
-                  id={`otp-input-${index}`}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  disabled={isLoading}
-                  onChange={(e) => {
-                    handleOtpChange(index, e.target.value);
-                    if (localError) setLocalError("");
-                    if (error) clearError();
-                  }}
-                  onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                  className="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-semibold border border-gray-300 rounded-xl sm:rounded-2xl focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all bg-white text-gray-900"
+                  {...getInputProps(index, {
+                    disabled: isLoading,
+                    className:
+                      "w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-semibold border border-gray-300 rounded-xl sm:rounded-2xl focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all bg-white text-gray-900",
+                  })}
                 />
               ))}
             </div>
+
+            <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 pt-1">
+              <span>Didn't receive code?</span>
+              <button
+                type="button"
+                disabled={resendCooldown > 0 || isLoading}
+                onClick={handleResendOtp}
+                className="text-blue-600 hover:underline font-medium disabled:text-gray-400 disabled:no-underline cursor-pointer disabled:cursor-not-allowed"
+              >
+                {isLoading ? "Sending..." : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Code"}
+              </button>
+            </div>
+
             {activeError && <p className="text-xs text-red-500 text-center">{activeError}</p>}
           </div>
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || fullOtp.length < 6}
             className="w-full bg-accent hover:bg-accent/80 text-white font-medium py-3.5 rounded-full transition-colors text-base shadow-sm hover:shadow-md active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isLoading ? "Verifying..." : "Verify & Proceed"}

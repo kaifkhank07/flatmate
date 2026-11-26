@@ -280,19 +280,36 @@ export const getListings = async (req: Request, res: Response): Promise<Response
       }
     }
 
-    // 5. Gender Preference Filter
+    // 5. Gender Preference Filter (Flatmate Requirements)
     const rawGender = query.genderPreference as string | undefined;
     const genderPref = rawGender ? rawGender.trim().toLowerCase() : undefined;
     if (genderPref && genderPref !== 'all' && genderPref !== 'any') {
-      propertyFilter.genderPreference = genderPref;
       flatmateFilter.genderPreference = genderPref;
     }
 
-    // 6. Occupation Preference Filter
+    // 6. Occupation Preference Filter (Flatmate Requirements)
     const occPref = query.occupationPreference as string;
     if (occPref && occPref !== 'all') {
-      propertyFilter.occupationPreference = { $in: [occPref, 'any'] };
       flatmateFilter.occupationPreference = { $in: [occPref, 'any'] };
+    }
+
+    // Tenant Preference (Property)
+    const tenantPref = query.tenantPreference as string | undefined;
+    if (tenantPref && tenantPref !== 'all') {
+      propertyFilter.tenantPreference = { $in: [tenantPref, 'anyone'] };
+    }
+
+    // Occupancy Preference (Flatmate)
+    const occupancyPref = query.occupancyPreference as string | undefined;
+    if (occupancyPref && occupancyPref !== 'all') {
+      flatmateFilter.occupancyPreference = occupancyPref;
+    }
+
+    // Brokerage Filter
+    if (query.brokerage !== undefined) {
+      const isBrokerage = String(query.brokerage) === 'true';
+      propertyFilter.brokerage = isBrokerage;
+      flatmateFilter.brokerage = isBrokerage;
     }
 
     // 7. Availability / Move-In Date Filter
@@ -1175,7 +1192,7 @@ export const getMyListings = async (
       flatmateFilter.rent = budgetVal;
     }
 
-    // 9. Gender Preference Filter
+    // 9. Gender Preference Filter (Flatmate)
     const genderPref =
       query.genderPreference as string;
 
@@ -1183,16 +1200,12 @@ export const getMyListings = async (
       genderPref &&
       genderPref !== 'all'
     ) {
-      propertyFilter.genderPreference = {
-        $in: [genderPref, 'any'],
-      };
-
       flatmateFilter.genderPreference = {
         $in: [genderPref, 'any'],
       };
     }
 
-    // 10. Occupation Preference Filter
+    // 10. Occupation Preference Filter (Flatmate)
     const occPref =
       query.occupationPreference as string;
 
@@ -1200,13 +1213,28 @@ export const getMyListings = async (
       occPref &&
       occPref !== 'all'
     ) {
-      propertyFilter.occupationPreference = {
-        $in: [occPref, 'any'],
-      };
-
       flatmateFilter.occupationPreference = {
         $in: [occPref, 'any'],
       };
+    }
+
+    // Tenant Preference (Property)
+    const tenantPref = query.tenantPreference as string | undefined;
+    if (tenantPref && tenantPref !== 'all') {
+      propertyFilter.tenantPreference = { $in: [tenantPref, 'anyone'] };
+    }
+
+    // Occupancy Preference (Flatmate)
+    const occupancyPref = query.occupancyPreference as string | undefined;
+    if (occupancyPref && occupancyPref !== 'all') {
+      flatmateFilter.occupancyPreference = occupancyPref;
+    }
+
+    // Brokerage Filter
+    if (query.brokerage !== undefined) {
+      const isBrokerage = String(query.brokerage) === 'true';
+      propertyFilter.brokerage = isBrokerage;
+      flatmateFilter.brokerage = isBrokerage;
     }
 
     // 11. Availability / Move-In Date Filter

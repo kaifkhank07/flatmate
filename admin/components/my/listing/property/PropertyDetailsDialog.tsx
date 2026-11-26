@@ -193,9 +193,22 @@ export default function PropertyDetailsDialog({
               </div>
             )}
 
+            {/* Administrative & Owner Information */}
             <div className="card-title" style={{ margin: "16px 0 6px" }}>
-              Property Specifications & Overview
+              Administrative & Owner Information
             </div>
+
+            <div className="d-row">
+              <span>Owner / User</span>
+              <b>{getOwnerLabel(property.userId || property.ownerId)}</b>
+            </div>
+
+            {property.postedBy && (
+              <div className="d-row">
+                <span>Posted By</span>
+                <b>{property.postedBy.toUpperCase()}</b>
+              </div>
+            )}
 
             {property.slug && (
               <div className="d-row">
@@ -204,12 +217,53 @@ export default function PropertyDetailsDialog({
               </div>
             )}
 
+            {/* 1. Basic Overview */}
+            <div className="card-title" style={{ margin: "16px 0 6px" }}>
+              1. Basic Overview
+            </div>
+
+            <div className="d-row">
+              <span>Location</span>
+              <b>{getLocationName(property.location)}</b>
+            </div>
+
+            <div className="d-row">
+              <span>Title</span>
+              <b>{property.title}</b>
+            </div>
+
+            {/* 2. Property Details */}
+            <div className="card-title" style={{ margin: "16px 0 6px" }}>
+              2. Property Details
+            </div>
+
             {property.propertyType && (
               <div className="d-row">
                 <span>Property Type</span>
                 <b>
                   {String(property.propertyType).replace(/_/g, " ").toUpperCase()}
                 </b>
+              </div>
+            )}
+
+            {Boolean(property.area && property.area > 0) && (
+              <div className="d-row">
+                <span>Area Size</span>
+                <b>{property.area} sqft</b>
+              </div>
+            )}
+
+            {property.furnishing && (
+              <div className="d-row">
+                <span>Furnishing</span>
+                <b>{property.furnishing.replace(/_/g, " ").toUpperCase()}</b>
+              </div>
+            )}
+
+            {property.parking !== undefined && (
+              <div className="d-row">
+                <span>Parking</span>
+                <b>{property.parking ? "Available" : "Not Available"}</b>
               </div>
             )}
 
@@ -249,30 +303,42 @@ export default function PropertyDetailsDialog({
                 </div>
               )}
 
-            {property.brokerageDetails && (
+            {/* 3. Rental Specifications */}
+            <div className="card-title" style={{ margin: "16px 0 6px" }}>
+              3. Rental Specifications
+            </div>
+
+            <div className="d-row">
+              <span>Monthly Rent</span>
+              <b>₹{(typeof property.rent === "number" ? property.rent : 0).toLocaleString("en-IN")}/mo</b>
+            </div>
+
+            <div className="d-row">
+              <span>Security Deposit</span>
+              <b>₹{(property.securityDeposit || 0).toLocaleString("en-IN")}</b>
+            </div>
+
+            {(typeof property.brokerage === "boolean" || property.brokerageDetails) && (
               <div className="d-row">
                 <span>Brokerage</span>
                 <b>
-                  {property.brokerageDetails.applicable
-                    ? property.brokerageDetails.type === "percentage"
-                      ? `${property.brokerageDetails.value}%`
-                      : `₹${(property.brokerageDetails.value || 0).toLocaleString("en-IN")}`
-                    : "Zero Brokerage / Not Applicable"}
+                  {typeof property.brokerage === "boolean"
+                    ? property.brokerage
+                      ? "Brokerage Applicable"
+                      : "Zero Brokerage / Not Applicable"
+                    : property.brokerageDetails?.applicable
+                      ? property.brokerageDetails.type === "percentage"
+                        ? `${property.brokerageDetails.value}%`
+                        : `₹${(property.brokerageDetails.value || 0).toLocaleString("en-IN")}`
+                      : "Zero Brokerage / Not Applicable"}
                 </b>
               </div>
             )}
 
-            {property.postedBy && (
+            {property.availableFrom && (
               <div className="d-row">
-                <span>Posted By</span>
-                <b>{property.postedBy.toUpperCase()}</b>
-              </div>
-            )}
-
-            {property.furnishing && (
-              <div className="d-row">
-                <span>Furnishing</span>
-                <b>{property.furnishing.replace(/_/g, " ").toUpperCase()}</b>
+                <span>Available From</span>
+                <b>{new Date(property.availableFrom).toLocaleDateString()}</b>
               </div>
             )}
 
@@ -286,73 +352,40 @@ export default function PropertyDetailsDialog({
               </div>
             )}
 
-            {property.parking !== undefined && (
-              <div className="d-row">
-                <span>Parking</span>
-                <b>{property.parking ? "Available" : "Not Available"}</b>
-              </div>
-            )}
-
-            {property.availableFrom && (
-              <div className="d-row">
-                <span>Available From</span>
-                <b>{new Date(property.availableFrom).toLocaleDateString()}</b>
-              </div>
-            )}
-
-            {Boolean(property.area && property.area > 0) && (
-              <div className="d-row">
-                <span>Area Size</span>
-                <b>{property.area} sqft</b>
-              </div>
-            )}
-
+            {/* 4. Preferences */}
             <div className="card-title" style={{ margin: "16px 0 6px" }}>
-              Preferences & Owner
+              4. Preferences
             </div>
 
-            {property.genderPreference && (
+            {property.tenantPreference && (
               <div className="d-row">
-                <span>Gender Preference</span>
-                <b>{property.genderPreference.toUpperCase()}</b>
+                <span>Tenant Preference</span>
+                <b>
+                  {property.tenantPreference === "bachelors"
+                    ? "BACHELOR'S"
+                    : property.tenantPreference === "family"
+                      ? "FAMILY"
+                      : "ANYONE"}
+                </b>
               </div>
             )}
-
-            {property.occupationPreference && (
-              <div className="d-row">
-                <span>Occupation Preference</span>
-                <b>{property.occupationPreference.replace(/_/g, " ").toUpperCase()}</b>
-              </div>
-            )}
-
-            <div className="d-row">
-              <span>Owner / User</span>
-              <b>{getOwnerLabel(property.userId || property.ownerId)}</b>
-            </div>
-
-            {Array.isArray((property as any).houseRules) &&
-              (property as any).houseRules.length > 0 && (
-                <div className="d-row">
-                  <span>House Rules</span>
-                  <b>{(property as any).houseRules.join(", ")}</b>
-                </div>
-              )}
 
             {property.description && (
               <>
-                <div className="card-title" style={{ margin: "16px 0 6px" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 8 }}>
                   Description
                 </div>
-                <div style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5, padding: "8px 0" }}>
+                <div style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5, padding: "4px 0 8px" }}>
                   {property.description}
                 </div>
               </>
             )}
 
+            {/* 5. Amenities */}
             {property.amenities && property.amenities.length > 0 && (
               <>
                 <div className="card-title" style={{ margin: "16px 0 6px" }}>
-                  Attached Amenities ({property.amenities.length})
+                  5. Amenities ({property.amenities.length})
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
                   {property.amenities.map((am: any, i) => (
@@ -364,10 +397,17 @@ export default function PropertyDetailsDialog({
               </>
             )}
 
+            {/* 6. Media Assets */}
+            {((property.images && property.images.length > 0) || (property.videos && property.videos.length > 0)) && (
+              <div className="card-title" style={{ margin: "16px 0 6px" }}>
+                6. Media Assets
+              </div>
+            )}
+
             {/* Attached Images */}
             {property.images && property.images.length > 0 && (
               <>
-                <div className="card-title" style={{ margin: "16px 0 6px" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 8 }}>
                   Property Images ({property.images.length})
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 6 }}>
@@ -397,7 +437,7 @@ export default function PropertyDetailsDialog({
             {/* Attached Videos */}
             {property.videos && property.videos.length > 0 && (
               <>
-                <div className="card-title" style={{ margin: "16px 0 6px" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 8 }}>
                   Property Videos ({property.videos.length})
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>

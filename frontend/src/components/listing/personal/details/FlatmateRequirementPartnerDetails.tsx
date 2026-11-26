@@ -15,6 +15,13 @@ import {
   Dog,
   Wine,
   Heart,
+  Eye,
+  Activity,
+  Calendar,
+  Clock,
+  CheckCircle2,
+  Hash,
+  Copy,
   LandPlot,
   Sparkles,
   Tv,
@@ -28,6 +35,7 @@ import {
   Shirt,
   Car,
   Maximize2,
+  Check,
   Pencil,
   Trash2,
   Loader2,
@@ -86,6 +94,27 @@ export default function FlatmateRequirementPartnerDetails({
   const [showCallModal, setShowCallModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
+
+  const handleCopyId = () => {
+    if (!listing._id) return;
+    navigator.clipboard.writeText(listing._id);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
+  };
+
+  const formatDateTime = (dateVal?: string | Date) => {
+    if (!dateVal) return "N/A";
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return "N/A";
+    return d.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   const userObj = listing.userId;
   const name = listingData?.name || userObj?.name || "Roommate Seeker";
@@ -364,207 +393,410 @@ export default function FlatmateRequirementPartnerDetails({
               </div>
             )}
 
-            {/* Location */}
-            <div className="space-y-1.5">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Location</h3>
-              <div className="flex items-start gap-1.5 text-gray-500 text-sm sm:text-lg font-regular">
-                <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-1" />
-                <span>{locationText}</span>
+            {/* SECTION 1: REQUIREMENT OVERVIEW */}
+            <div className="space-y-4">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                REQUIREMENT OVERVIEW
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-1">
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Location</span>
+                  <div className="flex items-start gap-1.5 text-gray-800 text-sm sm:text-base font-medium mt-1">
+                    <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                    <span>{locationText}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Title</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{postTitle}</p>
+                </div>
               </div>
             </div>
 
             <hr className="border-gray-200 border-t my-4" />
 
-            {/* Rent Info */}
+            {/* SECTION 2: SPACE DETAILS */}
             <div className="space-y-4">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Rent Info</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                SPACE DETAILS
+              </h3>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pt-1">
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Monthly Rent</span>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
-                      <IndianRupee size={13} strokeWidth={2} className="text-accent" />
-                    </span>
-                    <span className="text-black text-sm sm:text-lg md:text-xl font-medium">{monthlyRent}</span>
-                  </div>
-                </div>
-                <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Deposit</span>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
-                      <IndianRupee size={13} strokeWidth={2} className="text-accent" />
-                    </span>
-                    <span className="text-black text-sm sm:text-lg md:text-xl font-medium">{deposit}</span>
-                  </div>
-                </div>
-                <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Area (sqft)</span>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Area (sq.ft)</span>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
                       <LandPlot size={13} strokeWidth={2} className="text-accent" />
                     </span>
-                    <span className="text-black text-sm sm:text-lg md:text-xl font-medium">{areaFormatted}</span>
+                    <span className="text-black text-sm sm:text-base md:text-lg font-medium">{areaFormatted}</span>
                   </div>
                 </div>
+
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Parking</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{parkingText}</p>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Furnishing Status</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
+                    {listing.furnishing ? listing.furnishing.replace(/_/g, " ") : "N/A"}
+                  </p>
                 </div>
+
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Maintenance Charges</span>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Parking Facility</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{parkingText}</p>
+                </div>
+
+                {listing.propertyDetails?.bedrooms && (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Bedrooms / BHK</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 uppercase">
+                      {listing.propertyDetails.bedrooms.replace(/_/g, " ")}
+                    </p>
+                  </div>
+                )}
+
+                {listing.propertyDetails?.facing && (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Facing</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
+                      {listing.propertyDetails.facing.replace(/_/g, "-")}
+                    </p>
+                  </div>
+                )}
+
+                {listing.propertyDetails?.floor !== undefined && (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Floor</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">
+                      {listing.propertyDetails.floor === 0 ? "Ground Floor (0)" : `${listing.propertyDetails.floor}`}
+                      {listing.propertyDetails.totalFloors !== undefined ? ` of ${listing.propertyDetails.totalFloors}` : ""}
+                    </p>
+                  </div>
+                )}
+
+                {listing.propertyDetails?.totalFloors !== undefined && (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Total Floors</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">
+                      {listing.propertyDetails.totalFloors}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <hr className="border-gray-200 border-t my-4" />
+
+            {/* SECTION 3: RENTAL SPECIFICATIONS */}
+            <div className="space-y-4">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                RENTAL SPECIFICATIONS
+              </h3>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pt-1">
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Occupancy Preference</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
+                    {listing.occupancyPreference ? listing.occupancyPreference.replace(/_/g, " ") : "Single"}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Rent Amount (₹/mo)</span>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
                       <IndianRupee size={13} strokeWidth={2} className="text-accent" />
                     </span>
-                    <span className="text-black text-sm sm:text-lg md:text-xl font-medium">{maintenanceChargesText}</span>
+                    <span className="text-black text-sm sm:text-base md:text-lg font-medium">{monthlyRent}</span>
                   </div>
                 </div>
+
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Maintenance Frequency</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{maintenanceFrequencyText}</p>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Security Deposit (₹)</span>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
+                      <IndianRupee size={13} strokeWidth={2} className="text-accent" />
+                    </span>
+                    <span className="text-black text-sm sm:text-base md:text-lg font-medium">{deposit}</span>
+                  </div>
                 </div>
+
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Furnishing</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1 capitalize">
-                    {listing.furnishing ? listing.furnishing.replace(/_/g, " ") : "N/A"}
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Brokerage Applicable</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">
+                    {listing.brokerage ? "Yes (Brokerage Applicable)" : "No (Zero Brokerage)"}
                   </p>
                 </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Available From</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{availableFromDate}</p>
+                </div>
+
+                {listing.maintenanceCharges?.amount ? (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Maintenance Charges (₹)</span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
+                        <IndianRupee size={13} strokeWidth={2} className="text-accent" />
+                      </span>
+                      <span className="text-black text-sm sm:text-base md:text-lg font-medium">{maintenanceChargesText}</span>
+                    </div>
+                  </div>
+                ) : null}
+
+                {listing.maintenanceCharges?.frequency ? (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Maintenance Frequency</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{maintenanceFrequencyText}</p>
+                  </div>
+                ) : null}
               </div>
             </div>
 
-            {/* Property Details */}
-            {listing.propertyDetails && (listing.propertyDetails.bedrooms || listing.propertyDetails.facing || listing.propertyDetails.floor !== undefined || listing.propertyDetails.totalFloors !== undefined) && (
-              <div className="space-y-3">
-                <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Property Details</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
-                  {listing.propertyDetails.bedrooms && (
-                    <div>
-                      <span className="block text-gray-500 text-sm sm:text-lg font-regular">Bedrooms / BHK</span>
-                      <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1 uppercase">
-                        {listing.propertyDetails.bedrooms.replace(/_/g, " ")}
-                      </p>
-                    </div>
-                  )}
-                  {listing.propertyDetails.floor !== undefined && (
-                    <div>
-                      <span className="block text-gray-500 text-sm sm:text-lg font-regular">Floor</span>
-                      <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">
-                        {listing.propertyDetails.floor === 0 ? "Ground Floor (0)" : `${listing.propertyDetails.floor}`}
-                        {listing.propertyDetails.totalFloors !== undefined ? ` of ${listing.propertyDetails.totalFloors}` : ""}
-                      </p>
-                    </div>
-                  )}
-                  {listing.propertyDetails.facing && (
-                    <div>
-                      <span className="block text-gray-500 text-sm sm:text-lg font-regular">Facing</span>
-                      <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1 capitalize">
-                        {listing.propertyDetails.facing.replace(/_/g, "-")}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+            <hr className="border-gray-200 border-t my-4" />
 
-            {/* Roommate Preferences */}
-            <div className="space-y-3">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Roommate Preferences</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
+            {/* SECTION 4: PREFERENCES */}
+            <div className="space-y-4">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                PREFERENCES
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-1">
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Gender Preference</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{genderPreference}</p>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Gender Preference</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{genderPreference}</p>
                 </div>
+
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Occupation Preference</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{occupationPreference}</p>
-                </div>
-                <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Available From</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{availableFromDate}</p>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Occupation Preference</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{occupationPreference}</p>
                 </div>
               </div>
+
+              {/* Description */}
+              <div className="space-y-2 pt-2">
+                <span className="block text-gray-500 text-xs sm:text-sm font-medium">Description</span>
+                <div className="mt-1">
+                  <RichTextRenderer content={description} />
+                </div>
+              </div>
+
+              {/* Lifestyle Preferences */}
+              {preferencesList.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">
+                    Lifestyle Preferences ({preferencesList.length} selected)
+                  </span>
+
+                  <div className="flex flex-wrap items-start gap-x-3 gap-y-5 sm:gap-x-6 sm:gap-y-8 pt-1">
+                    {preferencesList.map((pref, idx) => (
+                      <div
+                        key={pref._id || idx}
+                        className="flex w-[64px] min-w-0 flex-col items-center sm:w-20 md:w-24"
+                      >
+                        <div className="relative h-10 w-14 sm:h-14 sm:w-20 md:h-16 md:w-24">
+                          <div className="absolute bottom-0 left-0 h-7 w-full rounded-full bg-accent sm:h-10 md:h-11" />
+
+                          <div className="absolute left-1/2 -top-1 z-10 -translate-x-1/2 sm:-top-2">
+                            {pref.image ? (
+                              <img
+                                src={pref.image}
+                                alt={pref.name}
+                                className="h-9 w-9 object-contain sm:h-12 sm:w-12 md:h-14 md:w-14"
+                              />
+                            ) : (
+                              getPreferenceVisual(pref.name)
+                            )}
+                          </div>
+                        </div>
+
+                        <span className="mt-1.5 w-full break-words text-center text-[11px] font-normal leading-tight text-gray-500 capitalize sm:text-sm md:text-base">
+                          {pref.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Amenities */}
+              {amenitiesList.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">
+                    Amenities ({amenitiesList.length} selected)
+                  </span>
+
+                  <div className="flex flex-wrap items-start gap-x-3 gap-y-5 sm:gap-x-6 sm:gap-y-8 pt-1">
+                    {amenitiesList.map((am, idx) => (
+                      <div
+                        key={am._id || idx}
+                        className="flex w-[64px] min-w-0 flex-col items-center sm:w-20 md:w-24"
+                      >
+                        <div className="relative h-10 w-14 sm:h-14 sm:w-20 md:h-16 md:w-24">
+                          <div className="absolute bottom-0 left-0 h-7 w-full rounded-full bg-accent sm:h-10 md:h-11" />
+
+                          <div className="absolute left-1/2 -top-1 z-10 -translate-x-1/2 sm:-top-2">
+                            {am.image ? (
+                              <img
+                                src={am.image}
+                                alt={am.name}
+                                className="h-9 w-9 object-contain sm:h-12 sm:w-12 md:h-14 md:w-14"
+                              />
+                            ) : (
+                              getAmenityIcon(am.name)
+                            )}
+                          </div>
+                        </div>
+
+                        <span className="mt-1.5 w-full break-words text-center text-[11px] font-normal leading-tight text-gray-500 capitalize sm:text-sm md:text-base">
+                          {am.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Lifestyle Preferences */}
-            {preferencesList.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">
-                  Lifestyle & Preferences
-                </h3>
-
-                <div className="flex flex-wrap items-start gap-x-3 gap-y-5 sm:gap-x-6 sm:gap-y-8 pt-1">
-                  {preferencesList.map((pref, idx) => (
-                    <div
-                      key={pref._id || idx}
-                      className="flex w-[64px] min-w-0 flex-col items-center sm:w-20 md:w-24"
-                    >
-                      <div className="relative h-10 w-14 sm:h-14 sm:w-20 md:h-16 md:w-24">
-                        <div className="absolute bottom-0 left-0 h-7 w-full rounded-full bg-accent sm:h-10 md:h-11" />
-
-                        <div className="absolute left-1/2 -top-1 z-10 -translate-x-1/2 sm:-top-2">
-                          {pref.image ? (
-                            <img
-                              src={pref.image}
-                              alt={pref.name}
-                              className="h-9 w-9 object-contain sm:h-12 sm:w-12 md:h-14 md:w-14"
-                            />
-                          ) : (
-                            getPreferenceVisual(pref.name)
-                          )}
-                        </div>
-                      </div>
-
-                      <span className="mt-1.5 w-full break-words text-center text-[11px] font-normal leading-tight text-gray-500 capitalize sm:text-sm md:text-base">
-                        {pref.name}
-                      </span>
-                    </div>
-                  ))}
+            {/* SECTION 5: MEDIA ASSETS MANAGEMENT (Conditional) */}
+            {imageList.length > 0 && (
+              <>
+                <hr className="border-gray-200 border-t my-4" />
+                <div className="space-y-4">
+                  <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                    MEDIA ASSETS MANAGEMENT
+                  </h3>
+                  <p className="text-gray-500 text-xs sm:text-sm">
+                    Photos uploaded for this requirement ({imageList.length})
+                  </p>
                 </div>
-              </div>
+              </>
             )}
 
-            {/* Amenities */}
-            {amenitiesList.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">
-                  Amenities
+            <hr className="border-gray-200 border-t my-4" />
+
+            {/* SECTION: LISTING INFORMATION & ACTIVITY */}
+            <div className="space-y-4 pt-1">
+              <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-brand-blue shrink-0" />
+                <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                  LISTING INFORMATION & ACTIVITY
                 </h3>
+              </div>
 
-                <div className="flex flex-wrap items-start gap-x-3 gap-y-5 sm:gap-x-6 sm:gap-y-8 pt-1">
-                  {amenitiesList.map((am, idx) => (
-                    <div
-                      key={am._id || idx}
-                      className="flex w-[64px] min-w-0 flex-col items-center sm:w-20 md:w-24"
-                    >
-                      <div className="relative h-10 w-14 sm:h-14 sm:w-20 md:h-16 md:w-24">
-                        <div className="absolute bottom-0 left-0 h-7 w-full rounded-full bg-accent sm:h-10 md:h-11" />
-
-                        <div className="absolute left-1/2 -top-1 z-10 -translate-x-1/2 sm:-top-2">
-                          {am.image ? (
-                            <img
-                              src={am.image}
-                              alt={am.name}
-                              className="h-9 w-9 object-contain sm:h-12 sm:w-12 md:h-14 md:w-14"
-                            />
-                          ) : (
-                            getAmenityIcon(am.name)
-                          )}
-                        </div>
-                      </div>
-
-                      <span className="mt-1.5 w-full break-words text-center text-[11px] font-normal leading-tight text-gray-500 capitalize sm:text-sm md:text-base">
-                        {am.name}
+              <div className="bg-[#F8FBFE] border border-[#E2EFF8] rounded-2xl p-5 sm:p-6 space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                  {/* Status */}
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Listing Status</span>
+                    <div className="mt-1.5">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold capitalize border ${status === "approved"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : status === "rejected"
+                            ? "bg-red-50 text-red-700 border-red-200"
+                            : status === "pending"
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : "bg-gray-100 text-gray-700 border-gray-200"
+                          }`}
+                      >
+                        <span
+                          className={`w-2 h-2 rounded-full ${status === "approved"
+                            ? "bg-emerald-500"
+                            : status === "rejected"
+                              ? "bg-red-500"
+                              : status === "pending"
+                                ? "bg-amber-500"
+                                : "bg-gray-400"
+                            }`}
+                        />
+                        {status || "Pending"}
                       </span>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Favourite Count */}
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Favourites</span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Heart className="w-4 h-4 text-rose-500 fill-rose-500 shrink-0" />
+                      <span className="text-black text-xs sm:text-sm md:text-base font-medium">
+                        {listing.favoriteCount ?? 0}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Listing ID */}
+                  {/* {listing._id && (
+                    <div>
+                      <span className="block text-gray-500 text-xs sm:text-sm font-medium">Listing ID</span>
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <span className="font-mono text-xs sm:text-sm text-gray-800 font-medium truncate max-w-[140px] sm:max-w-[180px]">
+                          {listing._id}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleCopyId}
+                          className="text-gray-400 hover:text-brand-blue transition-colors p-1"
+                          title="Copy Listing ID"
+                        >
+                          {copiedId ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )} */}
+
+                  {/* Created On */}
+                  {listing.createdAt && (
+                    <div>
+                      <span className="block text-gray-500 text-xs sm:text-sm font-medium">Created On</span>
+                      <p className="text-black text-xs sm:text-sm md:text-base font-medium mt-1">
+                        {formatDateTime(listing.createdAt)}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Last Updated */}
+                  {/* {listing.updatedAt && (
+                    <div>
+                      <span className="block text-gray-500 text-xs sm:text-sm font-medium">Last Updated</span>
+                      <p className="text-black text-xs sm:text-sm md:text-base font-medium mt-1">
+                        {formatDateTime(listing.updatedAt)}
+                      </p>
+                    </div>
+                  )} */}
+
+                  {/* Published / Approved Date */}
+                  {(listing.approvedAt || listing.publishedAt) && (
+                    <div>
+                      <span className="block text-gray-500 text-xs sm:text-sm font-medium">
+                        {listing.approvedAt ? "Approved On" : "Published On"}
+                      </span>
+                      <p className="text-black text-xs sm:text-sm md:text-base font-medium mt-1">
+                        {formatDateTime(listing.approvedAt || listing.publishedAt)}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Views Count (if available) */}
+                  {/* {typeof listing.viewsCount === "number" && (
+                    <div>
+                      <span className="block text-gray-500 text-xs sm:text-sm font-medium">Views</span>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <Eye className="w-4 h-4 text-brand-blue shrink-0" />
+                        <span className="text-black text-xs sm:text-sm md:text-base font-medium">
+                          {listing.viewsCount}
+                        </span>
+                      </div>
+                    </div>
+                  )} */}
                 </div>
               </div>
-            )}
-
-            {/* Description */}
-            <div className="space-y-3">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Description</h3>
-              <RichTextRenderer content={description} />
             </div>
           </div>
         </div>

@@ -124,6 +124,7 @@ export const createPropertySchema = z.object({
       ),
     propertyType: propertyTypeSchema,
     propertyDetails: propertyDetailsSchema,
+    brokerage: z.boolean().optional().default(false),
     brokerageDetails: brokerageDetailsSchema,
     postedBy: postedBySchema,
     location: z.union([
@@ -160,6 +161,7 @@ export const createPropertySchema = z.object({
       .optional(),
     parking: z.boolean().optional(),
     availableFrom: z.string().or(z.date()),
+    tenantPreference: z.enum(['anyone', 'bachelors', 'family']).optional().default('anyone'),
     genderPreference: z.enum(['male', 'female', 'other', 'any']).optional(),
     occupationPreference: z
       .enum([

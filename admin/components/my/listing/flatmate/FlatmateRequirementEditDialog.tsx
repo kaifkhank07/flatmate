@@ -69,12 +69,15 @@ export default function FlatmateRequirementEditDialog({
   const [maintenanceFrequency, setMaintenanceFrequency] = useState<"monthly" | "yearly" | "included" | "one_time">("yearly");
   const [furnishing, setFurnishing] = useState<"fully_furnished" | "semi_furnished" | "unfurnished">("semi_furnished");
   const [parking, setParking] = useState(false);
+  const [brokerage, setBrokerage] = useState(false);
   const [availableFrom, setAvailableFrom] = useState("");
   const [occupationPreference, setOccupationPreference] = useState<any>("any");
   const [genderPreference, setGenderPreference] = useState<any>("any");
+  const [occupancyPreference, setOccupancyPreference] = useState<any>("single");
   const [userPreferences, setUserPreferences] = useState<string[]>([]);
   const [amenities, setAmenities] = useState<string[]>([]);
   const [status, setStatus] = useState<ListingStatus>("pending");
+  const [rejectionReason, setRejectionReason] = useState("");
 
   // Location State
   const [existingLocation, setExistingLocation] = useState<any>(null);
@@ -142,8 +145,10 @@ export default function FlatmateRequirementEditDialog({
       setMaintenanceFrequency((item.maintenanceCharges?.frequency as any) || "yearly");
       setFurnishing(item.furnishing || "semi_furnished");
       setParking(Boolean(item.parking));
+      setBrokerage(Boolean(item.brokerage));
       setOccupationPreference(item.occupationPreference || "any");
       setGenderPreference(item.genderPreference || "any");
+      setOccupancyPreference(item.occupancyPreference || "single");
 
       const prefSource = item.userPreferences || (item as any).lifestylePreferences || [];
       const prefIds: string[] = prefSource
@@ -164,6 +169,7 @@ export default function FlatmateRequirementEditDialog({
       }
 
       setStatus((item.status as ListingStatus) || "pending");
+      setRejectionReason(item.rejectionReason || "");
 
       setExistingLocation(item.location);
       setSelectedGooglePlace(null);
@@ -399,6 +405,11 @@ export default function FlatmateRequirementEditDialog({
       }
     }
 
+    if (status === "rejected" && !rejectionReason.trim()) {
+      toast("Rejection reason is required when status is set to rejected.");
+      return;
+    }
+
     setSubmitting(true);
 
     const newlyUploadedImageIds: string[] = [];
@@ -417,39 +428,37 @@ export default function FlatmateRequirementEditDialog({
       const finalImageIds: string[] = [];
       const finalVideoIds: string[] = [];
 
-      if (postType === "partner") {
-        for (const item of imageItems) {
-          if (item.file) {
-            toast(`Uploading photo "${item.file.name}"…`);
-            const res = await uploadImageApi(item.file, "flatmate", "image");
-            if (!res.success || !res.data?._id) {
-              await cleanupNewlyUploadedMedia();
-              setSubmitting(false);
-              toast(`Failed to upload photo "${item.file.name}": ${res.message || "Upload error"}`);
-              return;
-            }
-            newlyUploadedImageIds.push(res.data._id);
-            finalImageIds.push(res.data._id);
-          } else if (item.mediaObject?._id) {
-            finalImageIds.push(item.mediaObject._id);
+      for (const item of imageItems) {
+        if (item.file) {
+          toast(`Uploading photo "${item.file.name}"…`);
+          const res = await uploadImageApi(item.file, "flatmate", "image");
+          if (!res.success || !res.data?._id) {
+            await cleanupNewlyUploadedMedia();
+            setSubmitting(false);
+            toast(`Failed to upload photo "${item.file.name}": ${res.message || "Upload error"}`);
+            return;
           }
+          newlyUploadedImageIds.push(res.data._id);
+          finalImageIds.push(res.data._id);
+        } else if (item.mediaObject?._id) {
+          finalImageIds.push(item.mediaObject._id);
         }
+      }
 
-        for (const item of videoItems) {
-          if (item.file) {
-            toast(`Uploading video "${item.file.name}"…`);
-            const res = await uploadVideoApi(item.file, "flatmate", "video");
-            if (!res.success || !res.data?._id) {
-              await cleanupNewlyUploadedMedia();
-              setSubmitting(false);
-              toast(`Failed to upload video "${item.file.name}": ${res.message || "Upload error"}`);
-              return;
-            }
-            newlyUploadedVideoIds.push(res.data._id);
-            finalVideoIds.push(res.data._id);
-          } else if (item.mediaObject?._id) {
-            finalVideoIds.push(item.mediaObject._id);
+      for (const item of videoItems) {
+        if (item.file) {
+          toast(`Uploading video "${item.file.name}"…`);
+          const res = await uploadVideoApi(item.file, "flatmate", "video");
+          if (!res.success || !res.data?._id) {
+            await cleanupNewlyUploadedMedia();
+            setSubmitting(false);
+            toast(`Failed to upload video "${item.file.name}": ${res.message || "Upload error"}`);
+            return;
           }
+          newlyUploadedVideoIds.push(res.data._id);
+          finalVideoIds.push(res.data._id);
+        } else if (item.mediaObject?._id) {
+          finalVideoIds.push(item.mediaObject._id);
         }
       }
 
@@ -478,9 +487,12 @@ export default function FlatmateRequirementEditDialog({
         rent: Number(rent),
         availableFrom,
         genderPreference,
+        occupancyPreference,
+        brokerage,
         occupationPreference,
         userPreferences,
         status,
+        rejectionReason: status === "rejected" ? rejectionReason : undefined,
       };
 
       if (isProperty) {
@@ -492,8 +504,8 @@ export default function FlatmateRequirementEditDialog({
         payload.furnishing = "semi_furnished";
         payload.parking = false;
         payload.amenities = [];
-        payload.images = [];
-        payload.videos = [];
+        payload.images = finalImageIds;
+        payload.videos = finalVideoIds;
       } else {
         payload.partnerType = partnerType || "flatmate";
         payload.postedBy = postedBy || "flatmate";
@@ -541,6 +553,290 @@ export default function FlatmateRequirementEditDialog({
     }
   };
 
+  const getUserDisplayLabel = (u: any): string => {
+    if (!u) return "N/A";
+    if (typeof u === "object") {
+      return u.email || u.mobile || u._id || "N/A";
+    }
+    return String(u);
+  };
+
+  const renderLocationField = () => (
+    <div className="space-y-1.5">
+      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+        Location <span className="text-rose-500">*</span>
+      </label>
+      {!isChangingLocation ? (
+        <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
+          <div className="flex items-start gap-2.5 min-w-0">
+            <div className="p-2 bg-amber-100 text-amber-600 rounded-lg shrink-0 mt-0.5">
+              <Icon name="home" size={16} />
+            </div>
+            <div className="min-w-0">
+              <strong className="block text-xs font-bold text-slate-900 truncate">
+                📍 {typeof existingLocation === "object" && existingLocation?.name ? existingLocation.name : "Current Location"}
+              </strong>
+              <span className="block text-[11px] text-slate-600 truncate">
+                {typeof existingLocation === "object" && existingLocation?.formattedAddress
+                  ? existingLocation.formattedAddress
+                  : "Location ID: " + String(existingLocation)}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-semibold transition-colors shrink-0 shadow-sm"
+            onClick={() => setIsChangingLocation(true)}
+          >
+            Change Location
+          </button>
+        </div>
+      ) : selectedGooglePlace ? (
+        <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between gap-3">
+          <div className="flex items-start gap-2.5 min-w-0">
+            <div className="p-2 bg-amber-100 rounded-lg text-amber-600 shrink-0 mt-0.5">
+              <Icon name="home" size={16} />
+            </div>
+            <div className="min-w-0">
+              <strong className="block text-xs font-bold text-slate-900 truncate">
+                📍 {selectedGooglePlace.name}
+              </strong>
+              <span className="block text-[11px] text-slate-600 font-medium truncate">
+                {selectedGooglePlace.formattedAddress}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="px-3 py-1.5 bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 rounded-lg text-xs font-semibold transition-colors shrink-0 shadow-sm"
+            onClick={() => {
+              setSelectedGooglePlace(null);
+              setLocationSearchTerm("");
+            }}
+          >
+            Reselect Location
+          </button>
+        </div>
+      ) : (
+        <div className="relative" ref={locationDropdownRef}>
+          <div className="relative flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                placeholder="Search city, area, building or landmark..."
+                value={locationSearchTerm}
+                onChange={(e) => {
+                  setLocationSearchTerm(e.target.value);
+                  if (!e.target.value.trim()) {
+                    setLocationSuggestions([]);
+                    setIsLocationDropdownOpen(false);
+                  }
+                }}
+                onFocus={() => {
+                  if (locationSearchTerm.trim()) setIsLocationDropdownOpen(true);
+                }}
+              />
+              <div className="absolute left-3 top-2.5 text-amber-500 pointer-events-none">
+                <Icon name="search" size={15} />
+              </div>
+              {locationSearchTerm && (
+                <button
+                  type="button"
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 transition-colors"
+                  onClick={() => {
+                    setLocationSearchTerm("");
+                    setLocationSuggestions([]);
+                    setIsLocationDropdownOpen(false);
+                  }}
+                >
+                  <Icon name="x" size={14} />
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors shrink-0"
+              onClick={() => {
+                setIsChangingLocation(false);
+                setSelectedGooglePlace(null);
+              }}
+            >
+              Keep Current
+            </button>
+          </div>
+
+          {isLocationDropdownOpen && (
+            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-[1100] max-h-56 overflow-y-auto">
+              {loadingLocationSuggestions ? (
+                <div className="p-3 text-xs text-slate-500 text-center">Searching Google Places…</div>
+              ) : locationSearchError ? (
+                <div className="p-3 text-xs text-rose-500 text-center">{locationSearchError}</div>
+              ) : locationSuggestions.length > 0 ? (
+                locationSuggestions.map((s) => (
+                  <button
+                    key={s.placeId}
+                    type="button"
+                    className="w-full text-left px-3 py-2.5 hover:bg-amber-50 border-b border-slate-100 last:border-0 transition-colors flex items-start gap-2.5"
+                    onClick={() => handleSelectPlaceSuggestion(s)}
+                  >
+                    <div className="mt-0.5 text-amber-500 shrink-0">
+                      <Icon name="home" size={14} />
+                    </div>
+                    <div>
+                      <strong className="block text-xs font-semibold text-slate-900">📍 {s.mainText}</strong>
+                      <span className="block text-[11px] text-slate-500">{s.secondaryText || s.description}</span>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="p-3 text-xs text-slate-500 text-center">No matching Google Place suggestions found</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderMediaSection = (photosRequired: boolean) => (
+    <div className="space-y-4 pt-3 border-t border-slate-100">
+      <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+        {postType === "property" ? "4. Media Assets Management" : "5. Media Assets Management"}
+      </h4>
+
+      {/* Images */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+            Requirement Photos ({imageItems.length})
+            {photosRequired ? (
+              <span className="text-rose-500"> * (Min 1)</span>
+            ) : (
+              <span className="text-slate-400 font-normal"> (Optional)</span>
+            )}
+          </label>
+          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-600 text-white cursor-pointer transition-all shadow-sm">
+            <Icon name="refresh" size={12} />
+            <span>+ Select Photos</span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleAddImageFiles}
+            />
+          </label>
+        </div>
+
+        {imageItems.length > 0 ? (
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+            {imageItems.map((item) => (
+              <div
+                key={item.id}
+                className="relative group rounded-lg overflow-hidden border border-slate-300 aspect-video bg-slate-900 flex items-center justify-center"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.previewUrl}
+                  alt="Image Preview"
+                  className={`w-full h-full object-cover transition-opacity ${
+                    item.uploading ? "opacity-40" : "opacity-100"
+                  }`}
+                />
+                {item.uploading && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white text-[10px] font-bold">
+                    <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-1" />
+                    <span>Uploading…</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white rounded-full p-1 transition-colors z-10"
+                  onClick={() => handleRemoveImageItem(item.id)}
+                  title="Remove Image"
+                >
+                  <Icon name="x" size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-3 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-xs text-slate-400">
+            {photosRequired
+              ? 'No photos attached. At least 1 photo is required for partner requirements. Click "+ Select Photos" to upload.'
+              : 'No photos attached (optional). Click "+ Select Photos" if you wish to upload photos.'}
+          </div>
+        )}
+      </div>
+
+      {/* Videos */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+            Requirement Walkthrough Videos ({videoItems.length})
+            <span className="text-slate-400 font-normal"> (Optional)</span>
+          </label>
+          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-900 text-white cursor-pointer transition-all shadow-sm">
+            <Icon name="refresh" size={12} />
+            <span>+ Select Video</span>
+            <input
+              type="file"
+              accept="video/*"
+              multiple
+              className="hidden"
+              onChange={handleAddVideoFiles}
+            />
+          </label>
+        </div>
+
+        {videoItems.length > 0 ? (
+          <div className="space-y-3 max-h-52 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+            {videoItems.map((item) => (
+              <div
+                key={item.id}
+                className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-2 relative"
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <div className="font-semibold text-slate-900 truncate max-w-[300px]">
+                    {item.file?.name || item.mediaObject?.url || "Video Walkthrough"}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {item.uploading && (
+                      <span className="text-[10px] text-amber-600 font-bold animate-pulse">
+                        Uploading…
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                      onClick={() => handleRemoveVideoItem(item.id)}
+                      title="Remove Video"
+                    >
+                      <Icon name="x" size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="aspect-video w-full max-w-sm mx-auto bg-black rounded-lg overflow-hidden border border-slate-300">
+                  <video
+                    src={item.mediaObject?.url || item.previewUrl}
+                    controls
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-3 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-xs text-slate-400">
+            No videos attached. Click &quot;+ Select Video&quot; to upload walkthrough clips.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   if (!isOpen) return null;
 
   return (
@@ -569,152 +865,46 @@ export default function FlatmateRequirementEditDialog({
           <div className="p-12 text-center text-sm text-slate-500">Loading requirement details…</div>
         ) : (
           <form id="edit-requirement-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Location Section */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">1. Location</h4>
-              {!isChangingLocation ? (
-                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <div className="p-2 bg-amber-100 text-amber-600 rounded-lg shrink-0 mt-0.5">
-                      <Icon name="home" size={16} />
-                    </div>
-                    <div className="min-w-0">
-                      <strong className="block text-xs font-bold text-slate-900 truncate">
-                        📍 {typeof existingLocation === "object" && existingLocation?.name ? existingLocation.name : "Current Location"}
-                      </strong>
-                      <span className="block text-[11px] text-slate-600 truncate">
-                        {typeof existingLocation === "object" && existingLocation?.formattedAddress
-                          ? existingLocation.formattedAddress
-                          : "Location ID: " + String(existingLocation)}
-                      </span>
-                    </div>
+            {/* Administrative & Owner Information */}
+            <div className="space-y-4 pb-3 border-b border-slate-100">
+              <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+                Administrative & Owner Information
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Requirement Owner (User) */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    Requirement Owner (User)
+                  </label>
+                  <div className="px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 font-medium truncate">
+                    {getUserDisplayLabel(requirement?.userId)}
                   </div>
-                  <button
-                    type="button"
-                    className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-semibold transition-colors shrink-0 shadow-sm"
-                    onClick={() => setIsChangingLocation(true)}
-                  >
-                    Change Location
-                  </button>
                 </div>
-              ) : selectedGooglePlace ? (
-                <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between gap-3">
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <div className="p-2 bg-amber-100 rounded-lg text-amber-600 shrink-0 mt-0.5">
-                      <Icon name="home" size={16} />
-                    </div>
-                    <div className="min-w-0">
-                      <strong className="block text-xs font-bold text-slate-900 truncate">
-                        📍 {selectedGooglePlace.name}
-                      </strong>
-                      <span className="block text-[11px] text-slate-600 font-medium truncate">
-                        {selectedGooglePlace.formattedAddress}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="px-3 py-1.5 bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 rounded-lg text-xs font-semibold transition-colors shrink-0 shadow-sm"
-                    onClick={() => {
-                      setSelectedGooglePlace(null);
-                      setLocationSearchTerm("");
-                    }}
-                  >
-                    Reselect Location
-                  </button>
-                </div>
-              ) : (
-                <div className="relative" ref={locationDropdownRef}>
-                  <div className="relative flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="text"
-                        className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                        placeholder="Search city, area, building or landmark..."
-                        value={locationSearchTerm}
-                        onChange={(e) => {
-                          setLocationSearchTerm(e.target.value);
-                          if (!e.target.value.trim()) {
-                            setLocationSuggestions([]);
-                            setIsLocationDropdownOpen(false);
-                          }
-                        }}
-                        onFocus={() => {
-                          if (locationSearchTerm.trim()) setIsLocationDropdownOpen(true);
-                        }}
-                      />
-                      <div className="absolute left-3 top-2.5 text-amber-500 pointer-events-none">
-                        <Icon name="search" size={15} />
-                      </div>
-                      {locationSearchTerm && (
-                        <button
-                          type="button"
-                          className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 transition-colors"
-                          onClick={() => {
-                            setLocationSearchTerm("");
-                            setLocationSuggestions([]);
-                            setIsLocationDropdownOpen(false);
-                          }}
-                        >
-                          <Icon name="x" size={14} />
-                        </button>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors shrink-0"
-                      onClick={() => {
-                        setIsChangingLocation(false);
-                        setSelectedGooglePlace(null);
-                      }}
-                    >
-                      Keep Current
-                    </button>
-                  </div>
 
-                  {isLocationDropdownOpen && (
-                    <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-[1100] max-h-56 overflow-y-auto">
-                      {loadingLocationSuggestions ? (
-                        <div className="p-3 text-xs text-slate-500 text-center">Searching Google Places…</div>
-                      ) : locationSearchError ? (
-                        <div className="p-3 text-xs text-rose-500 text-center">{locationSearchError}</div>
-                      ) : locationSuggestions.length > 0 ? (
-                        locationSuggestions.map((s) => (
-                          <button
-                            key={s.placeId}
-                            type="button"
-                            className="w-full text-left px-3 py-2.5 hover:bg-amber-50 border-b border-slate-100 last:border-0 transition-colors flex items-start gap-2.5"
-                            onClick={() => handleSelectPlaceSuggestion(s)}
-                          >
-                            <div className="mt-0.5 text-amber-500 shrink-0">
-                              <Icon name="home" size={14} />
-                            </div>
-                            <div>
-                              <strong className="block text-xs font-semibold text-slate-900">📍 {s.mainText}</strong>
-                              <span className="block text-[11px] text-slate-500">{s.secondaryText || s.description}</span>
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="p-3 text-xs text-slate-500 text-center">No matching Google Place suggestions found</div>
-                      )}
-                    </div>
-                  )}
+                {/* Posted By */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    Posted By <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all font-medium cursor-pointer"
+                    value={postedBy}
+                    onChange={(e) => setPostedBy(e.target.value as any)}
+                  >
+                    <option value="flatmate">Flatmate</option>
+                    <option value="owner">Owner</option>
+                  </select>
                 </div>
-              )}
-            </div>
-
-            {/* Overview */}
-            <div className="space-y-4 pt-3 border-t border-slate-100">
-              <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">2. Requirement Overview</h4>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                {/* Post Type */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
                     Post Type <span className="text-rose-500">*</span>
                   </label>
                   <select
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
                     value={postType}
                     onChange={(e) => handlePostTypeChange(e.target.value as "property" | "partner")}
                   >
@@ -722,184 +912,401 @@ export default function FlatmateRequirementEditDialog({
                     <option value="partner">Partner (Have Room / Flat, Need Flatmate)</option>
                   </select>
                 </div>
-              </div>
 
-              {postType === "partner" && (
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
-                    Property Details (Optional)
-                  </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
-                        Bedrooms / BHK
+                {/* Sub-Type (Property Type vs Partner Type) */}
+                <div className="space-y-1.5">
+                  {postType === "property" ? (
+                    <>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                        Property Type <span className="text-rose-500">*</span>
                       </label>
                       <select
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
-                        value={bedrooms || ""}
-                        onChange={(e) => setBedrooms(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
+                        value={propertyType}
+                        onChange={(e) => setPropertyType(e.target.value as any)}
                       >
-                        <option value="">Select BHK</option>
-                        <option value="1_rk">1 RK</option>
-                        <option value="1_bhk">1 BHK</option>
-                        <option value="2_bhk">2 BHK</option>
-                        <option value="3_bhk">3 BHK</option>
-                        <option value="4_bhk">4 BHK</option>
-                        <option value="5_bhk">5 BHK</option>
-                        <option value="5_plus_bhk">5+ BHK</option>
+                        <option value="room">Room</option>
+                        <option value="flat">Flat</option>
+                        <option value="pg">PG</option>
+                        <option value="shared_apartment">Shared Apartment</option>
                       </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
-                        Facing
+                    </>
+                  ) : (
+                    <>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                        Partner Type <span className="text-rose-500">*</span>
                       </label>
                       <select
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
-                        value={facing || ""}
-                        onChange={(e) => setFacing(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
+                        value={partnerType}
+                        onChange={(e) => setPartnerType(e.target.value as any)}
                       >
-                        <option value="">Select Facing</option>
-                        <option value="east">East</option>
-                        <option value="west">West</option>
-                        <option value="north">North</option>
-                        <option value="south">South</option>
-                        <option value="north_east">North-East</option>
-                        <option value="north_west">North-West</option>
-                        <option value="south_east">South-East</option>
-                        <option value="south_west">South-West</option>
+                        <option value="flatmate">Flatmate</option>
+                        <option value="roommate">Roommate</option>
                       </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
-                        Floor (0=Ground)
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
-                        placeholder="e.g. 0, 1, 2"
-                        value={floor !== undefined ? floor : ""}
-                        onChange={(e) =>
-                          setFloor(e.target.value === "" ? "" : Number(e.target.value))
-                        }
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
-                        Total Floors
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
-                        placeholder="e.g. 4"
-                        value={totalFloors !== undefined ? totalFloors : ""}
-                        onChange={(e) =>
-                          setTotalFloors(e.target.value === "" ? "" : Number(e.target.value))
-                        }
-                      />
-                    </div>
-                  </div>
+                    </>
+                  )}
                 </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Title <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                  placeholder={
-                    postType === "property"
-                      ? "e.g. Looking for 2 BHK Flat / Room in Koramangala"
-                      : "e.g. Looking for a Flatmate in Indiranagar, Bangalore"
-                  }
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Description
-                </label>
-                <textarea
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all resize-none"
-                  rows={3}
-                  placeholder={
-                    postType === "property"
-                      ? "e.g. I am looking for a room with roommate..."
-                      : "e.g. I am looking for a flatmate..."
-                  }
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
               </div>
             </div>
 
-            {/* Pricing & Specifications */}
-            <div className="space-y-4 pt-3 border-t border-slate-100">
-              <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-                {postType === "property" ? "3. Pricing & Schedule" : "3. Pricing & Specifications"}
-              </h4>
+            {/* Conditional Sections: Property vs Partner */}
+            {postType === "property" ? (
+              <>
+                {/* SECTION 1: REQUIREMENT OVERVIEW */}
+                <div className="space-y-4 pt-3 border-t border-slate-100">
+                  <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+                    1. Requirement Overview
+                  </h4>
 
-              {postType === "property" ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {renderLocationField()}
+
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Approx Rent Amount (₹/mo) <span className="text-rose-500">*</span>
+                      Title <span className="text-rose-500">*</span>
                     </label>
                     <input
-                      type="number"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                      placeholder="e.g. 15000"
-                      value={rent === 0 ? "" : rent}
-                      onChange={(e) => setRent(Number(e.target.value))}
-                      min={0}
+                      type="text"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                      placeholder="e.g. Looking for 2 BHK Flat / Room in Koramangala"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
                       required
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Available From <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
-                      value={availableFrom}
-                      onChange={(e) => setAvailableFrom(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Status
-                    </label>
-                    <select
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value as any)}
-                    >
-                      <option value="approved">Approved</option>
-                      <option value="pending">Pending</option>
-                      <option value="draft">Draft</option>
-                      <option value="rejected">Rejected</option>
-                      <option value="blocked">Blocked</option>
-                      <option value="closed">Closed</option>
-                      <option value="expired">Expired</option>
-                    </select>
                   </div>
                 </div>
-              ) : (
-                <>
+
+                {/* SECTION 2: RENTAL SPECIFICATIONS */}
+                <div className="space-y-4 pt-3 border-t border-slate-100">
+                  <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+                    2. Rental Specifications
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Occupancy Preference <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
+                        value={occupancyPreference}
+                        onChange={(e) => setOccupancyPreference(e.target.value as any)}
+                      >
+                        <option value="single">Single</option>
+                        <option value="double">Double</option>
+                        <option value="triple">Triple</option>
+                        <option value="four_or_more">Four or More</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Approx Rent Amount (₹/mo) <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                        placeholder="e.g. 15000"
+                        value={rent === 0 ? "" : rent}
+                        onChange={(e) => setRent(Number(e.target.value))}
+                        min={0}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Move-in Date / Available From <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                        value={availableFrom}
+                        onChange={(e) => setAvailableFrom(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Brokerage Applicable <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
+                        value={brokerage ? "true" : "false"}
+                        onChange={(e) => setBrokerage(e.target.value === "true")}
+                      >
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTION 3: PREFERENCES */}
+                <div className="space-y-4 pt-3 border-t border-slate-100">
+                  <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+                    3. Preferences
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Gender Preference <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
+                        value={genderPreference}
+                        onChange={(e) => setGenderPreference(e.target.value as any)}
+                      >
+                        <option value="any">Any</option>
+                        <option value="male">Male Only</option>
+                        <option value="female">Female Only</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Occupation Preference <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
+                        value={occupationPreference}
+                        onChange={(e) => setOccupationPreference(e.target.value as any)}
+                      >
+                        <option value="any">Any</option>
+                        <option value="student">Student</option>
+                        <option value="working_professional">Working Professional</option>
+                        <option value="self_employed">Self Employed</option>
+                        <option value="business_owner">Business Owner</option>
+                        <option value="freelancer">Freelancer</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Description
+                    </label>
+                    <textarea
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all resize-none"
+                      rows={3}
+                      placeholder="e.g. I am looking for a room with roommate..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
+                  </div>
+
+                  {preferenceOptions.length > 0 && (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        User / Lifestyle Preferences ({userPreferences.length} / 3 min selected) <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                        {preferenceOptions.map((pref) => {
+                          const selected = userPreferences.includes(pref._id);
+                          return (
+                            <button
+                              type="button"
+                              key={pref._id}
+                              onClick={() => toggleUserPreference(pref._id)}
+                              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                                selected
+                                  ? "bg-amber-500 text-white shadow-sm"
+                                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                              }`}
+                            >
+                              {pref.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* SECTION 4: MEDIA ASSETS MANAGEMENT */}
+                {renderMediaSection(false)}
+              </>
+            ) : (
+              <>
+                {/* SECTION 1: REQUIREMENT OVERVIEW */}
+                <div className="space-y-4 pt-3 border-t border-slate-100">
+                  <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+                    1. Requirement Overview
+                  </h4>
+
+                  {renderLocationField()}
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Title <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                      placeholder="e.g. Looking for a Flatmate in Indiranagar, Bangalore"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* SECTION 2: SPACE DETAILS */}
+                <div className="space-y-4 pt-3 border-t border-slate-100">
+                  <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+                    2. Space Details
+                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Area (sq.ft) <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                        placeholder="e.g. 1000"
+                        value={area === 0 ? "" : area}
+                        onChange={(e) => setArea(Number(e.target.value))}
+                        min={0}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Furnishing Status <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
+                        value={furnishing}
+                        onChange={(e) => setFurnishing(e.target.value as any)}
+                      >
+                        <option value="fully_furnished">Fully Furnished</option>
+                        <option value="semi_furnished">Semi Furnished</option>
+                        <option value="unfurnished">Unfurnished</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Parking Facility <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
+                        value={parking ? "true" : "false"}
+                        onChange={(e) => setParking(e.target.value === "true")}
+                      >
+                        <option value="false">No Parking</option>
+                        <option value="true">Parking Available</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                      Configuration Details (Optional)
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                          Bedrooms / BHK
+                        </label>
+                        <select
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium cursor-pointer"
+                          value={bedrooms || ""}
+                          onChange={(e) => setBedrooms(e.target.value)}
+                        >
+                          <option value="">Select BHK</option>
+                          <option value="1_rk">1 RK</option>
+                          <option value="1_bhk">1 BHK</option>
+                          <option value="2_bhk">2 BHK</option>
+                          <option value="3_bhk">3 BHK</option>
+                          <option value="4_bhk">4 BHK</option>
+                          <option value="5_bhk">5 BHK</option>
+                          <option value="5_plus_bhk">5+ BHK</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                          Facing
+                        </label>
+                        <select
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium cursor-pointer"
+                          value={facing || ""}
+                          onChange={(e) => setFacing(e.target.value)}
+                        >
+                          <option value="">Select Facing</option>
+                          <option value="east">East</option>
+                          <option value="west">West</option>
+                          <option value="north">North</option>
+                          <option value="south">South</option>
+                          <option value="north_east">North-East</option>
+                          <option value="north_west">North-West</option>
+                          <option value="south_east">South-East</option>
+                          <option value="south_west">South-West</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                          Floor (0=Ground)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                          placeholder="e.g. 0, 1, 2"
+                          value={floor !== undefined ? floor : ""}
+                          onChange={(e) =>
+                            setFloor(e.target.value === "" ? "" : Number(e.target.value))
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                          Total Floors
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
+                          placeholder="e.g. 4"
+                          value={totalFloors !== undefined ? totalFloors : ""}
+                          onChange={(e) =>
+                            setTotalFloors(e.target.value === "" ? "" : Number(e.target.value))
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTION 3: RENTAL SPECIFICATIONS */}
+                <div className="space-y-4 pt-3 border-t border-slate-100">
+                  <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+                    3. Rental Specifications
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Occupancy Preference <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
+                        value={occupancyPreference}
+                        onChange={(e) => setOccupancyPreference(e.target.value as any)}
+                      >
+                        <option value="single">Single</option>
+                        <option value="double">Double</option>
+                        <option value="triple">Triple</option>
+                        <option value="four_or_more">Four or More</option>
+                      </select>
+                    </div>
+
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                         Rent Amount (₹/mo) <span className="text-rose-500">*</span>
@@ -931,46 +1338,15 @@ export default function FlatmateRequirementEditDialog({
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                        Furnishing Status <span className="text-rose-500">*</span>
+                        Brokerage Applicable <span className="text-rose-500">*</span>
                       </label>
                       <select
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
-                        value={furnishing}
-                        onChange={(e) => setFurnishing(e.target.value as any)}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
+                        value={brokerage ? "true" : "false"}
+                        onChange={(e) => setBrokerage(e.target.value === "true")}
                       >
-                        <option value="fully_furnished">Fully Furnished</option>
-                        <option value="semi_furnished">Semi Furnished</option>
-                        <option value="unfurnished">Unfurnished</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                        Area (sq.ft)
-                      </label>
-                      <input
-                        type="number"
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                        placeholder="e.g. 1000"
-                        value={area === 0 ? "" : area}
-                        onChange={(e) => setArea(Number(e.target.value))}
-                        min={0}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                        Parking Facility
-                      </label>
-                      <select
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
-                        value={parking ? "true" : "false"}
-                        onChange={(e) => setParking(e.target.value === "true")}
-                      >
-                        <option value="false">No Parking</option>
-                        <option value="true">Parking Available</option>
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
                       </select>
                     </div>
 
@@ -986,9 +1362,7 @@ export default function FlatmateRequirementEditDialog({
                         required
                       />
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                         Maintenance Charges (₹)
@@ -1008,7 +1382,7 @@ export default function FlatmateRequirementEditDialog({
                         Maintenance Frequency
                       </label>
                       <select
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
                         value={maintenanceFrequency}
                         onChange={(e) => setMaintenanceFrequency(e.target.value as any)}
                       >
@@ -1018,256 +1392,166 @@ export default function FlatmateRequirementEditDialog({
                         <option value="one_time">One Time</option>
                       </select>
                     </div>
+                  </div>
+                </div>
+
+                {/* SECTION 4: PREFERENCES */}
+                <div className="space-y-4 pt-3 border-t border-slate-100">
+                  <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+                    4. Preferences
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Gender Preference <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
+                        value={genderPreference}
+                        onChange={(e) => setGenderPreference(e.target.value as any)}
+                      >
+                        <option value="any">Any</option>
+                        <option value="male">Male Only</option>
+                        <option value="female">Female Only</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                        Status
+                        Occupation Preference <span className="text-rose-500">*</span>
                       </label>
                       <select
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value as any)}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
+                        value={occupationPreference}
+                        onChange={(e) => setOccupationPreference(e.target.value as any)}
                       >
-                        <option value="approved">Approved</option>
-                        <option value="pending">Pending</option>
-                        <option value="draft">Draft</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="blocked">Blocked</option>
-                        <option value="closed">Closed</option>
-                        <option value="expired">Expired</option>
+                        <option value="any">Any</option>
+                        <option value="student">Student</option>
+                        <option value="working_professional">Working Professional</option>
+                        <option value="self_employed">Self Employed</option>
+                        <option value="business_owner">Business Owner</option>
+                        <option value="freelancer">Freelancer</option>
+                        <option value="other">Other</option>
                       </select>
                     </div>
                   </div>
-                </>
-              )}
-            </div>
 
-            {/* Preferences & Amenities */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Description
+                    </label>
+                    <textarea
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all resize-none"
+                      rows={3}
+                      placeholder="e.g. I am looking for a flatmate..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
+                  </div>
+
+                  {preferenceOptions.length > 0 && (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        User / Lifestyle Preferences ({userPreferences.length} / 3 min selected) <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                        {preferenceOptions.map((pref) => {
+                          const selected = userPreferences.includes(pref._id);
+                          return (
+                            <button
+                              type="button"
+                              key={pref._id}
+                              onClick={() => toggleUserPreference(pref._id)}
+                              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                                selected
+                                  ? "bg-amber-500 text-white shadow-sm"
+                                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                              }`}
+                            >
+                              {pref.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {amenityOptions.length > 0 && (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Property Amenities ({amenities.length} / 3 min selected) <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                        {amenityOptions.map((amenity) => {
+                          const selected = amenities.includes(amenity._id);
+                          return (
+                            <button
+                              type="button"
+                              key={amenity._id}
+                              onClick={() => toggleAmenity(amenity._id)}
+                              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                                selected
+                                  ? "bg-amber-600 text-white shadow-sm"
+                                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                              }`}
+                            >
+                              {amenity.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* SECTION 5: MEDIA ASSETS MANAGEMENT */}
+                {renderMediaSection(true)}
+              </>
+            )}
+
+            {/* LISTING MANAGEMENT & MODERATION */}
             <div className="space-y-4 pt-3 border-t border-slate-100">
               <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-                {postType === "property" ? "4. Preferences & Lifestyle" : "4. Preferences & Amenities"}
+                Listing Management & Moderation
               </h4>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Occupation Preference
+                    Listing Status <span className="text-rose-500">*</span>
                   </label>
                   <select
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
-                    value={occupationPreference}
-                    onChange={(e) => setOccupationPreference(e.target.value as any)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer font-medium"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as any)}
                   >
-                    <option value="any">Any</option>
-                    <option value="student">Student</option>
-                    <option value="working_professional">Working Professional</option>
-                    <option value="self_employed">Self Employed</option>
-                    <option value="business_owner">Business Owner</option>
-                    <option value="freelancer">Freelancer</option>
-                    <option value="other">Other</option>
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                    <option value="draft">Draft</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="blocked">Blocked</option>
+                    <option value="closed">Closed</option>
+                    <option value="expired">Expired</option>
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Gender Preference
-                  </label>
-                  <select
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all cursor-pointer"
-                    value={genderPreference}
-                    onChange={(e) => setGenderPreference(e.target.value as any)}
-                  >
-                    <option value="any">Any</option>
-                    <option value="male">Male Only</option>
-                    <option value="female">Female Only</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
+                {status === "rejected" && (
+                  <div>
+                    <label className="block text-xs font-semibold text-rose-600 uppercase tracking-wider mb-1.5">
+                      Rejection Reason <span className="text-rose-500">*</span>
+                    </label>
+                    <textarea
+                      className="w-full px-3.5 py-2.5 bg-rose-50/50 border border-rose-300 rounded-xl text-sm text-slate-900 placeholder:text-rose-400 focus:bg-white focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-all resize-none"
+                      rows={2}
+                      placeholder="Specify the reason for rejection…"
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
               </div>
-
-              {preferenceOptions.length > 0 && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    User / Lifestyle Preferences ({userPreferences.length} / 3 min selected) <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                    {preferenceOptions.map((pref) => {
-                      const selected = userPreferences.includes(pref._id);
-                      return (
-                        <button
-                          type="button"
-                          key={pref._id}
-                          onClick={() => toggleUserPreference(pref._id)}
-                          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                            selected
-                              ? "bg-amber-500 text-white shadow-sm"
-                              : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                          }`}
-                        >
-                          {pref.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {postType === "partner" && amenityOptions.length > 0 && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Property Amenities ({amenities.length} / 3 min selected) <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                    {amenityOptions.map((amenity) => {
-                      const selected = amenities.includes(amenity._id);
-                      return (
-                        <button
-                          type="button"
-                          key={amenity._id}
-                          onClick={() => toggleAmenity(amenity._id)}
-                          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                            selected
-                              ? "bg-amber-600 text-white shadow-sm"
-                              : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                          }`}
-                        >
-                          {amenity.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
-
-            {/* Media Assets (Partner postType only) */}
-            {postType === "partner" && (
-              <div className="space-y-4 pt-3 border-t border-slate-100">
-                <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">5. Media Assets Management</h4>
-
-                {/* Images */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                      Requirement Photos ({imageItems.length}) <span className="text-rose-500">*</span>
-                    </label>
-                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-600 text-white cursor-pointer transition-all shadow-sm">
-                      <Icon name="refresh" size={12} />
-                      <span>+ Select Photos</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="hidden"
-                        onChange={handleAddImageFiles}
-                      />
-                    </label>
-                  </div>
-
-                  {imageItems.length > 0 ? (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                      {imageItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="relative group rounded-lg overflow-hidden border border-slate-300 aspect-video bg-slate-900 flex items-center justify-center"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={item.previewUrl}
-                            alt="Image Preview"
-                            className={`w-full h-full object-cover transition-opacity ${
-                              item.uploading ? "opacity-40" : "opacity-100"
-                            }`}
-                          />
-                          {item.uploading && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white text-[10px] font-bold">
-                              <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-1" />
-                              <span>Uploading…</span>
-                            </div>
-                          )}
-                          <button
-                            type="button"
-                            className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white rounded-full p-1 transition-colors z-10"
-                            onClick={() => handleRemoveImageItem(item.id)}
-                            title="Remove Image"
-                          >
-                            <Icon name="x" size={12} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-3 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-xs text-slate-400">
-                      No photos attached. At least 1 photo is required for partner requirements. Click &quot;+ Select Photos&quot; to upload high-res images.
-                    </div>
-                  )}
-                </div>
-
-                {/* Videos */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                      Requirement Walkthrough Videos ({videoItems.length})
-                    </label>
-                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-900 text-white cursor-pointer transition-all shadow-sm">
-                      <Icon name="refresh" size={12} />
-                      <span>+ Select Video</span>
-                      <input
-                        type="file"
-                        accept="video/*"
-                        multiple
-                        className="hidden"
-                        onChange={handleAddVideoFiles}
-                      />
-                    </label>
-                  </div>
-
-                  {videoItems.length > 0 ? (
-                    <div className="space-y-3 max-h-52 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                      {videoItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-2 relative"
-                        >
-                          <div className="flex items-center justify-between text-xs">
-                            <div className="font-semibold text-slate-900 truncate max-w-[300px]">
-                              {item.file?.name || item.mediaObject?.url || "Video Walkthrough"}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {item.uploading && (
-                                <span className="text-[10px] text-amber-600 font-bold animate-pulse">
-                                  Uploading…
-                                </span>
-                              )}
-                              <button
-                                type="button"
-                                className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                                onClick={() => handleRemoveVideoItem(item.id)}
-                                title="Remove Video"
-                              >
-                                <Icon name="x" size={14} />
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="aspect-video w-full max-w-sm mx-auto bg-black rounded-lg overflow-hidden border border-slate-300">
-                            <video
-                              src={item.mediaObject?.url || item.previewUrl}
-                              controls
-                              className="w-full h-full object-contain"
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-3 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-xs text-slate-400">
-                      No videos attached. Click &quot;+ Select Video&quot; to upload walkthrough clips.
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </form>
         )}
 

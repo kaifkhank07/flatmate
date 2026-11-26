@@ -41,17 +41,15 @@ interface PropertyFormData {
   title: string;
   description: string;
   propertyType:
-    | "flats_apartments"
-    | "houses_villas"
-    | "office_spaces"
-    | "shops_commercial";
+  | "flats_apartments"
+  | "houses_villas"
+  | "office_spaces"
+  | "shops_commercial";
   floor?: number | "";
   totalFloors?: number | "";
   facing?: string;
   bedrooms?: string;
-  brokerageApplicable: boolean;
-  brokerageType: "fixed" | "percentage";
-  brokerageValue?: number | "";
+  brokerage: boolean;
   postedBy: "owner" | "flatmate" | "agent" | "builder";
   location: string;
   rentAmount: number;
@@ -60,11 +58,9 @@ interface PropertyFormData {
   maintenanceFrequency: "monthly" | "yearly" | "included" | "one_time";
   furnishing: "fully_furnished" | "semi_furnished" | "unfurnished";
   availableFrom: string;
-  genderPreference: "male" | "female" | "other" | "any";
-  occupationPreference: "student" | "working_professional" | "self_employed" | "business_owner" | "freelancer" | "other" | "any";
+  tenantPreference: "anyone" | "bachelors" | "family";
   parkingAvailable: boolean;
   areaValue: number;
-  houseRules: string;
   amenities: string[];
   status: ListingStatus;
   rejectionReason?: string;
@@ -79,9 +75,7 @@ const DEFAULT_FORM_DATA: PropertyFormData = {
   totalFloors: "",
   facing: "",
   bedrooms: "",
-  brokerageApplicable: false,
-  brokerageType: "fixed",
-  brokerageValue: "",
+  brokerage: false,
   postedBy: "owner",
   location: "",
   rentAmount: 0,
@@ -90,11 +84,9 @@ const DEFAULT_FORM_DATA: PropertyFormData = {
   maintenanceFrequency: "yearly",
   furnishing: "semi_furnished",
   availableFrom: "",
-  genderPreference: "any",
-  occupationPreference: "any",
+  tenantPreference: "anyone",
   parkingAvailable: false,
   areaValue: 0,
-  houseRules: "",
   amenities: [],
   status: "approved",
   rejectionReason: "",
@@ -382,24 +374,6 @@ export default function PropertyCreateDialog({
       }
     }
 
-    if (formData.brokerageApplicable) {
-      if (
-        formData.brokerageValue === "" ||
-        formData.brokerageValue === undefined ||
-        Number(formData.brokerageValue) <= 0
-      ) {
-        toast("Please enter a valid brokerage amount / percentage greater than 0.");
-        return;
-      }
-      if (
-        formData.brokerageType === "percentage" &&
-        Number(formData.brokerageValue) > 100
-      ) {
-        toast("Brokerage percentage cannot exceed 100%.");
-        return;
-      }
-    }
-
     setSubmitting(true);
     const createdImageIds: string[] = [];
     const createdVideoIds: string[] = [];
@@ -474,25 +448,19 @@ export default function PropertyCreateDialog({
         propertyType: formData.propertyType,
         propertyDetails:
           formData.floor !== "" ||
-          formData.totalFloors !== "" ||
-          formData.facing ||
-          formData.bedrooms
+            formData.totalFloors !== "" ||
+            formData.facing ||
+            formData.bedrooms
             ? {
-                ...(formData.floor !== "" && { floor: Number(formData.floor) }),
-                ...(formData.totalFloors !== "" && {
-                  totalFloors: Number(formData.totalFloors),
-                }),
-                ...(formData.facing && { facing: formData.facing }),
-                ...(formData.bedrooms && { bedrooms: formData.bedrooms }),
-              }
+              ...(formData.floor !== "" && { floor: Number(formData.floor) }),
+              ...(formData.totalFloors !== "" && {
+                totalFloors: Number(formData.totalFloors),
+              }),
+              ...(formData.facing && { facing: formData.facing }),
+              ...(formData.bedrooms && { bedrooms: formData.bedrooms }),
+            }
             : undefined,
-        brokerageDetails: {
-          applicable: formData.brokerageApplicable,
-          ...(formData.brokerageApplicable && {
-            type: formData.brokerageType,
-            value: Number(formData.brokerageValue),
-          }),
-        },
+        brokerage: formData.brokerage,
         postedBy: formData.postedBy,
         location: resolvedLocationId,
         rent: Number(formData.rentAmount),
@@ -503,16 +471,9 @@ export default function PropertyCreateDialog({
         },
         furnishing: formData.furnishing,
         availableFrom: formData.availableFrom || new Date().toISOString().split("T")[0],
-        genderPreference: formData.genderPreference,
-        occupationPreference: formData.occupationPreference,
+        tenantPreference: formData.tenantPreference,
         parking: formData.parkingAvailable,
         area: Number(formData.areaValue),
-        houseRules: formData.houseRules
-          ? formData.houseRules
-            .split(",")
-            .map((r) => r.trim())
-            .filter(Boolean)
-          : [],
         amenities: formData.amenities,
         images: createdImageIds,
         videos: createdVideoIds,
@@ -563,89 +524,124 @@ export default function PropertyCreateDialog({
 
         {/* Scrollable Form Content */}
         <form id="create-property-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Requirement Owner (User) & Location (Side by Side) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Section 1: Owner Selection */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-                1. Owner (User) <span className="text-rose-500">*</span>
-              </h4>
-              <div className="relative" ref={ownerDropdownRef}>
-                <div className="relative">
-                  <input
-                    type="text"
-                    className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                    placeholder="Search user by email, mobile, or ID…"
-                    value={userSearchTerm}
-                    onChange={(e) => {
-                      setUserSearchTerm(e.target.value);
-                      setIsOwnerDropdownOpen(true);
-                      if (!e.target.value.trim()) {
-                        setFormData((prev) => ({ ...prev, userId: "" }));
-                      }
-                    }}
-                    onFocus={() => setIsOwnerDropdownOpen(true)}
-                  />
-                  <div className="absolute left-3 top-2.5 text-slate-400 pointer-events-none">
-                    <Icon name="search" size={14} />
-                  </div>
-                  {userSearchTerm && (
-                    <button
-                      type="button"
-                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 transition-colors"
-                      onClick={() => {
-                        setUserSearchTerm("");
-                        setFormData((prev) => ({ ...prev, userId: "" }));
-                        setIsOwnerDropdownOpen(false);
+          {/* Administrative & Owner Information */}
+          <div className="space-y-3 pb-3 border-b border-slate-100">
+            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+              Administrative & Owner Information
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Owner Selection */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  Property Owner (User) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative" ref={ownerDropdownRef}>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                      placeholder="Search user by email, mobile, or ID…"
+                      value={userSearchTerm}
+                      onChange={(e) => {
+                        setUserSearchTerm(e.target.value);
+                        setIsOwnerDropdownOpen(true);
+                        if (!e.target.value.trim()) {
+                          setFormData((prev) => ({ ...prev, userId: "" }));
+                        }
                       }}
-                    >
-                      <Icon name="x" size={14} />
-                    </button>
-                  )}
-                </div>
-
-                {/* Owner Dropdown */}
-                {isOwnerDropdownOpen && (
-                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-[1100] max-h-52 overflow-y-auto">
-                    {loadingUsers ? (
-                      <div className="p-3 text-xs text-slate-500 text-center">Searching users…</div>
-                    ) : userOptions.length === 0 ? (
-                      <div className="p-3 text-xs text-slate-500 text-center">No matching users found</div>
-                    ) : (
-                      userOptions.map((u) => {
-                        const isSelected = formData.userId === u._id;
-                        const displayLabel = u.email || u.mobile || u._id;
-                        return (
-                          <button
-                            key={u._id}
-                            type="button"
-                            className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-amber-50 border-b border-slate-100 last:border-0 ${isSelected ? "bg-amber-100 font-semibold" : ""
-                              }`}
-                            onClick={() => {
-                              setFormData((prev) => ({ ...prev, userId: u._id }));
-                              setUserSearchTerm(displayLabel);
-                              setIsOwnerDropdownOpen(false);
-                            }}
-                          >
-                            <div>
-                              <div className="text-slate-900 font-medium">{displayLabel}</div>
-                              <div className="text-[10px] text-slate-400">ID: {u._id.slice(-6)} • {u.userType || u.role}</div>
-                            </div>
-                            {isSelected && <span className="text-amber-600 font-bold text-xs">Selected</span>}
-                          </button>
-                        );
-                      })
+                      onFocus={() => setIsOwnerDropdownOpen(true)}
+                    />
+                    <div className="absolute left-3 top-2.5 text-slate-400 pointer-events-none">
+                      <Icon name="search" size={14} />
+                    </div>
+                    {userSearchTerm && (
+                      <button
+                        type="button"
+                        className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 transition-colors"
+                        onClick={() => {
+                          setUserSearchTerm("");
+                          setFormData((prev) => ({ ...prev, userId: "" }));
+                          setIsOwnerDropdownOpen(false);
+                        }}
+                      >
+                        <Icon name="x" size={14} />
+                      </button>
                     )}
                   </div>
-                )}
+
+                  {/* Owner Dropdown */}
+                  {isOwnerDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-[1100] max-h-52 overflow-y-auto">
+                      {loadingUsers ? (
+                        <div className="p-3 text-xs text-slate-500 text-center">Searching users…</div>
+                      ) : userOptions.length === 0 ? (
+                        <div className="p-3 text-xs text-slate-500 text-center">No matching users found</div>
+                      ) : (
+                        userOptions.map((u) => {
+                          const isSelected = formData.userId === u._id;
+                          const displayLabel = u.email || u.mobile || u._id;
+                          return (
+                            <button
+                              key={u._id}
+                              type="button"
+                              className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-amber-50 border-b border-slate-100 last:border-0 ${isSelected ? "bg-amber-100 font-semibold" : ""
+                                }`}
+                              onClick={() => {
+                                setFormData((prev) => ({ ...prev, userId: u._id }));
+                                setUserSearchTerm(displayLabel);
+                                setIsOwnerDropdownOpen(false);
+                              }}
+                            >
+                              <div>
+                                <div className="text-slate-900 font-medium">{displayLabel}</div>
+                                <div className="text-[10px] text-slate-400">ID: {u._id.slice(-6)} • {u.userType || u.role}</div>
+                              </div>
+                              {isSelected && <span className="text-amber-600 font-bold text-xs">Selected</span>}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Posted By */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  Posted By <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                  value={formData.postedBy}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      postedBy: e.target.value as any,
+                    })
+                  }
+                  required
+                >
+                  <option value="owner">Owner</option>
+                  <option value="flatmate">Flatmate</option>
+                  <option value="agent">Agent / Broker</option>
+                  <option value="builder">Builder</option>
+                </select>
               </div>
             </div>
+          </div>
 
-            {/* Section 2: Google Maps Location */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-                2. Location <span className="text-rose-500">*</span>
-              </h4>
+          {/* Section 1: Basic Overview */}
+          <div className="space-y-4 pt-3 border-t border-slate-100">
+            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+              1. Basic Overview
+            </h4>
+
+            {/* Google Maps Location */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                Location <span className="text-rose-500">*</span>
+              </label>
 
               {selectedGooglePlace ? (
                 <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between gap-3">
@@ -742,15 +738,10 @@ export default function PropertyCreateDialog({
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Section 3: Basic Property Details */}
-          <div className="space-y-3 pt-3 border-t border-slate-100">
-            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">3. Basic Property Details</h4>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Title <span className="text-rose-500">*</span>
+                Property Title <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
@@ -761,22 +752,15 @@ export default function PropertyCreateDialog({
                 required
               />
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Description <span className="text-rose-500">*</span>
-              </label>
-              <textarea
-                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                rows={3}
-                placeholder="Provide property highlights, rules, nearby landmarks…"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                required
-              />
-            </div>
+          {/* Section 2: Property Details */}
+          <div className="space-y-4 pt-3 border-t border-slate-100">
+            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+              2. Property Details
+            </h4>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                   Property Type <span className="text-rose-500">*</span>
@@ -794,35 +778,11 @@ export default function PropertyCreateDialog({
                 >
                   <option value="flats_apartments">Flats / Apartments</option>
                   <option value="houses_villas">Houses / Villas</option>
-                  <option value="office_spaces">Office Spaces</option>
-                  <option value="shops_commercial">Shops / Commercial</option>
+                  {/* <option value="office_spaces">Office Spaces</option>
+                  <option value="shops_commercial">Shops / Commercial</option> */}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Posted By <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
-                  value={formData.postedBy}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      postedBy: e.target.value as any,
-                    })
-                  }
-                  required
-                >
-                  <option value="owner">Owner</option>
-                  <option value="flatmate">Flatmate</option>
-                  <option value="agent">Agent / Broker</option>
-                  <option value="builder">Builder</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                   Area (sqft)
@@ -836,30 +796,43 @@ export default function PropertyCreateDialog({
                   onChange={(e) => setFormData({ ...formData, areaValue: Number(e.target.value) })}
                 />
               </div>
+            </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Status
+                  Furnishing <span className="text-rose-500">*</span>
                 </label>
                 <select
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                  value={formData.furnishing}
+                  onChange={(e) => setFormData({ ...formData, furnishing: e.target.value as any })}
                 >
-                  <option value="approved">Approved</option>
-                  <option value="pending">Pending</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="blocked">Blocked</option>
-                  <option value="closed">Closed</option>
-                  <option value="expired">Expired</option>
+                  <option value="fully_furnished">Fully Furnished</option>
+                  <option value="semi_furnished">Semi Furnished</option>
+                  <option value="unfurnished">Unfurnished</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Parking Facility
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                  value={formData.parkingAvailable ? "yes" : "no"}
+                  onChange={(e) => setFormData({ ...formData, parkingAvailable: e.target.value === "yes" })}
+                >
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
                 </select>
               </div>
             </div>
 
             {/* Property Structural & Configuration Details */}
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
               <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
-                Property Details (Optional)
+                Configuration Details (Optional)
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
@@ -946,28 +919,12 @@ export default function PropertyCreateDialog({
                 </div>
               </div>
             </div>
-
-            {formData.status === "rejected" && (
-              <div>
-                <label className="block text-xs font-semibold text-rose-600 uppercase tracking-wider mb-1">
-                  Rejection Reason <span className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  className="w-full px-3.5 py-2 bg-rose-50 border border-rose-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-rose-500 transition-all"
-                  rows={2}
-                  placeholder="Provide explicit reasons for rejecting this listing…"
-                  value={formData.rejectionReason}
-                  onChange={(e) => setFormData({ ...formData, rejectionReason: e.target.value })}
-                  required
-                />
-              </div>
-            )}
           </div>
 
-          {/* Section 4: Pricing, Maintenance & Brokerage */}
-          <div className="space-y-3 pt-3 border-t border-slate-100">
+          {/* Section 3: Rental Specifications */}
+          <div className="space-y-4 pt-3 border-t border-slate-100">
             <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-              4. Pricing, Maintenance & Brokerage
+              3. Rental Specifications
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
@@ -977,7 +934,7 @@ export default function PropertyCreateDialog({
                 <input
                   type="number"
                   min={1}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
                   value={formData.rentAmount}
                   onChange={(e) => setFormData({ ...formData, rentAmount: Number(e.target.value) })}
                   required
@@ -991,7 +948,7 @@ export default function PropertyCreateDialog({
                 <input
                   type="number"
                   min={0}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
                   value={formData.securityDeposit}
                   onChange={(e) => setFormData({ ...formData, securityDeposit: Number(e.target.value) })}
                   required
@@ -1000,31 +957,31 @@ export default function PropertyCreateDialog({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Furnishing <span className="text-rose-500">*</span>
+                  Brokerage Applicable
                 </label>
                 <select
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
-                  value={formData.furnishing}
-                  onChange={(e) => setFormData({ ...formData, furnishing: e.target.value as any })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                  value={formData.brokerage ? "yes" : "no"}
+                  onChange={(e) => setFormData({ ...formData, brokerage: e.target.value === "yes" })}
                 >
-                  <option value="fully_furnished">Fully Furnished</option>
-                  <option value="semi_furnished">Semi Furnished</option>
-                  <option value="unfurnished">Unfurnished</option>
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
                 </select>
               </div>
+            </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Parking Facility
+                  Available From <span className="text-rose-500">*</span>
                 </label>
-                <select
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
-                  value={formData.parkingAvailable ? "yes" : "no"}
-                  onChange={(e) => setFormData({ ...formData, parkingAvailable: e.target.value === "yes" })}
-                >
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                  value={formData.availableFrom}
+                  onChange={(e) => setFormData({ ...formData, availableFrom: e.target.value })}
+                  required
+                />
               </div>
 
               <div>
@@ -1034,7 +991,7 @@ export default function PropertyCreateDialog({
                 <input
                   type="number"
                   min={0}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
                   value={formData.maintenanceAmount}
                   onChange={(e) => setFormData({ ...formData, maintenanceAmount: Number(e.target.value) })}
                 />
@@ -1045,7 +1002,7 @@ export default function PropertyCreateDialog({
                   Maintenance Frequency
                 </label>
                 <select
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
                   value={formData.maintenanceFrequency}
                   onChange={(e) => setFormData({ ...formData, maintenanceFrequency: e.target.value as any })}
                 >
@@ -1056,158 +1013,49 @@ export default function PropertyCreateDialog({
                 </select>
               </div>
             </div>
-
-            {/* Brokerage Details */}
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
-                    Brokerage Details
-                  </span>
-                  <span className="text-[11px] text-slate-500">
-                    Is brokerage or broker commission applicable on this property?
-                  </span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={formData.brokerageApplicable}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        brokerageApplicable: e.target.checked,
-                        brokerageValue: e.target.checked ? (formData.brokerageValue || "") : "",
-                      })
-                    }
-                  />
-                  <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                </label>
-              </div>
-
-              {formData.brokerageApplicable && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
-                      Brokerage Type <span className="text-rose-500">*</span>
-                    </label>
-                    <select
-                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
-                      value={formData.brokerageType}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          brokerageType: e.target.value as "fixed" | "percentage",
-                        })
-                      }
-                    >
-                      <option value="fixed">Fixed Amount (₹)</option>
-                      <option value="percentage">Percentage of Rent (%)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
-                      Brokerage Value <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={formData.brokerageType === "percentage" ? 100 : undefined}
-                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 font-medium"
-                      placeholder={
-                        formData.brokerageType === "percentage"
-                          ? "e.g. 10 (percentage)"
-                          : "e.g. 5000 (₹)"
-                      }
-                      value={formData.brokerageValue !== undefined ? formData.brokerageValue : ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          brokerageValue: e.target.value === "" ? "" : Number(e.target.value),
-                        })
-                      }
-                      required={formData.brokerageApplicable}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
 
-          {/* Section 5: Availability Dates & Tenant Preferences */}
-          <div className="space-y-3 pt-3 border-t border-slate-100">
+          {/* Section 4: Preferences */}
+          <div className="space-y-4 pt-3 border-t border-slate-100">
             <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-              5. Availability & Tenant Preferences
+              4. Preferences
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Available From <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
-                  value={formData.availableFrom}
-                  onChange={(e) => setFormData({ ...formData, availableFrom: e.target.value })}
-                  required
-                />
-              </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Gender Preference
-                </label>
-                <select
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
-                  value={formData.genderPreference}
-                  onChange={(e) => setFormData({ ...formData, genderPreference: e.target.value as any })}
-                >
-                  <option value="any">Any Gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Occupation Preference
-                </label>
-                <select
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
-                  value={formData.occupationPreference}
-                  onChange={(e) => setFormData({ ...formData, occupationPreference: e.target.value as any })}
-                >
-                  <option value="any">Any Occupation</option>
-                  <option value="student">Student</option>
-                  <option value="working_professional">Working Professional</option>
-                  <option value="self_employed">Self Employed</option>
-                  <option value="business_owner">Business Owner</option>
-                  <option value="freelancer">Freelancer</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 6: House Rules & Amenities */}
-          <div className="space-y-3 pt-3 border-t border-slate-100">
-            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-              6. House Rules & Amenities
-            </h4>
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                House Rules (Comma-separated)
+                Tenant Preference
               </label>
-              <input
-                type="text"
-                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all"
-                placeholder="e.g. No Smoking, No Late Night Parties, Pets Allowed"
-                value={formData.houseRules}
-                onChange={(e) => setFormData({ ...formData, houseRules: e.target.value })}
+              <select
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                value={formData.tenantPreference}
+                onChange={(e) => setFormData({ ...formData, tenantPreference: e.target.value as any })}
+              >
+                <option value="anyone">Anyone</option>
+                <option value="bachelors">Bachelor's</option>
+                <option value="family">Family</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Description <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                rows={3}
+                placeholder="Provide property highlights, rules, nearby landmarks…"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                required
               />
             </div>
+          </div>
+
+          {/* Section 5: Amenities */}
+          <div className="space-y-3 pt-3 border-t border-slate-100">
+            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+              5. Amenities
+            </h4>
 
             {amenityOptions.length > 0 && (
               <div>
@@ -1236,10 +1084,10 @@ export default function PropertyCreateDialog({
             )}
           </div>
 
-          {/* Section 7: Media Management */}
+          {/* Section 6: Media Assets Management */}
           <div className="space-y-4 pt-3 border-t border-slate-100">
             <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-              7. Media Assets Management
+              6. Media Assets Management
             </h4>
             {/* Images Upload Section */}
             <div className="space-y-2">
@@ -1367,6 +1215,48 @@ export default function PropertyCreateDialog({
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Section 7: Listing Management & Moderation */}
+          <div className="space-y-4 pt-3 border-t border-slate-100">
+            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
+              7. Listing Management & Moderation
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Status
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                >
+                  <option value="approved">Approved</option>
+                  <option value="pending">Pending</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="blocked">Blocked</option>
+                  <option value="closed">Closed</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+            </div>
+
+            {formData.status === "rejected" && (
+              <div>
+                <label className="block text-xs font-semibold text-rose-600 uppercase tracking-wider mb-1">
+                  Rejection Reason <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  className="w-full px-3.5 py-2 bg-rose-50 border border-rose-300 rounded-xl text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-rose-500 transition-all"
+                  rows={2}
+                  placeholder="Provide explicit reasons for rejecting this listing…"
+                  value={formData.rejectionReason}
+                  onChange={(e) => setFormData({ ...formData, rejectionReason: e.target.value })}
+                  required
+                />
+              </div>
+            )}
           </div>
         </form>
 

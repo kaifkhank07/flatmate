@@ -11,20 +11,20 @@ export const useLookingFor = (): LookingFirItem[] => {
     const assets = useAssets();
     return [
         {
-            title: "Rooms Available",
-            subtitle: "Find Rooms & Shared Flats",
+            title: "Rooms",
+            subtitle: "Explore rooms and shared flats.",
             href: "/listing?category=Flat",
             icon: assets.listingicon1,
         },
         {
-            title: "Accommodation Seekers",
-            subtitle: "Find People Looking for a Room or Flat",
+            title: "Flatmates",
+            subtitle: "Find someone to share your space.",
             href: "/listing?category=Flatmate",
             icon: assets.listingicon2,
         },
         {
             title: "Entire Properties",
-            subtitle: "Find Complete Flats & Properties",
+            subtitle: "Explore flats and homes for rent.",
             href: "/listing?category=Property",
             icon: assets.listingicon3,
         },

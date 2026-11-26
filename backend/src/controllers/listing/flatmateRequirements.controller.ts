@@ -95,9 +95,11 @@ export const createFlatmateRequirement = async (req: Request, res: Response): Pr
       maintenanceCharges,
       furnishing,
       parking,
+      brokerage,
       availableFrom,
       moveInDate,
       genderPreference,
+      occupancyPreference,
       occupationPreference,
       userPreferences,
       lifestylePreferences,
@@ -174,8 +176,10 @@ export const createFlatmateRequirement = async (req: Request, res: Response): Pr
       maintenanceCharges: maintenanceCharges || { amount: 0, frequency: 'yearly' },
       furnishing: furnishing || 'semi_furnished',
       parking: Boolean(parking),
+      brokerage: Boolean(brokerage),
       availableFrom: parseValidDate(availableFrom || moveInDate) || new Date(),
       genderPreference: genderPreference || 'any',
+      occupancyPreference: occupancyPreference || 'single',
       occupationPreference: occupationPreference || 'any',
       userPreferences: userPreferences || lifestylePreferences || [],
       amenities: amenities || [],
@@ -410,6 +414,14 @@ export const getPublicFlatmateRequirements = async (req: Request, res: Response)
 
     if (req.query.genderPreference && req.query.genderPreference !== 'any') {
       filter.genderPreference = { $in: [req.query.genderPreference, 'any'] };
+    }
+
+    if (req.query.occupancyPreference && req.query.occupancyPreference !== 'all') {
+      filter.occupancyPreference = req.query.occupancyPreference;
+    }
+
+    if (req.query.brokerage !== undefined) {
+      filter.brokerage = String(req.query.brokerage) === 'true';
     }
 
     if (req.query.furnishing) {

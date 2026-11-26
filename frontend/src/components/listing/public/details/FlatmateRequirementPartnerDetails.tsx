@@ -14,7 +14,6 @@ import {
   Dog,
   Wine,
   Heart,
-  UserCheck,
   LandPlot,
   Sparkles,
   Tv,
@@ -28,6 +27,7 @@ import {
   Shirt,
   Car,
   Maximize2,
+  Check,
   Loader2,
 } from "lucide-react";
 import LineRoll from "@/components/utils/LineRoll";
@@ -168,9 +168,14 @@ export default function FlatmateRequirementPartnerDetails({
     (typeof uAny?.avatar === "string" ? uAny.avatar : uAny?.avatar?.image?.url) ||
     undefined;
 
-  const partnerType = listing.partnerType ? listing.partnerType.toUpperCase() : "FLATMATE";
-  const postTitle = listing.title || `Looking for a ${partnerType} Partner`;
-  const categoryHeader = `LOOKING FOR ${partnerType}`;
+  const postTitle = listing.title || listingData?.pgName || "Looking for Flatmate / Partner";
+  const pType = (listing as any).propertyType || "flatmate";
+  const pTypeStr =
+    typeof pType === "object"
+      ? (pType.category || pType.type || "").replace(/_/g, " ")
+      : String(pType).replace(/_/g, " ");
+  const furnishing = listing.furnishing || "semi_furnished";
+  const categoryHeader = `${pTypeStr.toUpperCase()} | ${furnishing.replace(/_/g, " ").toUpperCase()}`;
 
   let locationText = "Location N/A";
   if (typeof listing.location === "object" && listing.location) {
@@ -181,7 +186,7 @@ export default function FlatmateRequirementPartnerDetails({
 
   const areaVal = typeof listing.area === "number" ? listing.area : 0;
   const areaFormatted = areaVal ? `${areaVal.toLocaleString("en-IN")}` : "N/A";
-  const rentVal = typeof listing.rent === "number" ? listing.rent : 0;
+  const rentVal = typeof listing.rent === "number" ? listing.rent : (listing as any).budget || 0;
   const monthlyRent = rentVal ? `${rentVal.toLocaleString("en-IN")}` : "N/A";
   const depositVal = typeof listing.securityDeposit === "number" ? listing.securityDeposit : 0;
   const deposit = depositVal ? `${depositVal.toLocaleString("en-IN")}` : "N/A";
@@ -217,7 +222,7 @@ export default function FlatmateRequirementPartnerDetails({
     ? new Date(listing.availableFrom).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
     : "Immediate";
 
-  // Photos if uploaded
+  // Images
   const rawImages = listing.images || listingData?.images || [];
   const imageList = Array.isArray(rawImages) && rawImages.length > 0
     ? rawImages
@@ -229,7 +234,7 @@ export default function FlatmateRequirementPartnerDetails({
       .filter(Boolean) as string[]
     : [];
 
-  // User Preferences
+  // Lifestyle Preferences
   const rawPreferences = listing.userPreferences || listingData?.lifestylePreferences || [];
   const preferencesList: { _id?: string; name: string; image?: string }[] = [];
   if (Array.isArray(rawPreferences) && rawPreferences.length > 0) {
@@ -263,7 +268,9 @@ export default function FlatmateRequirementPartnerDetails({
       let aId: string | undefined;
       if (typeof item === "string") {
         aId = item;
-        const matched = options.amenities.find((opt) => opt._id === item || opt.name.toLowerCase() === item.toLowerCase());
+        const matched = options.amenities.find(
+          (opt) => opt._id === item || opt.name.toLowerCase() === item.toLowerCase()
+        );
         aName = matched ? matched.name : item;
         imgUrl = matched ? (matched.image?.url || (typeof matched.image === "string" ? matched.image : undefined)) : undefined;
       } else if (item && typeof item === "object") {
@@ -275,31 +282,24 @@ export default function FlatmateRequirementPartnerDetails({
     });
   }
 
-  const description = listing.description || "Looking for a compatible roommate/flatmate to move in together or share a place.";
+  const description = listing.description || "Partner requirement for flatshare/roomshare.";
 
   return (
     <section className="w-full py-6 md:py-8 lg:py-12 px-4 sm:px-6 lg:px-16 overflow-hidden">
-      {/* Top Image Gallery */}
-      {imageList.length > 0 && (
-        <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto mb-6 sm:mb-8 md:mb-10">
-          <ListingMediaGallery images={imageList} title={postTitle} />
-        </div>
-      )}
-
-      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 p-6 sm:p-10 md:p-14 transition-all bg-white">
+      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 drop-shadow-md p-6 sm:p-10 md:p-14 transition-all bg-white">
         <div className="flex flex-col lg:flex-row items-center md:items-start gap-8 md:gap-14 lg:gap-16">
 
-          {/* LEFT SIDE / TOP (Mobile): Partner Seeker Avatar & Action Buttons */}
+          {/* LEFT SIDE / TOP (Mobile): Seeker Avatar & Action Buttons */}
           <div className="flex flex-row lg:flex-col items-center lg:items-center gap-4 sm:gap-5 lg:gap-4 shrink-0 w-full lg:w-64 pb-6 lg:pb-0 border-b border-gray-100 lg:border-b-0">
             {/* Avatar */}
-            <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-56 lg:h-56 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-[#10B981] shadow-inner">
+            <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-56 lg:h-56 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-[#3BB799] shadow-inner">
               {userImage ? (
                 <img src={userImage} alt={name} className="w-full h-full object-cover" />
               ) : (
                 <svg viewBox="0 0 100 100" fill="none" className="w-full h-full">
-                  <circle cx="50" cy="50" r="50" fill="#10B981" />
+                  <circle cx="50" cy="50" r="50" fill="#3BB799" />
                   <circle cx="50" cy="44" r="19" fill="#F8B195" />
-                  <path d="M18 96C18 76 32 68 50 68C68 68 82 76 82 96V100H18V96Z" fill="#6366F1" />
+                  <path d="M18 96C18 76 32 68 50 68C68 68 82 76 82 96V100H18V96Z" fill="#EC4899" />
                 </svg>
               )}
             </div>
@@ -310,7 +310,7 @@ export default function FlatmateRequirementPartnerDetails({
                 {name}
               </h2>
 
-              {!isOwner && (
+              {isAuthenticated && !isOwner && (
                 <div className="flex flex-row lg:flex-col justify-start lg:justify-center gap-2.5 sm:gap-3 w-full items-center flex-wrap">
                   <button
                     type="button"
@@ -336,262 +336,341 @@ export default function FlatmateRequirementPartnerDetails({
 
           {/* RIGHT SIDE: Partner Requirement Info */}
           <div className="flex-1 w-full space-y-7 sm:space-y-8 md:space-y-10">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h2 className="text-black text-xl sm:text-2xl md:text-3xl font-regular">
-                    {postTitle}
-                  </h2>
-                  {listing.postedBy && (
-                    <span className="px-3 py-0.5 rounded-full text-xs font-medium capitalize bg-blue-50 text-blue-700 border border-blue-200">
-                      Posted by {listing.postedBy}
-                    </span>
-                  )}
+            {/* SECTION 1: REQUIREMENT OVERVIEW */}
+            <div className="space-y-4">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                REQUIREMENT OVERVIEW
+              </h3>
+
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="text-black text-xl sm:text-2xl md:text-3xl font-regular">
+                      {postTitle}
+                    </h2>
+                    {listing.postedBy && (
+                      <span className="px-3 py-0.5 rounded-full text-xs font-medium capitalize bg-blue-50 text-blue-700 border border-blue-200">
+                        Posted by {listing.postedBy}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-gray-500 text-sm sm:text-base font-regular">
+                    {categoryHeader}
+                  </p>
                 </div>
-                <p className="text-gray-500 text-sm sm:text-base font-regular">
-                  {categoryHeader}
-                </p>
+
+                {/* Wishlist Button */}
+                {isAuthenticated && !isOwner && (
+                  <div className="relative shrink-0 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleToggleWishlist}
+                      disabled={wishlistLoading}
+                      className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer ${isWishlisted
+                        ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100"
+                        : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-rose-600"
+                        }`}
+                      title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                    >
+                      {wishlistLoading ? (
+                        <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-rose-500" />
+                      ) : (
+                        <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isWishlisted ? "fill-rose-500 text-rose-500" : "text-gray-400 group-hover:text-rose-500"}`} />
+                      )}
+                      <span className="hidden sm:inline">{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
+                    </button>
+                    {wishlistMessage && (
+                      <div className="absolute right-0 top-full mt-1.5 px-3 py-1 bg-slate-800 text-white text-xs rounded-md shadow-md whitespace-nowrap z-10 animate-in fade-in duration-200">
+                        {wishlistMessage}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Wishlist Button */}
-              {isAuthenticated && !isOwner && (
-                <div className="relative shrink-0 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleToggleWishlist}
-                    disabled={wishlistLoading}
-                    className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer ${isWishlisted
-                      ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100"
-                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-rose-600"
-                      }`}
-                    title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-                  >
-                    {wishlistLoading ? (
-                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-rose-500" />
-                    ) : (
-                      <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isWishlisted ? "fill-rose-500 text-rose-500" : "text-gray-400 group-hover:text-rose-500"}`} />
-                    )}
-                    <span className="hidden sm:inline">{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
-                  </button>
-                  {wishlistMessage && (
-                    <div className="absolute right-0 top-full mt-1.5 px-3 py-1 bg-slate-800 text-white text-xs rounded-md shadow-md whitespace-nowrap z-10 animate-in fade-in duration-200">
-                      {wishlistMessage}
-                    </div>
-                  )}
+              <div className="grid grid-cols-1 gap-4 sm:gap-6 pt-1">
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Location</span>
+                  <div className="flex items-start gap-1.5 text-gray-800 text-sm sm:text-base font-medium mt-1">
+                    <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                    <span>{locationText}</span>
+                  </div>
                 </div>
-              )}
+
+                {/* <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Title</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{postTitle}</p>
+                </div> */}
+              </div>
             </div>
 
-            {/* Location */}
-            <div className="space-y-1.5">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Location</h3>
-              <div className="flex items-start gap-1.5 text-gray-500 text-sm sm:text-lg font-regular">
-                <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-1" />
-                <span>{locationText}</span>
+            {/* SECTION 2: MEDIA ASSETS MANAGEMENT (Conditional) */}
+            {imageList.length > 0 && (
+              <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto mb-6 sm:mb-8 md:mb-10">
+                <ListingMediaGallery images={imageList} title={postTitle} />
+              </div>
+            )}
+
+            <hr className="border-gray-200 border-t my-4" />
+
+            {/* SECTION 3: SPACE DETAILS */}
+            <div className="space-y-4">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                SPACE DETAILS
+              </h3>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pt-1">
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Area (sq.ft)</span>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
+                      <LandPlot size={13} strokeWidth={2} className="text-accent" />
+                    </span>
+                    <span className="text-black text-sm sm:text-base md:text-lg font-medium">{areaFormatted}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Furnishing Status</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
+                    {listing.furnishing ? listing.furnishing.replace(/_/g, " ") : "N/A"}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Parking Facility</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{parkingText}</p>
+                </div>
+
+                {listing.propertyDetails?.bedrooms && (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Bedrooms / BHK</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 uppercase">
+                      {listing.propertyDetails.bedrooms.replace(/_/g, " ")}
+                    </p>
+                  </div>
+                )}
+
+                {listing.propertyDetails?.facing && (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Facing</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
+                      {listing.propertyDetails.facing.replace(/_/g, "-")}
+                    </p>
+                  </div>
+                )}
+
+                {listing.propertyDetails?.floor !== undefined && (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Floor</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">
+                      {listing.propertyDetails.floor === 0 ? "Ground Floor (0)" : `${listing.propertyDetails.floor}`}
+                      {listing.propertyDetails.totalFloors !== undefined ? ` of ${listing.propertyDetails.totalFloors}` : ""}
+                    </p>
+                  </div>
+                )}
+
+                {listing.propertyDetails?.totalFloors !== undefined && (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Total Floors</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">
+                      {listing.propertyDetails.totalFloors}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
             <hr className="border-gray-200 border-t my-4" />
 
-            {/* Rent Info */}
+            {/* SECTION 4: RENTAL SPECIFICATIONS */}
             <div className="space-y-4">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Rent Info</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                RENTAL SPECIFICATIONS
+              </h3>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pt-1">
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Monthly Rent</span>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Occupancy Preference</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
+                    {listing.occupancyPreference ? listing.occupancyPreference.replace(/_/g, " ") : "Single"}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Rent Amount (₹/mo)</span>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
                       <IndianRupee size={13} strokeWidth={2} className="text-accent" />
                     </span>
-                    <span className="text-black text-sm sm:text-lg md:text-xl font-medium">{monthlyRent}</span>
+                    <span className="text-black text-sm sm:text-base md:text-lg font-medium">{monthlyRent}</span>
                   </div>
                 </div>
+
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Deposit</span>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Security Deposit (₹)</span>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
                       <IndianRupee size={13} strokeWidth={2} className="text-accent" />
                     </span>
-                    <span className="text-black text-sm sm:text-lg md:text-xl font-medium">{deposit}</span>
+                    <span className="text-black text-sm sm:text-base md:text-lg font-medium">{deposit}</span>
                   </div>
                 </div>
+
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Area (sqft)</span>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
-                      <LandPlot size={13} strokeWidth={2} className="text-accent" />
-                    </span>
-                    <span className="text-black text-sm sm:text-lg md:text-xl font-medium">{areaFormatted}</span>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Brokerage Applicable</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">
+                    {listing.brokerage ? "Yes (Brokerage Applicable)" : "No (Zero Brokerage)"}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Available From</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{availableFromDate}</p>
+                </div>
+
+                {listing.maintenanceCharges?.amount ? (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Maintenance Charges (₹)</span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
+                        <IndianRupee size={13} strokeWidth={2} className="text-accent" />
+                      </span>
+                      <span className="text-black text-sm sm:text-base md:text-lg font-medium">{maintenanceChargesText}</span>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Parking</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{parkingText}</p>
-                </div>
-                <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Maintenance Charges</span>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
-                      <IndianRupee size={13} strokeWidth={2} className="text-accent" />
-                    </span>
-                    <span className="text-black text-sm sm:text-lg md:text-xl font-medium">{maintenanceChargesText}</span>
+                ) : null}
+
+                {listing.maintenanceCharges?.frequency ? (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Maintenance Frequency</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{maintenanceFrequencyText}</p>
                   </div>
-                </div>
-                <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Maintenance Frequency</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{maintenanceFrequencyText}</p>
-                </div>
+                ) : null}
               </div>
             </div>
 
-            {/* Property Details */}
-            {listing.propertyDetails && (listing.propertyDetails.bedrooms || listing.propertyDetails.facing || listing.propertyDetails.floor !== undefined || listing.propertyDetails.totalFloors !== undefined) && (
-              <div className="space-y-3">
-                <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Property Details</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
-                  {listing.propertyDetails.bedrooms && (
-                    <div>
-                      <span className="block text-gray-500 text-sm sm:text-lg font-regular">Bedrooms / BHK</span>
-                      <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1 uppercase">
-                        {listing.propertyDetails.bedrooms.replace(/_/g, " ")}
-                      </p>
-                    </div>
-                  )}
-                  {listing.propertyDetails.floor !== undefined && (
-                    <div>
-                      <span className="block text-gray-500 text-sm sm:text-lg font-regular">Floor</span>
-                      <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">
-                        {listing.propertyDetails.floor === 0 ? "Ground Floor (0)" : `${listing.propertyDetails.floor}`}
-                        {listing.propertyDetails.totalFloors !== undefined ? ` of ${listing.propertyDetails.totalFloors}` : ""}
-                      </p>
-                    </div>
-                  )}
-                  {listing.propertyDetails.facing && (
-                    <div>
-                      <span className="block text-gray-500 text-sm sm:text-lg font-regular">Facing</span>
-                      <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1 capitalize">
-                        {listing.propertyDetails.facing.replace(/_/g, "-")}
-                      </p>
-                    </div>
-                  )}
+            <hr className="border-gray-200 border-t my-4" />
+
+            {/* SECTION 4: PREFERENCES */}
+            <div className="space-y-4">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                PREFERENCES
+              </h3>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4  gap-4 sm:gap-6 pt-1">
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Gender Preference</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{genderPreference}</p>
+                </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Occupation Preference</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{occupationPreference}</p>
                 </div>
               </div>
-            )}
 
-            {/* Information Grid */}
-            <div className="space-y-3">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Roommate Preferences</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
-                <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Gender Preference</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{genderPreference}</p>
-                </div>
-                <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Occupation Preference</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{occupationPreference}</p>
-                </div>
-                <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Available From</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{availableFromDate}</p>
+              {/* Description */}
+              <div className="space-y-2 pt-2">
+                <span className="block text-gray-500 text-xs sm:text-sm font-medium">Description</span>
+                <div className="mt-1">
+                  <RichTextRenderer content={description} />
                 </div>
               </div>
-            </div>
 
-            {/* Lifestyle Preferences */}
-            {preferencesList.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">
-                  Lifestyle & Preferences
-                </h3>
+              {/* Lifestyle Preferences */}
+              {preferencesList.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">
+                    Lifestyle Preferences ({preferencesList.length} selected)
+                  </span>
 
-                <div className="flex flex-wrap items-start gap-x-3 gap-y-5 sm:gap-x-6 sm:gap-y-8 pt-1">
-                  {preferencesList.map((pref, idx) => (
-                    <div
-                      key={pref._id || idx}
-                      className="flex w-[64px] min-w-0 flex-col items-center sm:w-20 md:w-24"
-                    >
-                      <div className="relative h-10 w-14 sm:h-14 sm:w-20 md:h-16 md:w-24">
-                        <div className="absolute bottom-0 left-0 h-7 w-full rounded-full bg-accent sm:h-10 md:h-11" />
+                  <div className="flex flex-wrap items-start gap-x-3 gap-y-5 sm:gap-x-6 sm:gap-y-8 pt-1">
+                    {preferencesList.map((pref, idx) => (
+                      <div
+                        key={pref._id || idx}
+                        className="flex w-[64px] min-w-0 flex-col items-center sm:w-20 md:w-24"
+                      >
+                        <div className="relative h-10 w-14 sm:h-14 sm:w-20 md:h-16 md:w-24">
+                          <div className="absolute bottom-0 left-0 h-7 w-full rounded-full bg-accent sm:h-10 md:h-11" />
 
-                        <div className="absolute left-1/2 -top-1 z-10 -translate-x-1/2 sm:-top-2">
-                          {pref.image ? (
-                            <img
-                              src={pref.image}
-                              alt={pref.name}
-                              className="h-9 w-9 object-contain sm:h-12 sm:w-12 md:h-14 md:w-14"
-                            />
-                          ) : (
-                            getPreferenceVisual(pref.name)
-                          )}
+                          <div className="absolute left-1/2 -top-1 z-10 -translate-x-1/2 sm:-top-2">
+                            {pref.image ? (
+                              <img
+                                src={pref.image}
+                                alt={pref.name}
+                                className="h-9 w-9 object-contain sm:h-12 sm:w-12 md:h-14 md:w-14"
+                              />
+                            ) : (
+                              getPreferenceVisual(pref.name)
+                            )}
+                          </div>
                         </div>
+
+                        <span className="mt-1.5 w-full break-words text-center text-[11px] font-normal leading-tight text-gray-500 capitalize sm:text-sm md:text-base">
+                          {pref.name}
+                        </span>
                       </div>
-
-                      <span className="mt-1.5 w-full break-words text-center text-[11px] font-normal leading-tight text-gray-500 capitalize sm:text-sm md:text-base">
-                        {pref.name}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Amenities */}
-            {amenitiesList.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">
-                  Amenities
-                </h3>
+              {/* Amenities */}
+              {amenitiesList.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">
+                    Amenities ({amenitiesList.length} available)
+                  </span>
 
-                <div className="flex flex-wrap items-start gap-x-3 gap-y-5 sm:gap-x-6 sm:gap-y-8 pt-1">
-                  {amenitiesList.map((am, idx) => (
-                    <div
-                      key={am._id || idx}
-                      className="flex w-[64px] min-w-0 flex-col items-center sm:w-20 md:w-24"
-                    >
-                      <div className="relative h-10 w-14 sm:h-14 sm:w-20 md:h-16 md:w-24">
-                        <div className="absolute bottom-0 left-0 h-7 w-full rounded-full bg-accent sm:h-10 md:h-11" />
+                  <div className="flex flex-wrap items-start gap-x-3 gap-y-5 sm:gap-x-6 sm:gap-y-8 pt-1">
+                    {amenitiesList.map((am, idx) => (
+                      <div
+                        key={am._id || idx}
+                        className="flex w-[64px] min-w-0 flex-col items-center sm:w-20 md:w-24"
+                      >
+                        <div className="relative h-10 w-14 sm:h-14 sm:w-20 md:h-16 md:w-24">
+                          <div className="absolute bottom-0 left-0 h-7 w-full rounded-full bg-accent sm:h-10 md:h-11" />
 
-                        <div className="absolute left-1/2 -top-1 z-10 -translate-x-1/2 sm:-top-2">
-                          {am.image ? (
-                            <img
-                              src={am.image}
-                              alt={am.name}
-                              className="h-9 w-9 object-contain sm:h-12 sm:w-12 md:h-14 md:w-14"
-                            />
-                          ) : (
-                            getAmenityIcon(am.name)
-                          )}
+                          <div className="absolute left-1/2 -top-1 z-10 -translate-x-1/2 sm:-top-2">
+                            {am.image ? (
+                              <img
+                                src={am.image}
+                                alt={am.name}
+                                className="h-9 w-9 object-contain sm:h-12 sm:w-12 md:h-14 md:w-14"
+                              />
+                            ) : (
+                              getAmenityIcon(am.name)
+                            )}
+                          </div>
                         </div>
+
+                        <span className="mt-1.5 w-full break-words text-center text-[11px] font-normal leading-tight text-gray-500 capitalize sm:text-sm md:text-base">
+                          {am.name}
+                        </span>
                       </div>
-
-                      <span className="mt-1.5 w-full break-words text-center text-[11px] font-normal leading-tight text-gray-500 capitalize sm:text-sm md:text-base">
-                        {am.name}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* About / Description */}
-            <div className="space-y-3">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Description</h3>
-              <RichTextRenderer content={description} />
+              )}
             </div>
 
             {/* Report Footer */}
             {isAuthenticated && !isOwner && (
-              <div className="pt-3 text-base sm:text-lg lg:text-xl font-semibold text-gray-900 flex items-center gap-1.5 flex-wrap">
-                <span>Found Wrong Information?</span>
-                <button
-                  type="button"
-                  onClick={() => setShowReportModal(true)}
-                  className="text-[#0066FF] cursor-pointer font-semibold transition-all"
-                >
-                  <LineRoll text="Report Listing" lineClassName="bg-[#0066FF]" />
-                </button>
-              </div>
+              <>
+                <hr className="border-gray-200 border-t my-4" />
+                <div className="pt-2 text-base sm:text-lg lg:text-xl font-semibold text-gray-900 flex items-center gap-1.5 flex-wrap">
+                  <span>Found Wrong Information?</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowReportModal(true)}
+                    className="text-[#0066FF] cursor-pointer font-semibold transition-all"
+                  >
+                    <LineRoll text="Report Listing" lineClassName="bg-[#0066FF]" />
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>

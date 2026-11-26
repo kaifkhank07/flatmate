@@ -63,7 +63,9 @@ export default function ListingCard({
   return (
     <Link
       href={href}
-      className={`bg-white rounded-[24px] sm:rounded-[32px] flex flex-row items-stretch overflow-hidden transition-all duration-300 drop-shadow-md border border-gray-200/90 hover:-translate-y-1 w-full h-full min-h-[140px] xs:min-h-[150px] sm:min-h-[175px] md:min-h-[190px] lg:min-h-[204px] ${className}`}
+      className={`bg-white rounded-[24px] sm:rounded-[32px] flex flex-row items-stretch overflow-hidden transition-all duration-300 drop-shadow-md border border-gray-200/90 ${
+        isMylisting ? "" : "hover:-translate-y-1"
+      } w-full h-full min-h-[140px] xs:min-h-[150px] sm:min-h-[175px] md:min-h-[190px] lg:min-h-[204px] ${className}`}
     >
       {/* Avatar / Property Image Container Box Left */}
       <div className="w-24 xs:w-28 sm:w-36 md:w-44 shrink-0 relative flex items-center justify-center rounded-[24px] sm:rounded-[32px] drop-shadow-md border border-gray-200/90 overflow-hidden self-stretch bg-gray-100">
@@ -119,6 +121,11 @@ export default function ListingCard({
               {item.floor}
             </span>
           )}
+          {item.furnishing && (
+            <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[10px] sm:text-xs font-medium border border-purple-100 shrink-0">
+              {item.furnishing}
+            </span>
+          )}
           {item.postedBy && (
             <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] sm:text-xs font-medium border border-emerald-100 capitalize shrink-0">
               By {item.postedBy}
@@ -129,6 +136,16 @@ export default function ListingCard({
               {item.brokerage}
             </span>
           )}
+          {/* For flatmate requirements with no property details badges, show category badge to maintain balanced card content */}
+          {item.sourceType === "flatmate_requirement" &&
+            !item.bhk &&
+            !item.floor &&
+            !item.furnishing &&
+            !item.postedBy && (
+              <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] sm:text-xs font-medium border border-indigo-100 shrink-0">
+                {item.category || "Flatmate"} Requirement
+              </span>
+            )}
         </div>
 
         {/* Bottom Details Grid */}
@@ -154,7 +171,7 @@ export default function ListingCard({
           </div>
 
           {/* Property Type / Looking For (Type) */}
-          <div className="min-w-0">
+          <div className={`min-w-0 ${isMylisting ? "pr-14 sm:pr-20" : ""}`}>
             <span className="block text-gray-400 text-[10px] xs:text-xs sm:text-base font-regular truncate">
               {item.sourceType === "flatmate_requirement" ? "Looking For" : "Property Type"}
             </span>

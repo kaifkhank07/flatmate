@@ -44,8 +44,8 @@ export default function SearchSection({
 
   const categories: { label: ListingCategory; displayLabel: string }[] = [
     { label: "All", displayLabel: "All Listing" },
-    { label: "Flatmate", displayLabel: "Accommodation Seekers" },
-    { label: "Flat", displayLabel: "Rooms Available" },
+    { label: "Flat", displayLabel: "Rooms" },
+    { label: "Flatmate", displayLabel: "Flatmate" },
     { label: "Property", displayLabel: "Entire Property" },
   ];
 
@@ -53,8 +53,8 @@ export default function SearchSection({
     { label: "All Property Types", value: "all" },
     { label: "Flats / Apartments", value: "flats_apartments" },
     { label: "Houses / Villas", value: "houses_villas" },
-    { label: "Office Spaces", value: "office_spaces" },
-    { label: "Shops / Commercial", value: "shops_commercial" },
+    // { label: "Office Spaces", value: "office_spaces" },
+    // { label: "Shops / Commercial", value: "shops_commercial" },
   ];
 
   const propertyTypeLabels: Record<string, string> = {
@@ -258,7 +258,7 @@ export default function SearchSection({
           >
             <div>
               <span className="block text-gray-800 text-xs sm:text-sm lg:text-xl font-medium tracking-tight">
-                Browse Listings
+                Looking For
               </span>
 
               <span className="block text-xs lg:text-sm text-gray-600 font-medium mt-0.5">

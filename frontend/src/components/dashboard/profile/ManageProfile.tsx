@@ -22,6 +22,8 @@ import SectionHeading from "@/components/utils/SectionHeading";
 import LoadingState from "@/components/utils/LoadingState";
 import EmptyState from "@/components/utils/EmptyState";
 import { ViewReveal } from "@/components/animation";
+import { useOtpInput } from "@/hooks/useOtpInput";
+import { useWebOTP } from "@/hooks/useWebOTP";
 
 type GenderType = "male" | "female" | "other" | "any" | "";
 type OccupationType =
@@ -90,12 +92,35 @@ export default function ManageProfile() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteStep, setDeleteStep] = useState<"confirm" | "otp">("confirm");
-  const [deleteOtp, setDeleteOtp] = useState(["", "", "", "", "", ""]);
   const [isSendingDeleteOtp, setIsSendingDeleteOtp] = useState(false);
   const [deleteDestination, setDeleteDestination] = useState("");
   const [deleteOtpError, setDeleteOtpError] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [deleteResendCount, setDeleteResendCount] = useState(0);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
+
+  // 6-digit OTP controller for Account Deletion
+  const {
+    otp: deleteOtp,
+    fullOtp: deleteFullOtp,
+    applyFullOtp: applyDeleteFullOtp,
+    resetOtp: resetDeleteOtp,
+    getInputProps: getDeleteInputProps,
+  } = useOtpInput({
+    idPrefix: "delete-otp-input",
+    onChange: () => {
+      if (deleteOtpError) setDeleteOtpError("");
+    },
+  });
+
+  // Android WebOTP listener for Account Deletion
+  useWebOTP({
+    enabled: showDeleteModal && deleteStep === "otp",
+    triggerKey: deleteResendCount,
+    onReceiveOTP: (code) => {
+      applyDeleteFullOtp(code);
+    },
+  });
   const [statusMessage, setStatusMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -306,7 +331,7 @@ export default function ManageProfile() {
   const handleOpenDeleteModal = () => {
     setShowDeleteModal(true);
     setDeleteStep("confirm");
-    setDeleteOtp(["", "", "", "", "", ""]);
+    resetDeleteOtp();
     setDeleteOtpError("");
   };
 
@@ -314,7 +339,7 @@ export default function ManageProfile() {
     if (isDeleting || isSendingDeleteOtp) return;
     setShowDeleteModal(false);
     setDeleteStep("confirm");
-    setDeleteOtp(["", "", "", "", "", ""]);
+    resetDeleteOtp();
     setDeleteOtpError("");
   };
 
@@ -327,51 +352,22 @@ export default function ManageProfile() {
       setDeleteDestination(result.destination || "");
       setDeleteStep("otp");
       setResendCooldown(60);
-      setDeleteOtp(["", "", "", "", "", ""]);
+      setDeleteResendCount((c) => c + 1);
+      resetDeleteOtp();
     } else {
       setDeleteOtpError(result.message);
     }
   };
 
-  const handleDeleteOtpChange = (index: number, value: string) => {
-    const cleanVal = value.replace(/[^0-9]/g, "");
-    if (cleanVal.length > 1) {
-      const digits = cleanVal.slice(0, 6).split("");
-      const newOtp = [...deleteOtp];
-      digits.forEach((d, i) => {
-        if (index + i < 6) newOtp[index + i] = d;
-      });
-      setDeleteOtp(newOtp);
-      const nextIdx = Math.min(index + digits.length, 5);
-      document.getElementById(`delete-otp-input-${nextIdx}`)?.focus();
-      if (deleteOtpError) setDeleteOtpError("");
-      return;
-    }
-    const newOtp = [...deleteOtp];
-    newOtp[index] = cleanVal;
-    setDeleteOtp(newOtp);
-    if (cleanVal && index < 5) {
-      document.getElementById(`delete-otp-input-${index + 1}`)?.focus();
-    }
-    if (deleteOtpError) setDeleteOtpError("");
-  };
-
-  const handleDeleteOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !deleteOtp[index] && index > 0) {
-      document.getElementById(`delete-otp-input-${index - 1}`)?.focus();
-    }
-  };
-
   const handleConfirmDeleteWithOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const fullOtp = deleteOtp.join("").trim();
-    if (fullOtp.length < 6) {
+    if (deleteFullOtp.length < 6) {
       setDeleteOtpError("Please enter all 6 digits of your verification code.");
       return;
     }
     setIsDeleting(true);
     setDeleteOtpError("");
-    const result = await deleteAccountWithOTP(fullOtp);
+    const result = await deleteAccountWithOTP(deleteFullOtp);
     if (result.success) {
       setShowDeleteModal(false);
       router.push("/login");
@@ -859,18 +855,13 @@ export default function ManageProfile() {
                   <form onSubmit={handleConfirmDeleteWithOtp} className="space-y-4">
                     <div>
                       <div className="flex justify-between items-center gap-1.5 sm:gap-2 py-1">
-                        {deleteOtp.map((digit, index) => (
+                        {deleteOtp.map((_, index) => (
                           <input
-                            key={index}
-                            id={`delete-otp-input-${index}`}
-                            type="text"
-                            inputMode="numeric"
-                            maxLength={1}
-                            value={digit}
-                            disabled={isDeleting}
-                            onChange={(e) => handleDeleteOtpChange(index, e.target.value)}
-                            onKeyDown={(e) => handleDeleteOtpKeyDown(index, e)}
-                            className="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-semibold border border-gray-300 rounded-xl sm:rounded-2xl focus:border-red-600 focus:ring-2 focus:ring-red-100 outline-none transition-all bg-white text-gray-900"
+                            {...getDeleteInputProps(index, {
+                              disabled: isDeleting,
+                              className:
+                                "w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-semibold border border-gray-300 rounded-xl sm:rounded-2xl focus:border-red-600 focus:ring-2 focus:ring-red-100 outline-none transition-all bg-white text-gray-900",
+                            })}
                           />
                         ))}
                       </div>
@@ -909,7 +900,7 @@ export default function ManageProfile() {
                       </button>
                       <button
                         type="submit"
-                        disabled={isDeleting || deleteOtp.join("").length < 6}
+                        disabled={isDeleting || deleteFullOtp.length < 6}
                         className="px-5 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isDeleting ? (

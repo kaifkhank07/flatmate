@@ -56,6 +56,8 @@ export type OccupationPreference =
   | 'other'
   | 'any';
 
+export type TenantPreference = 'anyone' | 'bachelors' | 'family';
+
 export type MaintenanceFrequency =
   | 'monthly'
   | 'yearly'
@@ -83,6 +85,7 @@ export interface IProperty extends Document {
 
   propertyType: PropertyType;
   propertyDetails?: IPropertyDetails;
+  brokerage: boolean;
   brokerageDetails?: IBrokerageDetails;
   postedBy?: PropertyPostedBy;
 
@@ -98,11 +101,12 @@ export interface IProperty extends Document {
   parking: boolean;
 
   availableFrom: Date;
-  genderPreference: GenderPreference;
-  occupationPreference: OccupationPreference;
+  tenantPreference: TenantPreference;
+  genderPreference?: GenderPreference;
+  occupationPreference?: OccupationPreference;
 
   amenities: Types.ObjectId[];
-  houseRules: string[];
+  houseRules?: string[];
 
   images: Types.ObjectId[];
   videos: Types.ObjectId[];
@@ -202,6 +206,11 @@ const propertySchema = new Schema<IProperty>(
       },
     },
 
+    brokerage: {
+      type: Boolean,
+      default: false,
+    },
+
     brokerageDetails: {
       applicable: {
         type: Boolean,
@@ -270,29 +279,16 @@ const propertySchema = new Schema<IProperty>(
       required: [true, 'Available from date is required'],
     },
 
-    genderPreference: {
+    tenantPreference: {
       type: String,
-      enum: ['male', 'female', 'other', 'any'],
-      default: 'any',
-    },
-
-    occupationPreference: {
-      type: String,
-      enum: ['student', 'working_professional', 'self_employed', 'business_owner', 'freelancer', 'other', 'any'],
-      default: 'any',
+      enum: ['anyone', 'bachelors', 'family'],
+      default: 'anyone',
     },
 
     amenities: [
       {
         type: Schema.Types.ObjectId,
         ref: 'PropertyAmenity',
-      },
-    ],
-
-    houseRules: [
-      {
-        type: String,
-        trim: true,
       },
     ],
 
@@ -355,6 +351,7 @@ propertySchema.index({ 'propertyDetails.bedrooms': 1 });
 propertySchema.index({ postedBy: 1 });
 propertySchema.index({ rent: 1 });
 propertySchema.index({ availableFrom: 1 });
+propertySchema.index({ tenantPreference: 1 });
 
 export const Property = model<IProperty>('Property', propertySchema);
 

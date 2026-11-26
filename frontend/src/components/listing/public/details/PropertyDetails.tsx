@@ -178,6 +178,23 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
     parkingText = listing.parking.available ? "Available" : "Not Available";
   }
 
+  let brokerageText = "No (Zero Brokerage)";
+  if (typeof listing.brokerage === "boolean") {
+    brokerageText = listing.brokerage ? "Yes (Brokerage Applicable)" : "No (Zero Brokerage)";
+  } else if (listing.brokerageDetails && typeof listing.brokerageDetails === "object") {
+    if (listing.brokerageDetails.applicable) {
+      if (listing.brokerageDetails.type === "percentage" && listing.brokerageDetails.value) {
+        brokerageText = `Yes (${listing.brokerageDetails.value}%)`;
+      } else if (listing.brokerageDetails.value) {
+        brokerageText = `Yes (₹${listing.brokerageDetails.value.toLocaleString("en-IN")})`;
+      } else {
+        brokerageText = "Yes (Brokerage Applicable)";
+      }
+    } else {
+      brokerageText = "No (Zero Brokerage)";
+    }
+  }
+
   let maintenanceChargesText = "Included in Rent";
   if (listing.maintenanceCharges?.amount) {
     maintenanceChargesText = `${listing.maintenanceCharges.amount.toLocaleString("en-IN")}`;
@@ -191,11 +208,15 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
     else maintenanceFrequencyText = rawFreq.charAt(0).toUpperCase() + rawFreq.slice(1);
   }
 
-  const genderPreference = listing.genderPreference ? listing.genderPreference.charAt(0).toUpperCase() + listing.genderPreference.slice(1) : "Any";
-  const occupationPreference = listing.occupationPreference ? listing.occupationPreference.replace(/_/g, " ").toUpperCase() : "Any";
   const availableFromDate = listing.availableFrom
     ? new Date(listing.availableFrom).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
     : "Immediate";
+
+  let tenantPrefText = "Anyone";
+  if (listing.tenantPreference === "bachelors") tenantPrefText = "Bachelor's";
+  else if (listing.tenantPreference === "family") tenantPrefText = "Family";
+  else if (listing.tenantPreference === "anyone") tenantPrefText = "Anyone";
+  else if (listing.tenantPreference) tenantPrefText = String(listing.tenantPreference);
 
   // Images
   const backendImages = listing.images?.map((i: any) => (typeof i === "string" ? i : i.url)).filter(Boolean) || [];
@@ -236,14 +257,7 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
 
   return (
     <section className="w-full py-6 md:py-8 lg:py-12 px-4 sm:px-6 lg:px-16 overflow-hidden">
-      {/* Top Media Gallery */}
-      {imageList.length > 0 && (
-        <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto mb-6 sm:mb-8 md:mb-10">
-          <ListingMediaGallery images={imageList} title={propertyTitle} />
-        </div>
-      )}
-
-      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 p-6 sm:p-10 md:p-14 transition-all bg-white">
+      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 drop-shadow-md p-6 sm:p-10 md:p-14 transition-all bg-white">
         <div className="flex flex-col lg:flex-row items-center md:items-start gap-8 md:gap-14 lg:gap-16">
 
           {/* LEFT SIDE / TOP (Mobile): Owner Avatar & Action Buttons */}
@@ -267,7 +281,7 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
                 {name}
               </h2>
 
-              {!isOwner && (
+              {isAuthenticated && !isOwner && (
                 <div className="flex flex-row lg:flex-col justify-start lg:justify-center gap-2.5 sm:gap-3 w-full items-center flex-wrap">
                   <button
                     type="button"
@@ -293,224 +307,302 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
 
           {/* RIGHT SIDE: Property Information */}
           <div className="flex-1 w-full space-y-7 sm:space-y-8 md:space-y-10">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h2 className="text-black text-xl sm:text-2xl md:text-3xl font-regular">
-                    {propertyTitle}
-                  </h2>
-                  {listing.postedBy && (
-                    <span className="px-3 py-0.5 rounded-full text-xs font-medium capitalize bg-blue-50 text-blue-700 border border-blue-200">
-                      Posted by {listing.postedBy}
-                    </span>
-                  )}
+            {/* SECTION 1: BASIC OVERVIEW */}
+            <div className="space-y-4">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                BASIC OVERVIEW
+              </h3>
+
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="text-black text-xl sm:text-2xl md:text-3xl font-regular">
+                      {propertyTitle}
+                    </h2>
+                    {listing.postedBy && (
+                      <span className="px-3 py-0.5 rounded-full text-xs font-medium capitalize bg-blue-50 text-blue-700 border border-blue-200">
+                        Posted by {listing.postedBy}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-gray-500 text-sm sm:text-base font-regular">
+                    {categoryHeader}
+                  </p>
                 </div>
-                <p className="text-gray-500 text-sm sm:text-base font-regular">
-                  {categoryHeader}
-                </p>
+
+                {/* Wishlist Button */}
+                {isAuthenticated && !isOwner && (
+                  <div className="relative shrink-0 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleToggleWishlist}
+                      disabled={wishlistLoading}
+                      className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer ${isWishlisted
+                        ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100"
+                        : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-rose-600"
+                        }`}
+                      title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                    >
+                      {wishlistLoading ? (
+                        <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-rose-500" />
+                      ) : (
+                        <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isWishlisted ? "fill-rose-500 text-rose-500" : "text-gray-400 group-hover:text-rose-500"}`} />
+                      )}
+                      <span className="hidden sm:inline">{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
+                    </button>
+                    {wishlistMessage && (
+                      <div className="absolute right-0 top-full mt-1.5 px-3 py-1 bg-slate-800 text-white text-xs rounded-md shadow-md whitespace-nowrap z-10 animate-in fade-in duration-200">
+                        {wishlistMessage}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Wishlist Button */}
-              {isAuthenticated && !isOwner && (
-                <div className="relative shrink-0 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleToggleWishlist}
-                    disabled={wishlistLoading}
-                    className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer ${isWishlisted
-                      ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100"
-                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-rose-600"
-                      }`}
-                    title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-                  >
-                    {wishlistLoading ? (
-                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-rose-500" />
-                    ) : (
-                      <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isWishlisted ? "fill-rose-500 text-rose-500" : "text-gray-400 group-hover:text-rose-500"}`} />
-                    )}
-                    <span className="hidden sm:inline">{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
-                  </button>
-                  {wishlistMessage && (
-                    <div className="absolute right-0 top-full mt-1.5 px-3 py-1 bg-slate-800 text-white text-xs rounded-md shadow-md whitespace-nowrap z-10 animate-in fade-in duration-200">
-                      {wishlistMessage}
+              <div className="grid grid-cols-1 gap-4 sm:gap-6 pt-1">
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Location</span>
+                  <div className="flex items-start gap-1.5 text-gray-800 text-sm sm:text-base font-medium mt-1">
+                    <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                    <span>{locationText}</span>
+                  </div>
+                </div>
+
+                {/* <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Property Title</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{propertyTitle}</p>
+                </div> */}
+              </div>
+            </div>
+
+            {/* SECTION 2: MEDIA ASSETS MANAGEMENT (Conditional) */}
+            {imageList.length > 0 && (
+              <>
+                <hr className="border-gray-200 border-t my-4" />
+                <div className="space-y-4">
+                  <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                    MEDIA ASSETS MANAGEMENT
+                  </h3>
+
+                  {imageList.length > 0 && (
+                    <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto mb-6 sm:mb-8 md:mb-10">
+                      <ListingMediaGallery images={imageList} title={propertyTitle} />
                     </div>
                   )}
-                </div>
-              )}
-            </div>
 
-            {/* Location */}
-            <div className="space-y-1.5">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Location</h3>
-              <div className="flex items-start gap-1.5 text-gray-500 text-sm sm:text-lg font-regular">
-                <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-1" />
-                <span>{locationText}</span>
-              </div>
-            </div>
+                  {/* <p className="text-gray-500 text-xs sm:text-sm">
+                    Photos uploaded for this property ({imageList.length})
+                  </p> */}
+                </div>
+              </>
+            )}
 
             <hr className="border-gray-200 border-t my-4" />
 
-            {/* Rent Info */}
+            {/* SECTION 3: PROPERTY DETAILS */}
             <div className="space-y-4">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Rent Info</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                PROPERTY DETAILS
+              </h3>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pt-1">
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Monthly Rent</span>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
-                      <IndianRupee size={13} strokeWidth={2} className="text-accent" />
-                    </span>
-                    <span className="text-black text-sm sm:text-lg md:text-xl font-medium">{monthlyRent}</span>
-                  </div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Property Type</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
+                    {pTypeStr || "Property"}
+                  </p>
                 </div>
+
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Deposit</span>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
-                      <IndianRupee size={13} strokeWidth={2} className="text-accent" />
-                    </span>
-                    <span className="text-black text-sm sm:text-lg md:text-xl font-medium">{deposit}</span>
-                  </div>
-                </div>
-                <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Area (sqft)</span>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Area (sqft)</span>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
                       <LandPlot size={13} strokeWidth={2} className="text-accent" />
                     </span>
-                    <span className="text-black text-sm sm:text-lg md:text-xl font-medium">{areaFormatted}</span>
+                    <span className="text-black text-sm sm:text-base md:text-lg font-medium">{areaFormatted}</span>
                   </div>
                 </div>
+
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Parking</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{parkingText}</p>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Furnishing Status</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
+                    {furnishing.replace(/_/g, " ")}
+                  </p>
                 </div>
+
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Maintenance Charges</span>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
-                      <IndianRupee size={13} strokeWidth={2} className="text-accent" />
-                    </span>
-                    <span className="text-black text-sm sm:text-lg md:text-xl font-medium">{maintenanceChargesText}</span>
-                  </div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Parking Facility</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{parkingText}</p>
                 </div>
-                <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Maintenance Frequency</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{maintenanceFrequencyText}</p>
-                </div>
-                {listing.brokerageDetails !== undefined && (
+
+                {listing.propertyDetails?.bedrooms && (
                   <div>
-                    <span className="block text-gray-500 text-sm sm:text-lg font-regular">Brokerage</span>
-                    <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">
-                      {listing.brokerageDetails.applicable
-                        ? listing.brokerageDetails.type === "percentage"
-                          ? `${listing.brokerageDetails.value}%`
-                          : `₹${listing.brokerageDetails.value?.toLocaleString("en-IN")}`
-                        : "No Brokerage"}
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Bedrooms / BHK</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 uppercase">
+                      {listing.propertyDetails.bedrooms.replace(/_/g, " ")}
+                    </p>
+                  </div>
+                )}
+
+                {listing.propertyDetails?.facing && (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Facing</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
+                      {listing.propertyDetails.facing.replace(/_/g, "-")}
+                    </p>
+                  </div>
+                )}
+
+                {listing.propertyDetails?.floor !== undefined && (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Floor</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">
+                      {listing.propertyDetails.floor === 0 ? "Ground Floor (0)" : `${listing.propertyDetails.floor}`}
+                      {listing.propertyDetails.totalFloors !== undefined ? ` of ${listing.propertyDetails.totalFloors}` : ""}
+                    </p>
+                  </div>
+                )}
+
+                {listing.propertyDetails?.totalFloors !== undefined && (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Total Floors</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">
+                      {listing.propertyDetails.totalFloors}
                     </p>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Property Details */}
-            {listing.propertyDetails && (listing.propertyDetails.bedrooms || listing.propertyDetails.facing || listing.propertyDetails.floor !== undefined || listing.propertyDetails.totalFloors !== undefined) && (
-              <div className="space-y-3">
-                <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Property Details</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
-                  {listing.propertyDetails.bedrooms && (
-                    <div>
-                      <span className="block text-gray-500 text-sm sm:text-lg font-regular">Bedrooms / BHK</span>
-                      <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1 uppercase">
-                        {listing.propertyDetails.bedrooms.replace(/_/g, " ")}
-                      </p>
-                    </div>
-                  )}
-                  {listing.propertyDetails.floor !== undefined && (
-                    <div>
-                      <span className="block text-gray-500 text-sm sm:text-lg font-regular">Floor</span>
-                      <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">
-                        {listing.propertyDetails.floor === 0 ? "Ground Floor (0)" : `${listing.propertyDetails.floor}`}
-                        {listing.propertyDetails.totalFloors !== undefined ? ` of ${listing.propertyDetails.totalFloors}` : ""}
-                      </p>
-                    </div>
-                  )}
-                  {listing.propertyDetails.facing && (
-                    <div>
-                      <span className="block text-gray-500 text-sm sm:text-lg font-regular">Facing</span>
-                      <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1 capitalize">
-                        {listing.propertyDetails.facing.replace(/_/g, "-")}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+            <hr className="border-gray-200 border-t my-4" />
 
-            {/* Information Grid */}
-            <div className="space-y-3">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Tenant Preferences</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
+            {/* SECTION 4: RENTAL SPECIFICATIONS */}
+            <div className="space-y-4">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                RENTAL SPECIFICATIONS
+              </h3>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pt-1">
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Tenant Gender</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{genderPreference}</p>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Monthly Rent (₹)</span>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
+                      <IndianRupee size={13} strokeWidth={2} className="text-accent" />
+                    </span>
+                    <span className="text-black text-sm sm:text-base md:text-lg font-medium">{monthlyRent}</span>
+                  </div>
                 </div>
+
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Occupation Preference</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{occupationPreference}</p>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Security Deposit (₹)</span>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
+                      <IndianRupee size={13} strokeWidth={2} className="text-accent" />
+                    </span>
+                    <span className="text-black text-sm sm:text-base md:text-lg font-medium">{deposit}</span>
+                  </div>
                 </div>
+
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Available From</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{availableFromDate}</p>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Brokerage Applicable</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{brokerageText}</p>
+                </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Available From</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{availableFromDate}</p>
+                </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Maintenance Charges (₹)</span>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
+                      <IndianRupee size={13} strokeWidth={2} className="text-accent" />
+                    </span>
+                    <span className="text-black text-sm sm:text-base md:text-lg font-medium">{maintenanceChargesText}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Maintenance Frequency</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{maintenanceFrequencyText}</p>
                 </div>
               </div>
             </div>
 
-            {/* Amenities */}
-            {amenitiesList.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">
-                  Amenities
-                </h3>
+            <hr className="border-gray-200 border-t my-4" />
 
-                <div className="flex flex-wrap items-start gap-x-3 gap-y-5 sm:gap-x-6 sm:gap-y-8 pt-1">
-                  {amenitiesList.map((am, idx) => (
-                    <div
-                      key={am._id || idx}
-                      className="flex min-w-0 flex-col items-center w-[64px] sm:w-20 md:w-24"
-                    >
-                      <div className="relative w-14 h-10 sm:w-20 sm:h-14 md:w-24 md:h-16">
-                        <div className="absolute bottom-0 left-0 w-full h-7 sm:h-10 md:h-11 bg-accent rounded-full" />
+            {/* SECTION 5: PREFERENCES */}
+            <div className="space-y-4">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                PREFERENCES
+              </h3>
 
-                        <div className="absolute left-1/2 -translate-x-1/2 -top-1 sm:-top-2 z-10">
-                          {am.image ? (
-                            <img
-                              src={am.image}
-                              alt={am.name}
-                              className="w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain"
-                            />
-                          ) : (
-                            getAmenityIcon(am.name)
-                          )}
-                        </div>
-                      </div>
-
-                      <span className="text-gray-500 text-[11px] sm:text-sm md:text-base font-regular mt-1.5 text-center leading-tight capitalize break-words">
-                        {am.name}
-                      </span>
-                    </div>
-                  ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-1">
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Tenant Preference</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
+                    {tenantPrefText}
+                  </p>
                 </div>
               </div>
+
+              {/* Description */}
+              <div className="space-y-2 pt-2">
+                <span className="block text-gray-500 text-xs sm:text-sm font-medium">Description</span>
+                <div className="mt-1">
+                  <RichTextRenderer content={description} />
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 6: AMENITIES */}
+            {amenitiesList.length > 0 && (
+              <>
+                <hr className="border-gray-200 border-t my-4" />
+                <div className="space-y-4">
+                  <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                    AMENITIES
+                  </h3>
+
+                  <div className="flex flex-wrap items-start gap-x-3 gap-y-5 sm:gap-x-6 sm:gap-y-8 pt-1">
+                    {amenitiesList.map((am, idx) => (
+                      <div
+                        key={am._id || idx}
+                        className="flex w-[64px] min-w-0 flex-col items-center sm:w-20 md:w-24"
+                      >
+                        <div className="relative h-10 w-14 sm:h-14 sm:w-20 md:h-16 md:w-24">
+                          <div className="absolute bottom-0 left-0 h-7 w-full rounded-full bg-accent sm:h-10 md:h-11" />
+
+                          <div className="absolute left-1/2 -top-1 z-10 -translate-x-1/2 sm:-top-2">
+                            {am.image ? (
+                              <img
+                                src={am.image}
+                                alt={am.name}
+                                className="h-9 w-9 object-contain sm:h-12 sm:w-12 md:h-14 md:w-14"
+                              />
+                            ) : (
+                              getAmenityIcon(am.name)
+                            )}
+                          </div>
+                        </div>
+
+                        <span className="mt-1.5 w-full break-words text-center text-[11px] font-normal leading-tight text-gray-500 capitalize sm:text-sm md:text-base">
+                          {am.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
             )}
 
             {/* House Rules */}
-            {houseRulesList.length > 0 && (
+            {/* {houseRulesList && houseRulesList.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">House Rules</h3>
                 <ul className="space-y-2.5 pt-1">
-                  {houseRulesList.map((rule, idx) => (
+                  {houseRulesList.map((rule: string, idx: number) => (
                     <li key={idx} className="flex items-center gap-2.5">
                       <Check size={20} className="text-gray-900 shrink-0 mt-0.5" />
                       <span className="text-gray-600 text-sm sm:text-base md:text-lg font-normal">{rule}</span>
@@ -518,31 +610,27 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
                   ))}
                 </ul>
               </div>
-            )}
-
-            {/* Description */}
-            <div className="space-y-3">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Description</h3>
-              <RichTextRenderer content={description} />
-            </div>
+            )} */}
 
             {/* Report Footer */}
             {isAuthenticated && !isOwner && (
-              <div className="pt-3 text-base sm:text-lg lg:text-xl font-semibold text-gray-900 flex items-center gap-1.5 flex-wrap">
-                <span>Found Wrong Information?</span>
-                <button
-                  type="button"
-                  onClick={() => setShowReportModal(true)}
-                  className="text-[#0066FF] cursor-pointer font-semibold transition-all"
-                >
-                  <LineRoll text="Report Listing" lineClassName="bg-[#0066FF]" />
-                </button>
-              </div>
+              <>
+                <hr className="border-gray-200 border-t my-4" />
+                <div className="pt-2 text-base sm:text-lg lg:text-xl font-semibold text-gray-900 flex items-center gap-1.5 flex-wrap">
+                  <span>Found Wrong Information?</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowReportModal(true)}
+                    className="text-[#0066FF] cursor-pointer font-semibold transition-all"
+                  >
+                    <LineRoll text="Report Listing" lineClassName="bg-[#0066FF]" />
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
       </div>
-
 
       {/* Modals */}
       <CallModal

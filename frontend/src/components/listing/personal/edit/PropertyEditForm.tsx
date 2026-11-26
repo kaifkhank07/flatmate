@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -12,6 +13,9 @@ import {
   Plus,
   Sparkles,
   Check,
+  AlertCircle,
+  ArrowLeft,
+  Eye,
 } from "lucide-react";
 import SectionHeading from "@/components/utils/SectionHeading";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -64,6 +68,9 @@ export default function PropertyEditForm({
   const { user } = useAuthStore();
   const { updateProperty } = useListingStore();
 
+  const status = initialData?.status;
+  const isEditable = !status || status === "pending" || status === "rejected";
+
   // Location Autocomplete State
   const initialLocObj =
     initialData?.location && typeof initialData.location === "object"
@@ -110,14 +117,10 @@ export default function PropertyEditForm({
   );
   const [facing, setFacing] = useState(initialData?.propertyDetails?.facing || "");
   const [bedrooms, setBedrooms] = useState(initialData?.propertyDetails?.bedrooms || "");
-  const [brokerageApplicable, setBrokerageApplicable] = useState<boolean>(
-    initialData?.brokerageDetails?.applicable ?? false
-  );
-  const [brokerageType, setBrokerageType] = useState<"fixed" | "percentage">(
-    initialData?.brokerageDetails?.type || "fixed"
-  );
-  const [brokerageValue, setBrokerageValue] = useState<string>(
-    initialData?.brokerageDetails?.value !== undefined ? String(initialData.brokerageDetails.value) : ""
+  const [brokerageAvailable, setBrokerageAvailable] = useState<boolean>(
+    typeof initialData?.brokerage === "boolean"
+      ? initialData.brokerage
+      : (initialData?.brokerageDetails?.applicable ?? false)
   );
   const [postedBy, setPostedBy] = useState<"owner" | "flatmate" | "agent" | "builder">(
     initialData?.postedBy || "owner"
@@ -152,16 +155,8 @@ export default function PropertyEditForm({
       ? new Date(initialData.availableFrom).toISOString().split("T")[0]
       : ""
   );
-  const [genderPreference, setGenderPreference] = useState<
-    "male" | "female" | "other" | "any"
-  >(initialData?.genderPreference || "any");
-  const [occupationPreference, setOccupationPreference] = useState<
-    "student" | "working_professional" | "self_employed" | "business_owner" | "freelancer" | "other" | "any"
-  >(initialData?.occupationPreference || "any");
-  const [houseRules, setHouseRules] = useState(
-    Array.isArray(initialData?.houseRules)
-      ? initialData.houseRules.join(", ")
-      : initialData?.houseRules || ""
+  const [tenantPreference, setTenantPreference] = useState<"anyone" | "bachelors" | "family">(
+    (initialData as any)?.tenantPreference || "anyone"
   );
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>(
     Array.isArray(initialData?.amenities)
@@ -314,6 +309,11 @@ export default function PropertyEditForm({
     e.preventDefault();
     setErrorMessage(null);
 
+    if (!isEditable) {
+      setErrorMessage(`This listing cannot be edited because its status is ${status || "not allowed"}.`);
+      return;
+    }
+
     if (!title.trim()) {
       setErrorMessage("Listing title is required.");
       return;
@@ -363,17 +363,6 @@ export default function PropertyEditForm({
     if (floor !== "" && totalFloors !== "") {
       if (Number(floor) > Number(totalFloors)) {
         setErrorMessage("Floor cannot exceed total floors.");
-        return;
-      }
-    }
-
-    if (brokerageApplicable) {
-      if (!brokerageValue || Number(brokerageValue) <= 0) {
-        setErrorMessage("Please enter a valid brokerage amount / percentage greater than 0.");
-        return;
-      }
-      if (brokerageType === "percentage" && Number(brokerageValue) > 100) {
-        setErrorMessage("Brokerage percentage cannot exceed 100%.");
         return;
       }
     }
@@ -430,19 +419,13 @@ export default function PropertyEditForm({
         propertyDetails:
           floor !== "" || totalFloors !== "" || facing || bedrooms
             ? {
-                ...(floor !== "" && { floor: Number(floor) }),
-                ...(totalFloors !== "" && { totalFloors: Number(totalFloors) }),
-                ...(facing && { facing }),
-                ...(bedrooms && { bedrooms }),
-              }
+              ...(floor !== "" && { floor: Number(floor) }),
+              ...(totalFloors !== "" && { totalFloors: Number(totalFloors) }),
+              ...(facing && { facing }),
+              ...(bedrooms && { bedrooms }),
+            }
             : undefined,
-        brokerageDetails: {
-          applicable: brokerageApplicable,
-          ...(brokerageApplicable && {
-            type: brokerageType,
-            value: Number(brokerageValue),
-          }),
-        },
+        brokerage: brokerageAvailable,
         postedBy,
         area: area ? Number(area) : 0,
         location: locationId,
@@ -454,15 +437,8 @@ export default function PropertyEditForm({
         },
         furnishing,
         availableFrom: availableFrom || new Date().toISOString().split("T")[0],
-        genderPreference,
-        occupationPreference,
+        tenantPreference,
         parking: parkingAvailable,
-        houseRules: houseRules
-          ? houseRules
-            .split(",")
-            .map((r: string) => r.trim())
-            .filter(Boolean)
-          : [],
         amenities: selectedAmenities,
         images: createdImageIds.length > 0
           ? createdImageIds
@@ -495,6 +471,55 @@ export default function PropertyEditForm({
     }
   };
 
+  if (!isEditable) {
+    const slugOrId = initialData?.slug || initialData?._id;
+    return (
+      <section className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
+        <div className="w-full max-w-3xl mx-auto py-12 px-4 sm:px-6">
+          <div className="rounded-3xl border border-amber-200 bg-amber-50/70 p-6 sm:p-10 text-center space-y-5 shadow-xs">
+            <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">
+                Editing Not Allowed
+              </h2>
+              <p className="text-gray-600 text-sm sm:text-base max-w-md mx-auto">
+                This property listing is currently{" "}
+                <span className="font-semibold uppercase text-amber-800">
+                  {status}
+                </span>{" "}
+                and cannot be edited. Only listings with <strong>pending</strong> or{" "}
+                <strong>rejected</strong> status can be modified.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              {slugOrId && (
+                <Link
+                  href={`/my-listings/${slugOrId}`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0066FF] text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
+                >
+                  <Eye size={16} />
+                  View Listing Details
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={onBack}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <ArrowLeft size={16} />
+                Back
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
       <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto space-y-6 sm:space-y-10 md:space-y-12">
@@ -524,99 +549,99 @@ export default function PropertyEditForm({
           </ViewReveal>
 
           <form onSubmit={handlePublish} className="space-y-8">
-            {/* Location Autocomplete Field */}
-            <div className="space-y-2 relative" ref={locationDropdownRef}>
-              <label className="block text-sm sm:text-base font-regular text-black">
-                Location <span className="text-rose-500">*</span>
-              </label>
+            {/* SECTION 1: BASIC OVERVIEW */}
+            <div className="space-y-4 pt-2">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                BASIC OVERVIEW
+              </h3>
 
-              {selectedGooglePlace ? (
-                <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-2xl flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="p-2 bg-brand-blue/10 rounded-xl text-brand-blue shrink-0">
-                      <MapPin className="w-5 h-5" />
+              {/* Location Autocomplete Field */}
+              <div className="space-y-2 relative" ref={locationDropdownRef}>
+                <label className="block text-sm sm:text-base font-regular text-black">
+                  Location <span className="text-rose-500">*</span>
+                </label>
+
+                {selectedGooglePlace ? (
+                  <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-2xl flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2 bg-brand-blue/10 rounded-xl text-brand-blue shrink-0">
+                        <MapPin className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="font-semibold text-gray-900 block truncate text-sm">
+                          📍 {selectedGooglePlace.name}
+                        </span>
+                        <span className="text-gray-500 block truncate text-xs">
+                          {selectedGooglePlace.formattedAddress}
+                        </span>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-gray-900 block truncate text-sm">
-                        📍 {selectedGooglePlace.name}
-                      </span>
-                      <span className="text-gray-500 block truncate text-xs">
-                        {selectedGooglePlace.formattedAddress}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedGooglePlace(null);
-                      setLocationSearchTerm("");
-                    }}
-                    className="px-3.5 py-1.5 bg-white border border-blue-200 text-brand-blue hover:bg-blue-100 rounded-xl text-xs font-semibold shrink-0 transition-colors shadow-xs cursor-pointer"
-                  >
-                    Change Location
-                  </button>
-                </div>
-              ) : (
-                <div className="relative flex items-center">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-4 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={locationSearchTerm}
-                    onChange={(e) => setLocationSearchTerm(e.target.value)}
-                    onFocus={() => {
-                      if (locationSearchTerm.trim()) setIsLocationDropdownOpen(true);
-                    }}
-                    placeholder="Search City, Area, Building Or Landmark…"
-                    className="w-full pl-11 pr-10 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
-                  />
-                  {locationSearchTerm && (
                     <button
                       type="button"
                       onClick={() => {
+                        setSelectedGooglePlace(null);
                         setLocationSearchTerm("");
-                        setLocationSuggestions([]);
-                        setIsLocationDropdownOpen(false);
                       }}
-                      className="absolute right-3 text-gray-400 hover:text-gray-600"
+                      className="px-3.5 py-1.5 bg-white border border-blue-200 text-brand-blue hover:bg-blue-100 rounded-xl text-xs font-semibold shrink-0 transition-colors shadow-xs cursor-pointer"
                     >
-                      <X className="w-4 h-4" />
+                      Change Location
                     </button>
-                  )}
-                </div>
-              )}
-
-              {/* Google Location Predictions Dropdown */}
-              {isLocationDropdownOpen && (
-                <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 max-h-56 overflow-y-auto">
-                  {loadingLocationSuggestions ? (
-                    <div className="p-3 text-xs text-gray-500 text-center">Searching Google Places…</div>
-                  ) : locationSuggestions.length > 0 ? (
-                    locationSuggestions.map((s) => (
+                  </div>
+                ) : (
+                  <div className="relative flex items-center">
+                    <Search className="w-4 h-4 text-gray-400 absolute left-4 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={locationSearchTerm}
+                      onChange={(e) => setLocationSearchTerm(e.target.value)}
+                      onFocus={() => {
+                        if (locationSearchTerm.trim()) setIsLocationDropdownOpen(true);
+                      }}
+                      placeholder="Search City, Area, Building Or Landmark…"
+                      className="w-full pl-11 pr-10 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
+                    />
+                    {locationSearchTerm && (
                       <button
-                        key={s.placeId}
                         type="button"
-                        onClick={() => handleSelectPlaceSuggestion(s)}
-                        className="w-full text-left px-4 py-2.5 hover:bg-blue-50 border-b border-gray-100 last:border-none flex items-start gap-2 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setLocationSearchTerm("");
+                          setLocationSuggestions([]);
+                          setIsLocationDropdownOpen(false);
+                        }}
+                        className="absolute right-3 text-gray-400 hover:text-gray-600"
                       >
-                        <MapPin className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
-                        <div>
-                          <span className="block text-xs font-semibold text-gray-900">{s.mainText}</span>
-                          <span className="block text-[11px] text-gray-500">{s.secondaryText || s.description}</span>
-                        </div>
+                        <X className="w-4 h-4" />
                       </button>
-                    ))
-                  ) : (
-                    <div className="p-3 text-xs text-gray-500 text-center">No matching location suggestions found</div>
-                  )}
-                </div>
-              )}
-            </div>
+                    )}
+                  </div>
+                )}
 
-            {/* SECTION 1: BASIC PROPERTY DETAILS */}
-            <div className="space-y-4 pt-2">
-              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
-                BASIC PROPERTY DETAILS
-              </h3>
+                {/* Google Location Predictions Dropdown */}
+                {isLocationDropdownOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 max-h-56 overflow-y-auto">
+                    {loadingLocationSuggestions ? (
+                      <div className="p-3 text-xs text-gray-500 text-center">Searching Google Places…</div>
+                    ) : locationSuggestions.length > 0 ? (
+                      locationSuggestions.map((s) => (
+                        <button
+                          key={s.placeId}
+                          type="button"
+                          onClick={() => handleSelectPlaceSuggestion(s)}
+                          className="w-full text-left px-4 py-2.5 hover:bg-blue-50 border-b border-gray-100 last:border-none flex items-start gap-2 transition-colors cursor-pointer"
+                        >
+                          <MapPin className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
+                          <div>
+                            <span className="block text-xs font-semibold text-gray-900">{s.mainText}</span>
+                            <span className="block text-[11px] text-gray-500">{s.secondaryText || s.description}</span>
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-3 text-xs text-gray-500 text-center">No matching location suggestions found</div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* Title */}
               <div className="space-y-2">
@@ -632,42 +657,18 @@ export default function PropertyEditForm({
                   required
                 />
               </div>
+            </div>
 
-              {/* Description */}
-              <div className="space-y-2">
-                <label className="block text-sm sm:text-base font-regular text-black">
-                  Description <span className="text-rose-500">*</span>
-                </label>
-                <RichTextEditor
-                  value={description}
-                  onChange={setDescription}
-                  placeholder="Provide Property Highlights, Rules, Nearby Landmarks…"
-                  restrictContactInfo={true}
-                />
-              </div>
+            {/* SECTION 2 : PROPERTY DETAILS */}
+            <div className="space-y-4 pt-2">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                PROPERTY DETAILS
+              </h3>
 
               {/* Classification, Area & Property Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-sm sm:text-base font-regular text-black">
-                    Property Type <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={propertyType}
-                    onChange={(e) => setPropertyType(e.target.value as PropertyType)}
-                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                    required
-                  >
-                    <option value="flats_apartments">Flats / Apartments</option>
-                    <option value="houses_villas">Houses / Villas</option>
-                    <option value="office_spaces">Office Spaces</option>
-                    <option value="shops_commercial">Shops / Commercial</option>
-                  </select>
-                </div>
-
                 {/* Posted By (Hidden) */}
-                {/*
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Posted By <span className="text-rose-500">*</span>
                   </label>
@@ -682,9 +683,25 @@ export default function PropertyEditForm({
                     <option value="agent">Agent</option>
                     <option value="builder">Builder</option>
                   </select>
-                </div>
-                */}
+                </div> */}
 
+                {/* Property Type */}
+                <div className="space-y-2">
+                  <label className="block text-sm sm:text-base font-regular text-black">
+                    Property Type <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={propertyType}
+                    onChange={(e) => setPropertyType(e.target.value as PropertyType)}
+                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
+                    required
+                  >
+                    <option value="flats_apartments">Flats / Apartments</option>
+                    <option value="houses_villas">Houses / Villas</option>
+                  </select>
+                </div>
+
+                {/* Area */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Area (sqft)
@@ -699,6 +716,38 @@ export default function PropertyEditForm({
                   />
                 </div>
 
+                {/* Furnishing Status */}
+                <div className="space-y-2">
+                  <label className="block text-sm sm:text-base font-regular text-black">
+                    Furnishing Status
+                  </label>
+                  <select
+                    value={furnishing}
+                    onChange={(e) => setFurnishing(e.target.value as any)}
+                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
+                  >
+                    <option value="fully_furnished">Fully Furnished</option>
+                    <option value="semi_furnished">Semi Furnished</option>
+                    <option value="unfurnished">Unfurnished</option>
+                  </select>
+                </div>
+
+                {/* Parking Facility */}
+                <div className="space-y-2">
+                  <label className="block text-sm sm:text-base font-regular text-black">
+                    Parking Facility
+                  </label>
+                  <select
+                    value={parkingAvailable ? "yes" : "no"}
+                    onChange={(e) => setParkingAvailable(e.target.value === "yes")}
+                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
+                  >
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+
+                {/* Bedrooms / BHK */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Bedrooms / BHK
@@ -708,7 +757,7 @@ export default function PropertyEditForm({
                     onChange={(e) => setBedrooms(e.target.value)}
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
                   >
-                    <option value="">Select BHK (Optional)</option>
+                    <option value="">Select BHK</option>
                     <option value="1_rk">1 RK</option>
                     <option value="1_bhk">1 BHK</option>
                     <option value="2_bhk">2 BHK</option>
@@ -719,6 +768,7 @@ export default function PropertyEditForm({
                   </select>
                 </div>
 
+                {/* Facing */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Facing
@@ -728,7 +778,7 @@ export default function PropertyEditForm({
                     onChange={(e) => setFacing(e.target.value)}
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
                   >
-                    <option value="">Select Facing (Optional)</option>
+                    <option value="">Select Facing</option>
                     <option value="east">East</option>
                     <option value="west">West</option>
                     <option value="north">North</option>
@@ -740,6 +790,7 @@ export default function PropertyEditForm({
                   </select>
                 </div>
 
+                {/* Floor */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Floor
@@ -754,6 +805,7 @@ export default function PropertyEditForm({
                   />
                 </div>
 
+                {/* Total Floors */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Total Floors
@@ -770,13 +822,13 @@ export default function PropertyEditForm({
               </div>
             </div>
 
-            {/* SECTION 2: PRICING AND MAINTENANCE */}
+            {/* SECTION 3: RENTAL SPECIFICATIONS */}
             <div className="space-y-4 pt-2">
               <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
-                PRICING AND MAINTENANCE
+                RENTAL SPECIFICATIONS
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Rent Amount */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
@@ -809,35 +861,33 @@ export default function PropertyEditForm({
                   />
                 </div>
 
-                {/* Furnishing Status */}
+                {/* Brokerage Facility */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Furnishing Status <span className="text-rose-500">*</span>
+                    Brokerage Applicable
                   </label>
                   <select
-                    value={furnishing}
-                    onChange={(e) => setFurnishing(e.target.value as any)}
+                    value={brokerageAvailable ? "yes" : "no"}
+                    onChange={(e) => setBrokerageAvailable(e.target.value === "yes")}
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
                   >
-                    <option value="fully_furnished">Fully Furnished</option>
-                    <option value="semi_furnished">Semi Furnished</option>
-                    <option value="unfurnished">Unfurnished</option>
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
                   </select>
                 </div>
 
-                {/* Parking Facility */}
+                {/* Available From */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Parking Facility
+                    Available From <span className="text-rose-500">*</span>
                   </label>
-                  <select
-                    value={parkingAvailable ? "yes" : "no"}
-                    onChange={(e) => setParkingAvailable(e.target.value === "yes")}
+                  <input
+                    type="date"
+                    value={availableFrom}
+                    onChange={(e) => setAvailableFrom(e.target.value)}
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                  >
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  </select>
+                    required
+                  />
                 </div>
 
                 {/* Maintenance Charges */}
@@ -873,82 +923,34 @@ export default function PropertyEditForm({
                     </select>
                   </div>
                 )}
-
-                {/* Brokerage Details */}
-                <div className="sm:col-span-3 pt-3 border-t border-gray-100">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="brokerageApplicableEdit"
-                      checked={brokerageApplicable}
-                      onChange={(e) => setBrokerageApplicable(e.target.checked)}
-                      className="w-4 h-4 text-brand-blue rounded focus:ring-brand-blue/30 cursor-pointer"
-                    />
-                    <label htmlFor="brokerageApplicableEdit" className="text-sm sm:text-base font-medium text-gray-800 cursor-pointer">
-                      Brokerage Applicable
-                    </label>
-                  </div>
-
-                  {brokerageApplicable && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 animate-in fade-in duration-200">
-                      <div className="space-y-2">
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700">
-                          Brokerage Type <span className="text-rose-500">*</span>
-                        </label>
-                        <select
-                          value={brokerageType}
-                          onChange={(e) => setBrokerageType(e.target.value as "fixed" | "percentage")}
-                          className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                        >
-                          <option value="fixed">Fixed Amount (₹)</option>
-                          <option value="percentage">Percentage (%)</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700">
-                          {brokerageType === "fixed" ? "Brokerage Amount (₹)" : "Brokerage Percentage (%)"} <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={brokerageType === "percentage" ? 100 : undefined}
-                          value={brokerageValue}
-                          onChange={(e) => setBrokerageValue(e.target.value)}
-                          placeholder={brokerageType === "fixed" ? "e.g. 5000" : "e.g. 15"}
-                          className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
-                          required={brokerageApplicable}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
 
-            {/* SECTION 3: AVAILABILITY & TENANT PREFERENCES */}
+            {/* SECTION 4: PREFERENCES */}
             <div className="space-y-4 pt-2">
               <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
-                AVAILABILITY & TENANT PREFERENCES
+                PREFERENCES
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                {/* Available From */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Tenant Preference */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Available From <span className="text-rose-500">*</span>
+                    Tenant Preference
                   </label>
-                  <input
-                    type="date"
-                    value={availableFrom}
-                    onChange={(e) => setAvailableFrom(e.target.value)}
+                  <select
+                    value={tenantPreference}
+                    onChange={(e) => setTenantPreference(e.target.value as any)}
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                    required
-                  />
+                  >
+                    <option value="anyone">Anyone</option>
+                    <option value="bachelors">Bachelor's</option>
+                    <option value="family">Family</option>
+                  </select>
                 </div>
 
                 {/* Tenant Gender */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Tenant Gender
                   </label>
@@ -962,10 +964,10 @@ export default function PropertyEditForm({
                     <option value="female">Female</option>
                     <option value="other">Other</option>
                   </select>
-                </div>
+                </div> */}
 
                 {/* Occupation Preference */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Occupation Preference
                   </label>
@@ -982,18 +984,31 @@ export default function PropertyEditForm({
                     <option value="freelancer">Freelancer</option>
                     <option value="other">Other</option>
                   </select>
-                </div>
+                </div> */}
+              </div>
+
+              {/* Description */}
+              <div className="space-y-3">
+                <label className="block text-sm sm:text-base font-regular text-black">
+                  Description <span className="text-rose-500">*</span>
+                </label>
+                <RichTextEditor
+                  value={description}
+                  onChange={setDescription}
+                  placeholder="Provide Property Highlights, Rules, Nearby Landmarks…"
+                  restrictContactInfo={true}
+                />
               </div>
             </div>
 
-            {/* SECTION 4: HOUSE RULES & AMENITIES */}
+            {/* SECTION 5: AMENITIES */}
             <div className="space-y-4 pt-2">
               <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
-                HOUSE RULES & AMENITIES
+                AMENITIES
               </h3>
 
               {/* House Rules Input */}
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <label className="block text-sm sm:text-base font-regular text-black">
                   House Rules (Comma-separated)
                 </label>
@@ -1004,7 +1019,7 @@ export default function PropertyEditForm({
                   placeholder="e.g. No Smoking, No Late Night Parties, Pets Allowed"
                   className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
                 />
-              </div>
+              </div> */}
 
               {/* Property Amenities Grid Select UI */}
               <div className="space-y-3">

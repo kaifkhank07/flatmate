@@ -34,6 +34,13 @@ export const useAssets = () => {
     listingicon2: "/assets/Images/icon-02.png",
     listingicon3: "/assets/Images/icon-03.png",
 
+    whychooseus1: "/assets/Images/icon-04.png",
+    whychooseus2: "/assets/Images/icon-05.png",
+    whychooseus3: "/assets/Images/icon-06.png",
+    whychooseus4: "/assets/Images/icon-07.png",
+    whychooseus5: "/assets/Images/icon-08.png",
+    whychooseus6: "/assets/Images/icon-09.png",
+
     login: "/assets/Images/image-04.png",
   };
 };

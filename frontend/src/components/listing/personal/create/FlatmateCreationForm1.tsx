@@ -86,7 +86,9 @@ export default function FlatmateCreationForm1({
   const [maintenanceAmount, setMaintenanceAmount] = useState("");
   const [maintenanceFrequency, setMaintenanceFrequency] = useState<"monthly" | "yearly" | "included" | "one_time">("monthly");
   const [parkingAvailable, setParkingAvailable] = useState(false);
+  const [brokerageAvailable, setBrokerageAvailable] = useState(false);
   const [genderPreference, setGenderPreference] = useState<"male" | "female" | "any">("any");
+  const [occupancyPreference, setOccupancyPreference] = useState<"single" | "double" | "triple" | "four_or_more">("single");
   const [occupationPreference, setOccupationPreference] = useState<"student" | "working_professional" | "self_employed" | "business_owner" | "freelancer" | "any">("any");
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
@@ -388,6 +390,8 @@ export default function FlatmateCreationForm1({
           frequency: maintenanceFrequency,
         } : undefined,
         parking: parkingAvailable,
+        brokerage: brokerageAvailable,
+        occupancyPreference,
         occupationPreference,
         genderPreference,
         userPreferences: selectedPreferences,
@@ -445,99 +449,99 @@ export default function FlatmateCreationForm1({
           </ViewReveal>
 
           <form onSubmit={handlePublish} className="space-y-8">
-            {/* Location Autocomplete Field */}
-            <div className="space-y-2 relative" ref={locationDropdownRef}>
-              <label className="block text-sm sm:text-base font-regular text-black">
-                Location <span className="text-rose-500">*</span>
-              </label>
-
-              {selectedGooglePlace ? (
-                <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-2xl flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="p-2 bg-brand-blue/10 rounded-xl text-brand-blue shrink-0">
-                      <MapPin className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-gray-900 block truncate text-sm">
-                        📍 {selectedGooglePlace.name}
-                      </span>
-                      <span className="text-gray-500 block truncate text-xs">
-                        {selectedGooglePlace.formattedAddress}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedGooglePlace(null);
-                      setLocationSearchTerm("");
-                    }}
-                    className="px-3.5 py-1.5 bg-white border border-blue-200 text-brand-blue hover:bg-blue-100 rounded-xl text-xs font-semibold shrink-0 transition-colors shadow-xs"
-                  >
-                    Change Location
-                  </button>
-                </div>
-              ) : (
-                <div className="relative flex items-center">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-4 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={locationSearchTerm}
-                    onChange={(e) => setLocationSearchTerm(e.target.value)}
-                    onFocus={() => {
-                      if (locationSearchTerm.trim()) setIsLocationDropdownOpen(true);
-                    }}
-                    placeholder="Search City, Area, Building Or Landmark…"
-                    className="w-full pl-11 pr-10 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
-                  />
-                  {locationSearchTerm && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLocationSearchTerm("");
-                        setLocationSuggestions([]);
-                        setIsLocationDropdownOpen(false);
-                      }}
-                      className="absolute right-3 text-gray-400 hover:text-gray-600"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Google Location Predictions Dropdown */}
-              {isLocationDropdownOpen && (
-                <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 max-h-56 overflow-y-auto">
-                  {loadingLocationSuggestions ? (
-                    <div className="p-3 text-xs text-gray-500 text-center">Searching Google Places…</div>
-                  ) : locationSuggestions.length > 0 ? (
-                    locationSuggestions.map((s) => (
-                      <button
-                        key={s.placeId}
-                        type="button"
-                        onClick={() => handleSelectPlaceSuggestion(s)}
-                        className="w-full text-left px-4 py-2.5 hover:bg-blue-50 border-b border-gray-100 last:border-none flex items-start gap-2 transition-colors"
-                      >
-                        <MapPin className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
-                        <div>
-                          <span className="block text-xs font-semibold text-gray-900">{s.mainText}</span>
-                          <span className="block text-[11px] text-gray-500">{s.secondaryText || s.description}</span>
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="p-3 text-xs text-gray-500 text-center">No matching location suggestions found</div>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* SECTION 1: REQUIREMENT OVERVIEW */}
             <div className="space-y-4 pt-2">
               <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
                 REQUIREMENT OVERVIEW
               </h3>
+
+              {/* Location Autocomplete Field */}
+              <div className="space-y-2 relative" ref={locationDropdownRef}>
+                <label className="block text-sm sm:text-base font-regular text-black">
+                  Location <span className="text-rose-500">*</span>
+                </label>
+
+                {selectedGooglePlace ? (
+                  <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-2xl flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2 bg-brand-blue/10 rounded-xl text-brand-blue shrink-0">
+                        <MapPin className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="font-semibold text-gray-900 block truncate text-sm">
+                          📍 {selectedGooglePlace.name}
+                        </span>
+                        <span className="text-gray-500 block truncate text-xs">
+                          {selectedGooglePlace.formattedAddress}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedGooglePlace(null);
+                        setLocationSearchTerm("");
+                      }}
+                      className="px-3.5 py-1.5 bg-white border border-blue-200 text-brand-blue hover:bg-blue-100 rounded-xl text-xs font-semibold shrink-0 transition-colors shadow-xs"
+                    >
+                      Change Location
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative flex items-center">
+                    <Search className="w-4 h-4 text-gray-400 absolute left-4 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={locationSearchTerm}
+                      onChange={(e) => setLocationSearchTerm(e.target.value)}
+                      onFocus={() => {
+                        if (locationSearchTerm.trim()) setIsLocationDropdownOpen(true);
+                      }}
+                      placeholder="Search City, Area, Building Or Landmark…"
+                      className="w-full pl-11 pr-10 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
+                    />
+                    {locationSearchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLocationSearchTerm("");
+                          setLocationSuggestions([]);
+                          setIsLocationDropdownOpen(false);
+                        }}
+                        className="absolute right-3 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Google Location Predictions Dropdown */}
+                {isLocationDropdownOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 max-h-56 overflow-y-auto">
+                    {loadingLocationSuggestions ? (
+                      <div className="p-3 text-xs text-gray-500 text-center">Searching Google Places…</div>
+                    ) : locationSuggestions.length > 0 ? (
+                      locationSuggestions.map((s) => (
+                        <button
+                          key={s.placeId}
+                          type="button"
+                          onClick={() => handleSelectPlaceSuggestion(s)}
+                          className="w-full text-left px-4 py-2.5 hover:bg-blue-50 border-b border-gray-100 last:border-none flex items-start gap-2 transition-colors"
+                        >
+                          <MapPin className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
+                          <div>
+                            <span className="block text-xs font-semibold text-gray-900">{s.mainText}</span>
+                            <span className="block text-[11px] text-gray-500">{s.secondaryText || s.description}</span>
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-3 text-xs text-gray-500 text-center">No matching location suggestions found</div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* Title */}
               <div className="space-y-2">
@@ -553,28 +557,33 @@ export default function FlatmateCreationForm1({
                   required
                 />
               </div>
-
-              {/* Description */}
-              <div className="space-y-2">
-                <label className="block text-sm sm:text-base font-regular text-black">
-                  Description <span className="text-rose-500">*</span>
-                </label>
-                <RichTextEditor
-                  value={description}
-                  onChange={setDescription}
-                  placeholder="e.g. I am looking for a room with roommate."
-                  restrictContactInfo={true}
-                />
-              </div>
             </div>
 
-            {/* SECTION 2: FINANCIALS & SPECIFICATIONS */}
+            {/* SECTION 2: RENTAL SPECIFICATIONS */}
             <div className="space-y-4 pt-2">
               <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
-                FINANCIALS & SPECIFICATIONS
+                RENTAL SPECIFICATIONS
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Occupancy Preference */}
+                <div className="space-y-2">
+                  <label className="block text-sm sm:text-base font-regular text-black">
+                    Occupancy Preference <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={occupancyPreference}
+                    onChange={(e) => setOccupancyPreference(e.target.value as any)}
+                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
+                    required
+                  >
+                    <option value="single">Single</option>
+                    <option value="double">Double</option>
+                    <option value="triple">Triple</option>
+                    <option value="four_or_more">Four or More</option>
+                  </select>
+                </div>
+
                 {/* Rent Amount */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
@@ -655,7 +664,7 @@ export default function FlatmateCreationForm1({
                 {/* Available From */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Move-in Date From <span className="text-rose-500">*</span>
+                    Move-in Date <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -699,16 +708,32 @@ export default function FlatmateCreationForm1({
                     </select>
                   </div>
                 )} */}
+
+                {/* Brokerage Applicable */}
+                {/* <div className="space-y-2">
+                  <label className="block text-sm sm:text-base font-regular text-black">
+                    Brokerage Applicable
+                  </label>
+                  <select
+                    value={brokerageAvailable ? "yes" : "no"}
+                    onChange={(e) => setBrokerageAvailable(e.target.value === "yes")}
+                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
+                  >
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                  </select>
+                </div> */}
               </div>
             </div>
 
-            {/* SECTION 3: PREFERENCES & LIFESTYLE */}
+            {/* SECTION 3: PREFERENCES */}
             <div className="space-y-4 pt-2">
               <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
                 PREFERENCES
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Lifestyle Preferences Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Gender Preference */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
@@ -745,6 +770,19 @@ export default function FlatmateCreationForm1({
                     <option value="freelancer">Freelancer</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-3">
+                <label className="block text-sm sm:text-base font-regular text-black">
+                  Description <span className="text-rose-500">*</span>
+                </label>
+                <RichTextEditor
+                  value={description}
+                  onChange={setDescription}
+                  placeholder="e.g. I am looking for a room with roommate."
+                  restrictContactInfo={true}
+                />
               </div>
 
               {/* Lifestyle Preferences Grid */}

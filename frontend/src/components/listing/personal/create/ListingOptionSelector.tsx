@@ -237,8 +237,8 @@ export default function ListingOptionSelector({
 
   const selectOptions: ListingOptionItem[] = [
     {
-      title: "Need a Room / Flat",
-      buttonText: "Looking for a Place to Live",
+      title: "Room / Shared Flat",
+      buttonText: "For Yourself",
       type: "flatmate-room",
       image: assets.listingicon1,
     },

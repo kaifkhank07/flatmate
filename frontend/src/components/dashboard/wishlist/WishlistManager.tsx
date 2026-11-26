@@ -177,10 +177,10 @@ export default function WishlistManager() {
             </div>
           ) : filteredItems.length > 0 ? (
             <div className="space-y-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
                 {filteredItems.map((item) => (
-                  <div key={item.wishlistId} className="relative group w-full">
-                    <ListingCard item={item.cardData} />
+                  <div key={item.wishlistId} className="relative group w-full h-full flex flex-col">
+                    <ListingCard item={item.cardData} className="flex-1" />
 
                     {/* Remove Wishlist Button Overlay */}
                     <button

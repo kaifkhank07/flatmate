@@ -166,10 +166,8 @@ export default function FlatmateRequirementPropertyDetails({
     (typeof uAny?.avatar === "string" ? uAny.avatar : uAny?.avatar?.image?.url) ||
     undefined;
 
-  const postTitle = listing.title || listingData?.pgName || "Flatmate Requirement for Property";
-  const pType = listing.propertyType || "flat";
-  const furnishing = listing.furnishing || "semi_furnished";
-  const categoryHeader = `LOOKING FOR ${pType.replace(/_/g, " ").toUpperCase()} | ${furnishing.replace(/_/g, " ").toUpperCase()}`;
+  const postTitle = listing.title || listingData?.pgName || "Looking for Room / Flat";
+  const categoryHeader = "LOOKING FOR ROOM / FLAT";
 
   let locationText = "Location N/A";
   if (typeof listing.location === "object" && listing.location) {
@@ -179,15 +177,15 @@ export default function FlatmateRequirementPropertyDetails({
   }
 
   const rentVal = typeof listing.rent === "number" ? listing.rent : (listing as any).budget || 0;
-  const rentFormatted = rentVal ? `₹ ${rentVal.toLocaleString("en-IN")}` : "N/A";
+  const rentFormatted = rentVal ? `${rentVal.toLocaleString("en-IN")}` : "N/A";
   const depositVal = typeof listing.securityDeposit === "number" ? listing.securityDeposit : 0;
-  const depositFormatted = depositVal ? `₹ ${depositVal.toLocaleString("en-IN")}` : "N/A";
+  const depositFormatted = depositVal ? `${depositVal.toLocaleString("en-IN")}` : "N/A";
 
   const genderPreference = listing.genderPreference
     ? listing.genderPreference.charAt(0).toUpperCase() + listing.genderPreference.slice(1)
     : "Any";
   const occupationPreference = listing.occupationPreference
-    ? listing.occupationPreference.replace(/_/g, " ").toUpperCase()
+    ? listing.occupationPreference.replace(/_/g, " ").charAt(0).toUpperCase() + listing.occupationPreference.replace(/_/g, " ").slice(1)
     : "Any";
   const availableFromDate = listing.availableFrom
     ? new Date(listing.availableFrom).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
@@ -258,13 +256,13 @@ export default function FlatmateRequirementPropertyDetails({
   return (
     <section className="w-full py-6 md:py-8 lg:py-12 px-4 sm:px-6 lg:px-16 overflow-hidden">
       {/* Top Image Gallery */}
-      {imageList.length > 0 && (
+      {/* {imageList.length > 0 && (
         <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto mb-6 sm:mb-8 md:mb-10">
           <ListingMediaGallery images={imageList} title={postTitle} />
         </div>
-      )}
+      )} */}
 
-      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 p-6 sm:p-10 md:p-14 transition-all bg-white">
+      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 drop-shadow-md p-6 sm:p-10 md:p-14 transition-all bg-white">
         <div className="flex flex-col lg:flex-row items-center md:items-start gap-8 md:gap-14 lg:gap-16">
 
           {/* LEFT SIDE / TOP (Mobile): Creator Avatar & Action Buttons */}
@@ -288,7 +286,7 @@ export default function FlatmateRequirementPropertyDetails({
                 {name}
               </h2>
 
-              {!isOwner && (
+              {isAuthenticated && !isOwner && (
                 <div className="flex flex-row lg:flex-col justify-start lg:justify-center gap-2.5 sm:gap-3 w-full items-center flex-wrap">
                   <button
                     type="button"
@@ -314,177 +312,218 @@ export default function FlatmateRequirementPropertyDetails({
 
           {/* RIGHT SIDE: Flatmate Requirement Info */}
           <div className="flex-1 w-full space-y-7 sm:space-y-8 md:space-y-10">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h2 className="text-black text-xl sm:text-2xl md:text-3xl font-regular">
-                    {postTitle}
-                  </h2>
-                  {listing.postedBy && (
-                    <span className="px-3 py-0.5 rounded-full text-xs font-medium capitalize bg-blue-50 text-blue-700 border border-blue-200">
-                      Posted by {listing.postedBy}
-                    </span>
-                  )}
+            {/* SECTION 1: REQUIREMENT OVERVIEW */}
+            <div className="space-y-4">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                REQUIREMENT OVERVIEW
+              </h3>
+
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="text-black text-xl sm:text-2xl md:text-3xl font-regular">
+                      {postTitle}
+                    </h2>
+                    {listing.postedBy && (
+                      <span className="px-3 py-0.5 rounded-full text-xs font-medium capitalize bg-blue-50 text-blue-700 border border-blue-200">
+                        Posted by {listing.postedBy}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-gray-500 text-sm sm:text-base font-regular">
+                    {categoryHeader}
+                  </p>
                 </div>
-                <p className="text-gray-500 text-sm sm:text-base font-regular">
-                  {categoryHeader}
-                </p>
+
+                {/* Wishlist Button */}
+                {isAuthenticated && !isOwner && (
+                  <div className="relative shrink-0 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleToggleWishlist}
+                      disabled={wishlistLoading}
+                      className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer ${isWishlisted
+                        ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100"
+                        : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-rose-600"
+                        }`}
+                      title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                    >
+                      {wishlistLoading ? (
+                        <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-rose-500" />
+                      ) : (
+                        <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isWishlisted ? "fill-rose-500 text-rose-500" : "text-gray-400 group-hover:text-rose-500"}`} />
+                      )}
+                      <span className="hidden sm:inline">{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
+                    </button>
+                    {wishlistMessage && (
+                      <div className="absolute right-0 top-full mt-1.5 px-3 py-1 bg-slate-800 text-white text-xs rounded-md shadow-md whitespace-nowrap z-10 animate-in fade-in duration-200">
+                        {wishlistMessage}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Wishlist Button */}
-              {isAuthenticated && !isOwner && (
-                <div className="relative shrink-0 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleToggleWishlist}
-                    disabled={wishlistLoading}
-                    className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer ${isWishlisted
-                      ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100"
-                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-rose-600"
-                      }`}
-                    title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-                  >
-                    {wishlistLoading ? (
-                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-rose-500" />
-                    ) : (
-                      <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isWishlisted ? "fill-rose-500 text-rose-500" : "text-gray-400 group-hover:text-rose-500"}`} />
-                    )}
-                    <span className="hidden sm:inline">{isWishlisted ? "Wishlisted" : "Add to Wishlist"}</span>
-                  </button>
-                  {wishlistMessage && (
-                    <div className="absolute right-0 top-full mt-1.5 px-3 py-1 bg-slate-800 text-white text-xs rounded-md shadow-md whitespace-nowrap z-10 animate-in fade-in duration-200">
-                      {wishlistMessage}
-                    </div>
-                  )}
+              <div className="grid grid-cols-1 gap-4 sm:gap-6 pt-1">
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Location</span>
+                  <div className="flex items-start gap-1.5 text-gray-800 text-sm sm:text-base font-medium mt-1">
+                    <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                    <span>{locationText}</span>
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Location */}
-            <div className="space-y-1.5">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Location</h3>
-              <div className="flex items-start gap-1.5 text-gray-500 text-sm sm:text-lg font-regular">
-                <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-1" />
-                <span>{locationText}</span>
+                {/* <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Title</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{postTitle}</p>
+                </div> */}
               </div>
             </div>
 
             <hr className="border-gray-200 border-t my-4" />
 
-            {/* Financial Details */}
-            <div className="space-y-3">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Rent & Availability</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
+            {/* SECTION 2: RENTAL SPECIFICATIONS */}
+            <div className="space-y-4">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                RENTAL SPECIFICATIONS
+              </h3>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pt-1">
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Approx Rent</span>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Occupancy Preference</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
+                    {listing.occupancyPreference ? listing.occupancyPreference.replace(/_/g, " ") : "Single"}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Approx Rent Amount (₹/mo)</span>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
                       <IndianRupee size={13} strokeWidth={2} className="text-accent" />
                     </span>
-                    <span className="text-black text-sm sm:text-lg md:text-xl font-medium">{rentFormatted}</span>
+                    <span className="text-black text-sm sm:text-base md:text-lg font-medium">{rentFormatted}</span>
                   </div>
                 </div>
-                {/* <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Security Deposit</span>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
-                      <IndianRupee size={13} strokeWidth={2} className="text-accent" />
-                    </span>
-                    <span className="text-black text-sm sm:text-lg md:text-xl font-medium">{depositFormatted}</span>
-                  </div>
-                </div> */}
+
                 <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">
-                    Move-in Date From
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Move-in Date</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{availableFromDate}</p>
+                </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Brokerage Applicable</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">
+                    {listing.brokerage ? "Yes (Brokerage Applicable)" : "No (Zero Brokerage)"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <hr className="border-gray-200 border-t my-4" />
+
+            {/* SECTION 3: PREFERENCES */}
+            <div className="space-y-4">
+              <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                PREFERENCES
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pt-1">
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Gender Preference</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{genderPreference}</p>
+                </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Occupation Preference</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{occupationPreference}</p>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2 pt-2">
+                <span className="block text-gray-500 text-xs sm:text-sm font-medium">Description</span>
+                <div className="mt-1">
+                  <RichTextRenderer content={description} />
+                </div>
+              </div>
+
+              {/* Lifestyle Preferences */}
+              {preferencesList.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">
+                    Lifestyle Preferences ({preferencesList.length} selected)
                   </span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{availableFromDate}</p>
-                </div>
-              </div>
-            </div>
 
+                  <div className="flex flex-wrap items-start gap-x-3 gap-y-5 sm:gap-x-6 sm:gap-y-8 pt-1">
+                    {preferencesList.map((pref, idx) => (
+                      <div
+                        key={pref._id || idx}
+                        className="flex w-[64px] min-w-0 flex-col items-center sm:w-20 md:w-24"
+                      >
+                        <div className="relative h-10 w-14 sm:h-14 sm:w-20 md:h-16 md:w-24">
+                          <div className="absolute bottom-0 left-0 h-7 w-full rounded-full bg-accent sm:h-10 md:h-11" />
 
-            {/* Preferences / Information Grid */}
-            <div className="space-y-3">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Preferences</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
-                <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Gender Preference</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{genderPreference}</p>
-                </div>
-                <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Occupation Preference</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{occupationPreference}</p>
-                </div>
-                {/* <div>
-                  <span className="block text-gray-500 text-sm sm:text-lg font-regular">Available From</span>
-                  <p className="text-black text-sm sm:text-lg md:text-xl font-medium mt-1">{availableFromDate}</p>
-                </div> */}
-              </div>
-            </div>
-
-            {/* User Preferences / Lifestyle */}
-            {preferencesList.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">
-                  Lifestyle Preferences
-                </h3>
-
-                <div className="flex flex-wrap items-start gap-x-3 gap-y-5 sm:gap-x-6 sm:gap-y-8 pt-1">
-                  {preferencesList.map((pref, idx) => (
-                    <div
-                      key={pref._id || idx}
-                      className="flex w-[64px] min-w-0 flex-col items-center sm:w-20 md:w-24"
-                    >
-                      <div className="relative h-10 w-14 sm:h-14 sm:w-20 md:h-16 md:w-24">
-                        <div className="absolute bottom-0 left-0 h-7 w-full rounded-full bg-accent sm:h-10 md:h-11" />
-
-                        <div className="absolute left-1/2 -top-1 z-10 -translate-x-1/2 sm:-top-2">
-                          {pref.image ? (
-                            <img
-                              src={pref.image}
-                              alt={pref.name}
-                              className="h-9 w-9 object-contain sm:h-12 sm:w-12 md:h-14 md:w-14"
-                            />
-                          ) : (
-                            getPreferenceVisual(pref.name)
-                          )}
+                          <div className="absolute left-1/2 -top-1 z-10 -translate-x-1/2 sm:-top-2">
+                            {pref.image ? (
+                              <img
+                                src={pref.image}
+                                alt={pref.name}
+                                className="h-9 w-9 object-contain sm:h-12 sm:w-12 md:h-14 md:w-14"
+                              />
+                            ) : (
+                              getPreferenceVisual(pref.name)
+                            )}
+                          </div>
                         </div>
+
+                        <span className="mt-1.5 w-full break-words text-center text-[11px] font-normal leading-tight text-gray-500 capitalize sm:text-sm md:text-base">
+                          {pref.name}
+                        </span>
                       </div>
-
-                      <span className="mt-1.5 break-words text-center text-[11px] font-regular leading-tight text-gray-500 capitalize sm:text-sm md:text-base">
-                        {pref.name}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Description */}
-            <div className="space-y-3">
-              <h3 className="text-black text-lg sm:text-xl md:text-2xl font-regular">Description</h3>
-              <RichTextRenderer content={description} />
+              )}
             </div>
+
+            {/* SECTION 4: MEDIA ASSETS MANAGEMENT (Conditional) */}
+            {/* {imageList.length > 0 && (
+              <>
+                <hr className="border-gray-200 border-t my-4" />
+                <div className="space-y-4">
+                  <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                    MEDIA ASSETS MANAGEMENT
+                  </h3>
+                  <p className="text-gray-500 text-xs sm:text-sm">
+                    Photos uploaded for this requirement ({imageList.length})
+                  </p>
+                </div>
+              </>
+            )} */}
 
             {/* Report Footer */}
             {isAuthenticated && !isOwner && (
-              <div className="pt-3 text-base sm:text-lg lg:text-xl font-semibold text-gray-900 flex items-center gap-1.5 flex-wrap">
-                <span>Found Wrong Information?</span>
-                <button
-                  type="button"
-                  onClick={() => setShowReportModal(true)}
-                  className="text-[#0066FF] cursor-pointer font-semibold transition-all"
-                >
-                  <LineRoll text="Report Listing" lineClassName="bg-[#0066FF]" />
-                </button>
-              </div>
+              <>
+                <hr className="border-gray-200 border-t my-4" />
+                <div className="pt-2 text-base sm:text-lg lg:text-xl font-semibold text-gray-900 flex items-center gap-1.5 flex-wrap">
+                  <span>Found Wrong Information?</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowReportModal(true)}
+                    className="text-[#0066FF] cursor-pointer font-semibold transition-all"
+                  >
+                    <LineRoll text="Report Listing" lineClassName="bg-[#0066FF]" />
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
       </div>
 
-      {/* MOdals */}
+      {/* Modals */}
       <CallModal
         isOpen={showCallModal}
         onClose={() => setShowCallModal(false)}

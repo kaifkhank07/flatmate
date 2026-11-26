@@ -71,6 +71,14 @@ export type FurnishingType =
 
 export type GenderPreference = 'male' | 'female' | 'other' | 'any' | 'all';
 
+export type OccupancyPreference =
+  | 'single'
+  | 'double'
+  | 'triple'
+  | 'four_or_more';
+
+export type TenantPreference = 'anyone' | 'bachelors' | 'family';
+
 export type OccupationPreference =
   | 'student'
   | 'working_professional'
@@ -182,6 +190,7 @@ export interface PropertyListingItem {
   propertyType?: PropertyType | PropertyListingType | string;
   listingType?: PropertyType | PropertyListingType | string;
   propertyDetails?: PropertyDetails;
+  brokerage?: boolean;
   brokerageDetails?: BrokerageDetails;
   postedBy?: PropertyPostedBy;
   location: LocationItem;
@@ -193,6 +202,7 @@ export interface PropertyListingItem {
   };
   furnishing?: FurnishingType;
   availableFrom: string;
+  tenantPreference?: TenantPreference;
   genderPreference?: GenderPreference;
   occupationPreference?: OccupationPreference;
   amenities?: AmenityItem[];
@@ -204,6 +214,9 @@ export interface PropertyListingItem {
   status: string;
   rejectionReason?: string;
   favoriteCount?: number;
+  viewsCount?: number;
+  approvedAt?: string;
+  publishedAt?: string;
   distance?: number;
   distanceUnit?: string;
   createdAt: string;
@@ -232,8 +245,10 @@ export interface FlatmateRequirementItem {
   };
   furnishing?: FurnishingType;
   parking?: boolean;
+  brokerage?: boolean;
   availableFrom: string;
   genderPreference: GenderPreference;
+  occupancyPreference?: OccupancyPreference;
   occupationPreference: OccupationPreference;
   userPreferences?: UserPreferenceItem[];
   amenities?: AmenityItem[];
@@ -242,6 +257,9 @@ export interface FlatmateRequirementItem {
   status: string;
   rejectionReason?: string;
   favoriteCount?: number;
+  viewsCount?: number;
+  approvedAt?: string;
+  publishedAt?: string;
   distance?: number;
   distanceUnit?: string;
   createdAt: string;
@@ -392,6 +410,7 @@ export interface FlatmateListingItem {
   facing?: string;
   postedBy?: string;
   brokerage?: string;
+  furnishing?: string;
 }
 
 export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListingItem {
@@ -442,11 +461,18 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       ? "Female"
       : "Male";
 
-    const lookingForGender = property.genderPreference === "male"
-      ? "Male"
-      : property.genderPreference === "female"
-        ? "Female"
-        : "Any";
+    let lookingForGender = "Any";
+    if (property.tenantPreference) {
+      lookingForGender = property.tenantPreference === "bachelors"
+        ? "Bachelor's"
+        : property.tenantPreference === "family"
+          ? "Family"
+          : "Anyone";
+    } else if (property.genderPreference === "male") {
+      lookingForGender = "Male";
+    } else if (property.genderPreference === "female") {
+      lookingForGender = "Female";
+    }
 
     let lookingForType = "PROPERTY";
     if (property.propertyType) {
@@ -484,8 +510,14 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
 
     const postedBy = property.postedBy ? property.postedBy.toUpperCase() : undefined;
 
+    const furnishingStr = property.furnishing
+      ? String(property.furnishing).replace(/_/g, " ").toUpperCase()
+      : undefined;
+
     let brokerageStr: string | undefined = undefined;
-    if (property.brokerageDetails) {
+    if (typeof property.brokerage === "boolean") {
+      brokerageStr = property.brokerage ? "Brokerage Applicable" : "Zero Brokerage";
+    } else if (property.brokerageDetails) {
       brokerageStr = property.brokerageDetails.applicable
         ? property.brokerageDetails.type === "percentage"
           ? `${property.brokerageDetails.value}% Brokerage`
@@ -526,6 +558,7 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       facing,
       postedBy,
       brokerage: brokerageStr,
+      furnishing: furnishingStr,
     };
   } else {
     const flatmate = item as FlatmateRequirementItem;
@@ -570,12 +603,12 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
         : "ROOMMATE";
     }
 
-    const bhk = (!isPropertyPost && flatmate.propertyDetails?.bedrooms)
+    const bhk = flatmate.propertyDetails?.bedrooms
       ? flatmate.propertyDetails.bedrooms.replace(/_/g, " ").toUpperCase()
       : undefined;
 
     let floorStr: string | undefined = undefined;
-    if (!isPropertyPost && flatmate.propertyDetails?.floor !== undefined) {
+    if (flatmate.propertyDetails?.floor !== undefined) {
       floorStr =
         flatmate.propertyDetails.floor === 0
           ? "Ground"
@@ -585,11 +618,15 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       }
     }
 
-    const facing = (!isPropertyPost && flatmate.propertyDetails?.facing)
+    const facing = flatmate.propertyDetails?.facing
       ? flatmate.propertyDetails.facing.replace(/_/g, " ").toUpperCase()
       : undefined;
 
     const postedBy = flatmate.postedBy ? flatmate.postedBy.toUpperCase() : undefined;
+
+    const furnishingStr = flatmate.furnishing
+      ? String(flatmate.furnishing).replace(/_/g, " ").toUpperCase()
+      : undefined;
 
     const category: "Flat" | "Flatmate" | "Property" = isPropertyPost ? "Flatmate" : "Flat";
 
@@ -600,6 +637,11 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
     const userAvatar = getUserAvatarUrl(flatmate.userId);
 
     const status = flatmate.status || "status";
+
+    let flatmateBrokerageStr: string | undefined = undefined;
+    if (typeof flatmate.brokerage === "boolean") {
+      flatmateBrokerageStr = flatmate.brokerage ? "Brokerage Applicable" : "Zero Brokerage";
+    }
 
     return {
       id: flatmate.slug || flatmate._id,
@@ -624,6 +666,8 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       floor: floorStr,
       facing,
       postedBy,
+      brokerage: flatmateBrokerageStr,
+      furnishing: furnishingStr,
     };
   }
 }

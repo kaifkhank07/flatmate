@@ -1,57 +1,45 @@
-import {
-    ShieldCheck,
-    House,
-    Headset,
-    LucideIcon,
-    FaceSlightlySmiling,
-    Check,
-    UserGroup
-} from "lucide-react";
+import { useAssets } from "./assets";
 
 export interface WhyChooseUsItem {
     title: string;
     description: string;
-    icon: LucideIcon;
-    iconBg?: string;
+    icon: string;
 }
+
+
+const assets = useAssets();
 
 export const useWhyChooseUs = (): WhyChooseUsItem[] => {
     return [
         {
-            title: "Verified Listings",
-            description: "Truly genuine & verified properties and users.",
-            icon: Check,
-            iconBg: "#09B300"
+            title: "Flatmate Matchmaking",
+            description: "Find people seeking a flatmate or shared spaces.",
+            icon: assets.whychooseus1,
         },
         {
-            title: "Safe & Secure",
-            description: "Background checks for peace of mind.",
-            icon: ShieldCheck,
-            iconBg: "#FF8800"
+            title: "Two-Way Discovery",
+            description: "Explore requirements and available listings.",
+            icon: assets.whychooseus2,
         },
         {
-            title: "Community Driven",
-            description: "Connect, share & belong",
-            icon: UserGroup,
-            iconBg: "#0196FD"
+            title: "Flexible Accommodation",
+            description: "From shared rooms to complete rental properties.",
+            icon: assets.whychooseus3,
         },
         {
-            title: "Hassle-Free Process",
-            description: "Truly genuine & verified properties and users.",
-            icon: FaceSlightlySmiling,
-            iconBg: "#FFC116"
+            title: "Communnity Network",
+            description: "Connect through accommodation communities.",
+            icon: assets.whychooseus4,
         },
         {
-            title: "More Than Just A Stay",
-            description: "Background checks for peace of mind.",
-            icon: House,
-            iconBg: "#B5B5B5"
+            title: "People-First Approach",
+            description: "Built around people and their accommodation needs.",
+            icon: assets.whychooseus5,
         },
         {
-            title: "Dedicated Support",
-            description: "We're here when you need us.",
-            icon: Headset,
-            iconBg: "#F90004"
+            title: "Easy Connections",
+            description: "Bringing accommodation seekers and providers together.",
+            icon: assets.whychooseus6,
         },
     ];
 };
