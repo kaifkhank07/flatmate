@@ -174,6 +174,7 @@ const initialFilters: ListingQueryParams = {
   limit: 10,
   sourceType: 'all',
   genderPreference: 'any',
+  tenantPreference: undefined,
   furnishing: 'all',
   minBudget: undefined,
   maxBudget: undefined,

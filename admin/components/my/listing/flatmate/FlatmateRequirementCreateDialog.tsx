@@ -62,7 +62,7 @@ interface FormDataState {
   brokerage: boolean;
   availableFrom: string;
   genderPreference: "male" | "female" | "other" | "any";
-  occupancyPreference: "single" | "double" | "triple" | "four_or_more";
+  occupancyPreference: "any" | "single" | "shared";
   occupationPreference:
     | "student"
     | "working_professional"
@@ -101,7 +101,7 @@ const DEFAULT_FORM: FormDataState = {
   brokerage: false,
   availableFrom: "",
   genderPreference: "any",
-  occupancyPreference: "single",
+  occupancyPreference: "any",
   occupationPreference: "any",
   userPreferences: [],
   amenities: [],
@@ -911,10 +911,9 @@ export default function FlatmateRequirementCreateDialog({
                       value={formData.occupancyPreference}
                       onChange={(e) => setFormData((prev) => ({ ...prev, occupancyPreference: e.target.value as any }))}
                     >
+                      <option value="any">Any</option>
                       <option value="single">Single</option>
-                      <option value="double">Double</option>
-                      <option value="triple">Triple</option>
-                      <option value="four_or_more">Four or More</option>
+                      <option value="shared">Shared</option>
                     </select>
                   </div>
 
@@ -1466,10 +1465,9 @@ export default function FlatmateRequirementCreateDialog({
                       value={formData.occupancyPreference}
                       onChange={(e) => setFormData((prev) => ({ ...prev, occupancyPreference: e.target.value as any }))}
                     >
+                      <option value="any">Any</option>
                       <option value="single">Single</option>
-                      <option value="double">Double</option>
-                      <option value="triple">Triple</option>
-                      <option value="four_or_more">Four or More</option>
+                      <option value="shared">Shared</option>
                     </select>
                   </div>
 

@@ -88,7 +88,7 @@ export default function FlatmateCreationForm1({
   const [parkingAvailable, setParkingAvailable] = useState(false);
   const [brokerageAvailable, setBrokerageAvailable] = useState(false);
   const [genderPreference, setGenderPreference] = useState<"male" | "female" | "any">("any");
-  const [occupancyPreference, setOccupancyPreference] = useState<"single" | "double" | "triple" | "four_or_more">("single");
+  const [occupancyPreference, setOccupancyPreference] = useState<"any" | "single" | "shared">("any");
   const [occupationPreference, setOccupationPreference] = useState<"student" | "working_professional" | "self_employed" | "business_owner" | "freelancer" | "any">("any");
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
@@ -577,10 +577,9 @@ export default function FlatmateCreationForm1({
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
                     required
                   >
+                    <option value="any">Any</option>
                     <option value="single">Single</option>
-                    <option value="double">Double</option>
-                    <option value="triple">Triple</option>
-                    <option value="four_or_more">Four or More</option>
+                    <option value="shared">Shared</option>
                   </select>
                 </div>
 

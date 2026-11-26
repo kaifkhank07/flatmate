@@ -77,7 +77,7 @@ export default function PropertyCreationForm({
   // Form Fields State
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [propertyType, setPropertyType] = useState<PropertyType>("flats_apartments");
+  const [propertyType, setPropertyType] = useState<PropertyType>("flat_apartment");
   const [floor, setFloor] = useState("");
   const [totalFloors, setTotalFloors] = useState("");
   const [facing, setFacing] = useState("");
@@ -592,10 +592,9 @@ export default function PropertyCreationForm({
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
                     required
                   >
-                    <option value="flats_apartments">Flats / Apartments</option>
-                    <option value="houses_villas">Houses / Villas</option>
-                    {/* <option value="office_spaces">Office Spaces</option>
-                    <option value="shops_commercial">Shops / Commercial</option> */}
+                    <option value="flat_apartment">Flat / Apartment</option>
+                    <option value="house">House</option>
+                    <option value="villa">Villa</option>
                   </select>
                 </div>
 

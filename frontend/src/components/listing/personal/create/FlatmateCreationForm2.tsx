@@ -87,7 +87,7 @@ export default function FlatmateCreationForm2({
   const [parkingAvailable, setParkingAvailable] = useState(false);
   const [brokerageAvailable, setBrokerageAvailable] = useState(false);
   const [genderPreference, setGenderPreference] = useState<"male" | "female" | "any">("any");
-  const [occupancyPreference, setOccupancyPreference] = useState<"single" | "double" | "triple" | "four_or_more">("single");
+  const [occupancyPreference, setOccupancyPreference] = useState<"any" | "single" | "shared">("any");
   const [occupationPreference, setOccupationPreference] = useState<"student" | "working_professional" | "self_employed" | "business_owner" | "freelancer" | "any">("any");
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
@@ -579,7 +579,7 @@ export default function FlatmateCreationForm2({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Area */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Area (sq.ft)
                   </label>
@@ -591,7 +591,7 @@ export default function FlatmateCreationForm2({
                     placeholder="e.g. 1000"
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
                   />
-                </div>
+                </div> */}
 
                 {/* Furnishing Status */}
                 <div className="space-y-2">
@@ -625,7 +625,7 @@ export default function FlatmateCreationForm2({
                 </div>
 
                 {/* BHK */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Bedrooms / BHK
                   </label>
@@ -643,10 +643,10 @@ export default function FlatmateCreationForm2({
                     <option value="5_bhk">5 BHK</option>
                     <option value="5_plus_bhk">5+ BHK</option>
                   </select>
-                </div>
+                </div> */}
 
                 {/* Facing */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Facing
                   </label>
@@ -665,10 +665,10 @@ export default function FlatmateCreationForm2({
                     <option value="south_east">South-East</option>
                     <option value="south_west">South-West</option>
                   </select>
-                </div>
+                </div> */}
 
                 {/* Floor */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Floor
                   </label>
@@ -680,10 +680,10 @@ export default function FlatmateCreationForm2({
                     placeholder="0 for Ground floor"
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
                   />
-                </div>
+                </div> */}
 
                 {/* Total Floors */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
                     Total Floors
                   </label>
@@ -695,7 +695,7 @@ export default function FlatmateCreationForm2({
                     placeholder="e.g. 10"
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
                   />
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -706,10 +706,10 @@ export default function FlatmateCreationForm2({
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Occupancy Preference */}
+                {/* Occupancy */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Occupancy Preference <span className="text-rose-500">*</span>
+                    Occupancy <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={occupancyPreference}
@@ -717,10 +717,9 @@ export default function FlatmateCreationForm2({
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
                     required
                   >
+                    <option value="any">Any</option>
                     <option value="single">Single</option>
-                    <option value="double">Double</option>
-                    <option value="triple">Triple</option>
-                    <option value="four_or_more">Four or More</option>
+                    <option value="shared">Shared</option>
                   </select>
                 </div>
 

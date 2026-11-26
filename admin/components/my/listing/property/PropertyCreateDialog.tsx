@@ -41,10 +41,9 @@ interface PropertyFormData {
   title: string;
   description: string;
   propertyType:
-  | "flats_apartments"
-  | "houses_villas"
-  | "office_spaces"
-  | "shops_commercial";
+    | "flat_apartment"
+    | "house"
+    | "villa";
   floor?: number | "";
   totalFloors?: number | "";
   facing?: string;
@@ -70,7 +69,7 @@ const DEFAULT_FORM_DATA: PropertyFormData = {
   userId: "",
   title: "",
   description: "",
-  propertyType: "flats_apartments",
+  propertyType: "flat_apartment",
   floor: "",
   totalFloors: "",
   facing: "",
@@ -776,10 +775,9 @@ export default function PropertyCreateDialog({
                   }
                   required
                 >
-                  <option value="flats_apartments">Flats / Apartments</option>
-                  <option value="houses_villas">Houses / Villas</option>
-                  {/* <option value="office_spaces">Office Spaces</option>
-                  <option value="shops_commercial">Shops / Commercial</option> */}
+                  <option value="flat_apartment">Flat / Apartment</option>
+                  <option value="house">House</option>
+                  <option value="villa">Villa</option>
                 </select>
               </div>
 

@@ -42,6 +42,9 @@ interface ListingFilterBarProps {
   selectedGender: GenderFilter;
   onSelectGender: (gender: GenderFilter) => void;
 
+  selectedTenantPreference?: string;
+  onSelectTenantPreference?: (pref: string) => void;
+
   selectedSort: ListingSortOption;
   onSelectSort: (sort: ListingSortOption) => void;
 
@@ -73,6 +76,8 @@ export default function ListingFilterBar({
   onSelectCategory,
   selectedGender,
   onSelectGender,
+  selectedTenantPreference = "Any",
+  onSelectTenantPreference,
   selectedSort,
   onSelectSort,
   selectedFurnishing,
@@ -187,16 +192,18 @@ export default function ListingFilterBar({
 
   const propertyTypeOptions: { label: string; value: string }[] = [
     { label: "All Property Types", value: "all" },
-    { label: "Flats / Apartments", value: "flats_apartments" },
-    { label: "Houses / Villas", value: "houses_villas" },
-    { label: "Office Spaces", value: "office_spaces" },
-    { label: "Shops / Commercial", value: "shops_commercial" },
+    { label: "Flat / Apartment", value: "flat_apartment" },
+    { label: "House", value: "house" },
+    { label: "Villa", value: "villa" },
   ];
 
   const propertyTypeLabels: Record<string, string> = {
     all: "Property Type",
-    flats_apartments: "Flats / Apartments",
-    houses_villas: "Houses / Villas",
+    flat_apartment: "Flat / Apartment",
+    house: "House",
+    villa: "Villa",
+    flats_apartments: "Flat / Apartment",
+    houses_villas: "House",
     office_spaces: "Office Spaces",
     shops_commercial: "Shops / Commercial",
   };
@@ -224,6 +231,7 @@ export default function ListingFilterBar({
   };
 
   const genderOptions: GenderFilter[] = ["Any", "Male", "Female"];
+  const tenantOptions: string[] = ["Any", "Bachelor's", "Family", "Anyone"];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -1223,57 +1231,113 @@ export default function ListingFilterBar({
             </div>
           )}
 
-          {/* 4. Gender Dropdown Pill */}
+          {/* 4. Gender / Tenant Preference Dropdown Pill */}
           <div className="relative shrink-0" ref={genderRef}>
-            <button
-              type="button"
-              onClick={() => {
-                setGenderOpen(!genderOpen);
-                setCategoryOpen(false);
-                setSortOpen(false);
-                setBudgetOpen(false);
-                setFurnishingOpen(false);
-                setPropertyTypeOpen(false);
-                setBhkOpen(false);
-              }}
-              className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${selectedGender !== "Any"
-                ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
-                : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+            {selectedCategory === "Property" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setGenderOpen(!genderOpen);
+                  setCategoryOpen(false);
+                  setSortOpen(false);
+                  setBudgetOpen(false);
+                  setFurnishingOpen(false);
+                  setPropertyTypeOpen(false);
+                  setBhkOpen(false);
+                }}
+                className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${
+                  selectedTenantPreference && selectedTenantPreference !== "Any"
+                    ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
+                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
                 }`}
-            >
-              <Users
-                className={`w-3.5 h-3.5 shrink-0 ${selectedGender !== "Any" ? "text-[#0066FF]" : "text-gray-500"
+              >
+                <Users
+                  className={`w-3.5 h-3.5 shrink-0 ${
+                    selectedTenantPreference && selectedTenantPreference !== "Any"
+                      ? "text-[#0066FF]"
+                      : "text-gray-500"
                   }`}
-              />
-              <span>{selectedCategory === "Property" ? "Tenant Gender" : "Gender"}: {selectedGender}</span>
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform ${genderOpen ? "rotate-180" : ""
+                />
+                <span>Preferred Tenant: {selectedTenantPreference || "Any"}</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${
+                    genderOpen ? "rotate-180" : ""
                   }`}
-              />
-            </button>
+                />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setGenderOpen(!genderOpen);
+                  setCategoryOpen(false);
+                  setSortOpen(false);
+                  setBudgetOpen(false);
+                  setFurnishingOpen(false);
+                  setPropertyTypeOpen(false);
+                  setBhkOpen(false);
+                }}
+                className={`text-xs sm:text-sm font-medium px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs whitespace-nowrap ${
+                  selectedGender !== "Any"
+                    ? "bg-blue-50 text-[#0066FF] border-blue-200 font-semibold"
+                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <Users
+                  className={`w-3.5 h-3.5 shrink-0 ${
+                    selectedGender !== "Any" ? "text-[#0066FF]" : "text-gray-500"
+                  }`}
+                />
+                <span>Gender: {selectedGender}</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${
+                    genderOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+            )}
 
             {/* Desktop (lg and up) Dropdown */}
             {genderOpen && (
-              <div className="hidden lg:block absolute left-0 mt-2 w-36 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
+              <div className="hidden lg:block absolute left-0 mt-2 w-44 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50">
                 <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                  {selectedCategory === "Property" ? "Tenant Gender" : "Gender Preference"}
+                  {selectedCategory === "Property" ? "Preferred Tenant" : "Gender Preference"}
                 </div>
-                {genderOptions.map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => {
-                      onSelectGender(opt);
-                      setGenderOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${selectedGender === opt
-                      ? "bg-blue-50 text-[#0066FF] font-semibold"
-                      : "text-gray-700 hover:bg-gray-50"
-                      }`}
-                  >
-                    {opt === "Any" ? "Any Gender" : opt}
-                  </button>
-                ))}
+                {selectedCategory === "Property"
+                  ? tenantOptions.map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          onSelectTenantPreference?.(opt);
+                          setGenderOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${
+                          (selectedTenantPreference || "Any") === opt
+                            ? "bg-blue-50 text-[#0066FF] font-semibold"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {opt === "Any" ? "Any Tenant" : opt}
+                      </button>
+                    ))
+                  : genderOptions.map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          onSelectGender(opt);
+                          setGenderOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${
+                          selectedGender === opt
+                            ? "bg-blue-50 text-[#0066FF] font-semibold"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {opt === "Any" ? "Any Gender" : opt}
+                      </button>
+                    ))}
               </div>
             )}
 
@@ -1291,7 +1355,7 @@ export default function ListingFilterBar({
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4 text-[#0066FF]" />
                       <h3 className="text-base font-semibold text-gray-900">
-                        {selectedCategory === "Property" ? "Tenant Gender" : "Gender Preference"}
+                        {selectedCategory === "Property" ? "Preferred Tenant" : "Gender Preference"}
                       </h3>
                     </div>
                     <button
@@ -1305,25 +1369,47 @@ export default function ListingFilterBar({
                   </div>
 
                   <div className="divide-y divide-gray-50 py-1">
-                    {genderOptions.map((opt) => (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => {
-                          onSelectGender(opt);
-                          setGenderOpen(false);
-                        }}
-                        className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${selectedGender === opt
-                          ? "bg-blue-50 text-[#0066FF] font-semibold"
-                          : "text-gray-700 hover:bg-gray-50"
-                          }`}
-                      >
-                        <span>{opt === "Any" ? "Any Gender" : opt}</span>
-                        {selectedGender === opt && (
-                          <Check className="w-4 h-4 text-[#0066FF]" />
-                        )}
-                      </button>
-                    ))}
+                    {selectedCategory === "Property"
+                      ? tenantOptions.map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => {
+                              onSelectTenantPreference?.(opt);
+                              setGenderOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
+                              (selectedTenantPreference || "Any") === opt
+                                ? "bg-blue-50 text-[#0066FF] font-semibold"
+                                : "text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            <span>{opt === "Any" ? "Any Tenant" : opt}</span>
+                            {(selectedTenantPreference || "Any") === opt && (
+                              <Check className="w-4 h-4 text-[#0066FF]" />
+                            )}
+                          </button>
+                        ))
+                      : genderOptions.map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => {
+                              onSelectGender(opt);
+                              setGenderOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between py-3.5 px-3 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
+                              selectedGender === opt
+                                ? "bg-blue-50 text-[#0066FF] font-semibold"
+                                : "text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            <span>{opt === "Any" ? "Any Gender" : opt}</span>
+                            {selectedGender === opt && (
+                              <Check className="w-4 h-4 text-[#0066FF]" />
+                            )}
+                          </button>
+                        ))}
                   </div>
                 </div>
               </div>

@@ -10,15 +10,14 @@ const objectIdString = z
 
 export const propertyTypeSchema = z.enum(
   [
-    'flats_apartments',
-    'houses_villas',
-    'office_spaces',
-    'shops_commercial',
+    'flat_apartment',
+    'house',
+    'villa',
   ],
   {
     required_error: 'Property type is required',
     invalid_type_error:
-      'Property type must be one of: flats_apartments, houses_villas, office_spaces, shops_commercial',
+      'Property type must be one of: flat_apartment, house, villa',
   }
 );
 

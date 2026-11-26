@@ -934,10 +934,9 @@ export interface PropertyMediaItem {
 }
 
 export type PropertyType =
-  | "flats_apartments"
-  | "houses_villas"
-  | "office_spaces"
-  | "shops_commercial";
+  | "flat_apartment"
+  | "house"
+  | "villa";
 
 export type PropertyCategory = PropertyType;
 
@@ -985,7 +984,7 @@ export type LegacyPropertyType = "flat" | "room" | "pg" | "shared_apartment" | "
 export type FurnishingType = "fully_furnished" | "semi_furnished" | "unfurnished";
 export type GenderPreference = "male" | "female" | "other" | "any";
 export type TenantPreference = "anyone" | "bachelors" | "family";
-export type OccupancyPreference = "single" | "double" | "triple" | "four_or_more";
+export type OccupancyPreference = "any" | "single" | "shared";
 export type OccupationPreference = "student" | "working_professional" | "self_employed" | "business_owner" | "freelancer" | "other" | "any";
 export type ListingStatus = "draft" | "pending" | "approved" | "rejected" | "blocked" | "closed" | "expired";
 

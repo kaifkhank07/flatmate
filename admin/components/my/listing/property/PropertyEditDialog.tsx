@@ -46,10 +46,9 @@ interface PropertyFormData {
   title: string;
   description: string;
   propertyType:
-    | "flats_apartments"
-    | "houses_villas"
-    | "office_spaces"
-    | "shops_commercial";
+    | "flat_apartment"
+    | "house"
+    | "villa";
   floor?: number | "";
   totalFloors?: number | "";
   facing?: string;
@@ -84,7 +83,7 @@ export default function PropertyEditDialog({
     userId: "",
     title: "",
     description: "",
-    propertyType: "flats_apartments",
+    propertyType: "flat_apartment",
     floor: "",
     totalFloors: "",
     facing: "",
@@ -214,11 +213,11 @@ export default function PropertyEditDialog({
       setIsChangingLocation(false);
       setLocationSearchTerm("");
 
-      let pType: any = "flats_apartments";
+      let pType: any = "flat_apartment";
       if (typeof item.propertyType === "object" && item.propertyType !== null) {
-        pType = (item.propertyType as any).category || "flats_apartments";
+        pType = (item.propertyType as any).category || "flat_apartment";
       } else if (typeof item.propertyType === "string") {
-        pType = item.propertyType;
+        pType = item.propertyType === "flats_apartments" ? "flat_apartment" : item.propertyType;
       }
 
       setFormData({
@@ -938,10 +937,9 @@ export default function PropertyEditDialog({
                     }
                     required
                   >
-                    <option value="flats_apartments">Flats / Apartments</option>
-                    <option value="houses_villas">Houses / Villas</option>
-                    <option value="office_spaces">Office Spaces</option>
-                    <option value="shops_commercial">Shops / Commercial</option>
+                    <option value="flat_apartment">Flat / Apartment</option>
+                    <option value="house">House</option>
+                    <option value="villa">Villa</option>
                   </select>
                 </div>
 

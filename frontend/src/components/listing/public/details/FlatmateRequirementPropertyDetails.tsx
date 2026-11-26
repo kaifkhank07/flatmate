@@ -389,11 +389,11 @@ export default function FlatmateRequirementPropertyDetails({
                 RENTAL SPECIFICATIONS
               </h3>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pt-1">
                 <div>
                   <span className="block text-gray-500 text-xs sm:text-sm font-medium">Occupancy Preference</span>
                   <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
-                    {listing.occupancyPreference ? listing.occupancyPreference.replace(/_/g, " ") : "Single"}
+                    {listing.occupancyPreference ? listing.occupancyPreference.replace(/_/g, " ") : "Any"}
                   </p>
                 </div>
 
@@ -412,12 +412,12 @@ export default function FlatmateRequirementPropertyDetails({
                   <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{availableFromDate}</p>
                 </div>
 
-                <div>
+                {/* <div>
                   <span className="block text-gray-500 text-xs sm:text-sm font-medium">Brokerage Applicable</span>
                   <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">
                     {listing.brokerage ? "Yes (Brokerage Applicable)" : "No (Zero Brokerage)"}
                   </p>
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -429,7 +429,7 @@ export default function FlatmateRequirementPropertyDetails({
                 PREFERENCES
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pt-1">
                 <div>
                   <span className="block text-gray-500 text-xs sm:text-sm font-medium">Gender Preference</span>
                   <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{genderPreference}</p>

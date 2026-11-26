@@ -73,7 +73,7 @@ export default function FlatmateRequirementEditDialog({
   const [availableFrom, setAvailableFrom] = useState("");
   const [occupationPreference, setOccupationPreference] = useState<any>("any");
   const [genderPreference, setGenderPreference] = useState<any>("any");
-  const [occupancyPreference, setOccupancyPreference] = useState<any>("single");
+  const [occupancyPreference, setOccupancyPreference] = useState<any>("any");
   const [userPreferences, setUserPreferences] = useState<string[]>([]);
   const [amenities, setAmenities] = useState<string[]>([]);
   const [status, setStatus] = useState<ListingStatus>("pending");
@@ -148,7 +148,7 @@ export default function FlatmateRequirementEditDialog({
       setBrokerage(Boolean(item.brokerage));
       setOccupationPreference(item.occupationPreference || "any");
       setGenderPreference(item.genderPreference || "any");
-      setOccupancyPreference(item.occupancyPreference || "single");
+      setOccupancyPreference(item.occupancyPreference || "any");
 
       const prefSource = item.userPreferences || (item as any).lifestylePreferences || [];
       const prefIds: string[] = prefSource
@@ -991,10 +991,9 @@ export default function FlatmateRequirementEditDialog({
                         value={occupancyPreference}
                         onChange={(e) => setOccupancyPreference(e.target.value as any)}
                       >
+                        <option value="any">Any</option>
                         <option value="single">Single</option>
-                        <option value="double">Double</option>
-                        <option value="triple">Triple</option>
-                        <option value="four_or_more">Four or More</option>
+                        <option value="shared">Shared</option>
                       </select>
                     </div>
 
@@ -1300,10 +1299,9 @@ export default function FlatmateRequirementEditDialog({
                         value={occupancyPreference}
                         onChange={(e) => setOccupancyPreference(e.target.value as any)}
                       >
+                        <option value="any">Any</option>
                         <option value="single">Single</option>
-                        <option value="double">Double</option>
-                        <option value="triple">Triple</option>
-                        <option value="four_or_more">Four or More</option>
+                        <option value="shared">Shared</option>
                       </select>
                     </div>
 

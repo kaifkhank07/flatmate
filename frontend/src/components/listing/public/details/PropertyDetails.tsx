@@ -405,7 +405,7 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
                 PROPERTY DETAILS
               </h3>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pt-1">
                 <div>
                   <span className="block text-gray-500 text-xs sm:text-sm font-medium">Property Type</span>
                   <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
@@ -482,7 +482,7 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
                 RENTAL SPECIFICATIONS
               </h3>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pt-1">
                 <div>
                   <span className="block text-gray-500 text-xs sm:text-sm font-medium">Monthly Rent (₹)</span>
                   <div className="flex items-center gap-1.5 mt-1">
@@ -513,20 +513,24 @@ export default function PropertyDetails({ listing, listingData }: PropertyDetail
                   <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{availableFromDate}</p>
                 </div>
 
-                <div>
-                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Maintenance Charges (₹)</span>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
-                      <IndianRupee size={13} strokeWidth={2} className="text-accent" />
-                    </span>
-                    <span className="text-black text-sm sm:text-base md:text-lg font-medium">{maintenanceChargesText}</span>
+                {listing.maintenanceCharges?.amount != 0 && (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Maintenance Charges (₹)</span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
+                        <IndianRupee size={13} strokeWidth={2} className="text-accent" />
+                      </span>
+                      <span className="text-black text-sm sm:text-base md:text-lg font-medium">{maintenanceChargesText}</span>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div>
-                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Maintenance Frequency</span>
-                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{maintenanceFrequencyText}</p>
-                </div>
+                {listing.maintenanceCharges?.amount != 0 && (
+                  <div>
+                    <span className="block text-gray-500 text-xs sm:text-sm font-medium">Maintenance Frequency</span>
+                    <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{maintenanceFrequencyText}</p>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -1,10 +1,9 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
 export type PropertyType =
-  | 'flats_apartments'
-  | 'houses_villas'
-  | 'office_spaces'
-  | 'shops_commercial';
+  | 'flat_apartment'
+  | 'house'
+  | 'villa';
 
 export type FacingDirection =
   | 'east'
@@ -162,10 +161,9 @@ const propertySchema = new Schema<IProperty>(
     propertyType: {
       type: String,
       enum: [
-        'flats_apartments',
-        'houses_villas',
-        'office_spaces',
-        'shops_commercial',
+        'flat_apartment',
+        'house',
+        'villa',
       ],
       required: [true, 'Property type is required'],
     },

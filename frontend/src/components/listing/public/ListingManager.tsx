@@ -7,6 +7,7 @@ import {
   GenderFilter,
   ListingSortOption,
   FurnishingType,
+  TenantPreference,
   mapUnifiedListingToCard,
   getCategoryFilters,
 } from "@/types/listing";
@@ -38,6 +39,7 @@ export default function ListingManager() {
   const [selectedCategory, setSelectedCategory] =
     useState<ListingCategory>("All");
   const [selectedGender, setSelectedGender] = useState<GenderFilter>("Any");
+  const [selectedTenantPreference, setSelectedTenantPreference] = useState<string>("Any");
   const [selectedSort, setSelectedSort] = useState<ListingSortOption>("relevance");
   const [selectedFurnishing, setSelectedFurnishing] = useState<FurnishingType>("all");
   const [selectedPropertyType, setSelectedPropertyType] = useState<string>("all");
@@ -183,12 +185,26 @@ export default function ListingManager() {
       setSelectedBhk("all");
     }
 
+    let tenantPreference: TenantPreference | undefined = undefined;
+    let genderPreference: any = undefined;
+
+    if (cat === "Property") {
+      if (selectedTenantPreference === "Bachelor's") tenantPreference = "bachelors";
+      else if (selectedTenantPreference === "Family") tenantPreference = "family";
+      else if (selectedTenantPreference === "Anyone") tenantPreference = "anyone";
+    } else {
+      genderPreference =
+        selectedGender === "Male" ? "male" : selectedGender === "Female" ? "female" : "any";
+    }
+
     setFilters({
       ...catFilters,
       listingType: undefined,
       partnerType: undefined,
       propertyType: nextPropertyType === "all" ? undefined : (nextPropertyType as any),
       bhk: nextBhk === "all" ? undefined : (nextBhk as any),
+      tenantPreference,
+      genderPreference,
       page: 1,
     });
   };
@@ -200,6 +216,17 @@ export default function ListingManager() {
       gender === "Male" ? "male" : gender === "Female" ? "female" : "any";
 
     setFilters({ genderPreference, page: 1 });
+  };
+
+  // Handle Tenant Preference Filter Selection (for Property)
+  const handleSelectTenantPreference = (pref: string) => {
+    setSelectedTenantPreference(pref);
+    let tenantPreference: TenantPreference | undefined = undefined;
+    if (pref === "Bachelor's") tenantPreference = "bachelors";
+    else if (pref === "Family") tenantPreference = "family";
+    else if (pref === "Anyone") tenantPreference = "anyone";
+
+    setFilters({ tenantPreference, page: 1 });
   };
 
   // Handle Sort Selection
@@ -260,6 +287,7 @@ export default function ListingManager() {
   const handleResetFilters = () => {
     setSelectedCategory("All");
     setSelectedGender("Any");
+    setSelectedTenantPreference("Any");
     setSelectedSort("relevance");
     setSelectedFurnishing("all");
     setSelectedPropertyType("all");
@@ -274,6 +302,7 @@ export default function ListingManager() {
 
   const hasActiveFilters =
     selectedCategory !== "All" ||
+    selectedTenantPreference !== "Any" ||
     selectedGender !== "Any" ||
     selectedSort !== "relevance" ||
     selectedFurnishing !== "all" ||
@@ -287,6 +316,7 @@ export default function ListingManager() {
     if (!cityParam && !categoryParam && !propertyTypeParam) {
       setSelectedCategory("All");
       setSelectedGender("Any");
+      setSelectedTenantPreference("Any");
       setSelectedSort("relevance");
       setSelectedFurnishing("all");
       setSelectedPropertyType("all");
@@ -315,6 +345,8 @@ export default function ListingManager() {
         onSelectCategory={handleSelectCategory}
         selectedGender={selectedGender}
         onSelectGender={handleSelectGender}
+        selectedTenantPreference={selectedTenantPreference}
+        onSelectTenantPreference={handleSelectTenantPreference}
         selectedSort={selectedSort}
         onSelectSort={handleSelectSort}
         selectedFurnishing={selectedFurnishing}

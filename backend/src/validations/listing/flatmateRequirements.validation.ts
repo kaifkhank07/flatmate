@@ -74,9 +74,9 @@ export const createFlatmateRequirementSchema = z.object({
         .optional()
         .default('any'),
       occupancyPreference: z
-        .enum(['single', 'double', 'triple', 'four_or_more'])
+        .enum(['any', 'single', 'shared'])
         .optional()
-        .default('single'),
+        .default('any'),
       occupationPreference: z
         .enum([
           'student',
@@ -180,7 +180,7 @@ export const updateFlatmateRequirementSchema = z.object({
       availableFrom: z.string().or(z.date()).optional(),
       genderPreference: z.enum(['male', 'female', 'other', 'any']).optional(),
       occupancyPreference: z
-        .enum(['single', 'double', 'triple', 'four_or_more'])
+        .enum(['any', 'single', 'shared'])
         .optional(),
       occupationPreference: z
         .enum([
@@ -260,7 +260,7 @@ export const getPublicFlatmateRequirementsSchema = z.object({
       ])
       .optional(),
     genderPreference: z.enum(['male', 'female', 'other', 'any']).optional(),
-    occupancyPreference: z.enum(['single', 'double', 'triple', 'four_or_more']).optional(),
+    occupancyPreference: z.enum(['any', 'single', 'shared']).optional(),
     furnishing: z.enum(['fully_furnished', 'semi_furnished', 'unfurnished']).optional(),
     bhk: z.enum(['1_rk', '1_bhk', '2_bhk', '3_bhk', '4_bhk', '5_bhk', '5_plus_bhk', 'all']).optional(),
     bedrooms: z.enum(['1_rk', '1_bhk', '2_bhk', '3_bhk', '4_bhk', '5_bhk', '5_plus_bhk', 'all']).optional(),

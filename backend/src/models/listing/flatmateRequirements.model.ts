@@ -57,10 +57,9 @@ export type OccupationPreference =
   | 'any';
 
 export type OccupancyPreference =
+  | 'any'
   | 'single'
-  | 'double'
-  | 'triple'
-  | 'four_or_more';
+  | 'shared';
 
 export type MaintenanceFrequency =
   | 'monthly'
@@ -238,8 +237,9 @@ const flatmateRequirementSchema = new Schema<IFlatmateRequirement>(
 
     occupancyPreference: {
       type: String,
-      enum: ['single', 'double', 'triple', 'four_or_more'],
-      default: 'single',
+      enum: ['any', 'single', 'shared'],
+      default: 'any',
+      index: true,
     },
 
     occupationPreference: {

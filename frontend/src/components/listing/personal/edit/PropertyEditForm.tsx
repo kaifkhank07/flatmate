@@ -102,11 +102,11 @@ export default function PropertyEditForm({
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(initialData?.description || "");
   const rawPType = initialData?.propertyType;
-  let initPType: PropertyType = "flats_apartments";
+  let initPType: PropertyType = "flat_apartment";
   if (typeof rawPType === "object" && rawPType !== null) {
-    initPType = ((rawPType as any).category || (rawPType as any).type || "flats_apartments") as PropertyType;
+    initPType = ((rawPType as any).category || (rawPType as any).type || "flat_apartment") as PropertyType;
   } else if (typeof rawPType === "string" && rawPType) {
-    initPType = rawPType as PropertyType;
+    initPType = (rawPType === "flats_apartments" ? "flat_apartment" : rawPType) as PropertyType;
   }
   const [propertyType, setPropertyType] = useState<PropertyType>(initPType);
   const [floor, setFloor] = useState(
@@ -696,8 +696,9 @@ export default function PropertyEditForm({
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
                     required
                   >
-                    <option value="flats_apartments">Flats / Apartments</option>
-                    <option value="houses_villas">Houses / Villas</option>
+                    <option value="flat_apartment">Flat / Apartment</option>
+                    <option value="house">House</option>
+                    <option value="villa">Villa</option>
                   </select>
                 </div>
 

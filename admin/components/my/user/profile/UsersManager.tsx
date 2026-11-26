@@ -267,13 +267,13 @@ export default function UsersManager({
           <div style={{ overflowX: "auto" }}>
             <table>
               <thead>
-                <tr>
+                <tr className="whitespace-nowrap">
                   <th>User Name</th>
                   <th>Email / Mobile</th>
                   <th>User Type</th>
                   <th>Status</th>
                   <th>Completion</th>
-                  <th>Verification</th>
+                  {/* <th>Verification</th> */}
                   <th>Joined Date</th>
                   <th>Actions</th>
                 </tr>
@@ -281,13 +281,13 @@ export default function UsersManager({
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
+                    <td colSpan={7} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
                       Loading users…
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
+                    <td colSpan={7} style={{ textAlign: "center", padding: 34, color: "var(--ink-4)" }}>
                       No users found.
                     </td>
                   </tr>
@@ -312,8 +312,9 @@ export default function UsersManager({
                         >
                           <Avatar src={avatarSrc} name={fullName || u.email || u.mobile} size={48} />
                           <div>
-                            <strong>{fullName || u.email || u.mobile || "Unnamed User"}</strong>
-                            <span>ID: {u._id.slice(-6)} • {formatUserType(u.userType)}</span>
+                            <strong className="whitespace-nowrap">{fullName || u.email || u.mobile || "Unnamed User"}</strong>
+                            {/* <span>ID: {u._id.slice(-6)} • {formatUserType(u.userType)}</span> */}
+                            <span>ID: {u._id.slice(-6)}</span>
                           </div>
                         </td>
                         <td>
@@ -344,33 +345,33 @@ export default function UsersManager({
                             {u.profileCompletion || 0}%
                           </Chip>
                         </td>
-                        <td>
+                        {/* <td>
                           <Chip tone={getVerificationTone(u.verificationStatus || "not_submitted")}>
                             {u.verificationStatus.charAt(0).toUpperCase() + u.verificationStatus.slice(1) || "not_submitted"}
                           </Chip>
-                        </td>
+                        </td> */}
                         <td>{new Date(u.createdAt).toLocaleDateString()}</td>
                         <td>
                           <div style={{ display: "flex", gap: 6 }}>
                             <button
-                              className="btn btn-ghost sm"
+                              className="btn btn-ghost sm whitespace-nowrap"
                               onClick={() => setSelectedUserId(u._id)}
                               title="View Details"
                             >
-                              View
+                              Profile
                             </button>
                             <button
-                              className="btn btn-ghost sm"
+                              className="btn btn-ghost sm whitespace-nowrap"
                               onClick={() => setEditUser(u)}
                               title="Edit Status"
                             >
-                              Edit
+                              Edit Account
                             </button>
 
                             {u.isDeleted ? (
                               <div style={{ display: "flex", gap: 4 }}>
                                 <button
-                                  className="btn btn-ghost sm"
+                                  className="btn btn-ghost sm whitespace-nowrap"
                                   style={{ color: "var(--mint-ink)" }}
                                   onClick={() => {
                                     setDeleteModeTarget("restore");
@@ -381,7 +382,7 @@ export default function UsersManager({
                                   Restore
                                 </button>
                                 <button
-                                  className="btn btn-ghost sm"
+                                  className="btn btn-ghost sm whitespace-nowrap"
                                   style={{ color: "var(--rose-ink)" }}
                                   onClick={() => {
                                     setDeleteModeTarget("hard");

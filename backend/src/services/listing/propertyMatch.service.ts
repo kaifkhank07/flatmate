@@ -172,7 +172,7 @@ export const isPropertyTypeCompatible = (
   if (!t1 || !t2) return true;
   if (t1 === t2) return true;
 
-  const flatGroup = new Set(['flat', 'entire_property', 'apartment', 'flats_apartments', 'houses_villas', 'residential']);
+  const flatGroup = new Set(['flat', 'entire_property', 'apartment', 'flat_apartment', 'flats_apartments', 'house', 'villa', 'houses_villas', 'residential']);
   const roomGroup = new Set(['room', 'shared_apartment', 'pg']);
 
   if (flatGroup.has(t1) && flatGroup.has(t2)) return true;

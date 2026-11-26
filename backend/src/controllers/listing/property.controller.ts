@@ -160,7 +160,7 @@ export const createProperty = async (req: Request, res: Response): Promise<Respo
       title: body.title.trim(),
       slug,
       description: body.description.trim(),
-      propertyType: body.propertyType || 'flats_apartments',
+      propertyType: body.propertyType || 'flat_apartment',
       propertyDetails: body.propertyDetails
         ? {
             ...(body.propertyDetails.floor !== undefined && { floor: Number(body.propertyDetails.floor) }),

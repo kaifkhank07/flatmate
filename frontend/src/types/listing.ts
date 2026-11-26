@@ -6,10 +6,9 @@
 export type SourceType = 'all' | 'property' | 'flatmate_requirement';
 
 export type PropertyType =
-  | 'flats_apartments'
-  | 'houses_villas'
-  | 'office_spaces'
-  | 'shops_commercial';
+  | 'flat_apartment'
+  | 'house'
+  | 'villa';
 
 export type PropertyCategory = PropertyType;
 
@@ -72,10 +71,9 @@ export type FurnishingType =
 export type GenderPreference = 'male' | 'female' | 'other' | 'any' | 'all';
 
 export type OccupancyPreference =
+  | 'any'
   | 'single'
-  | 'double'
-  | 'triple'
-  | 'four_or_more';
+  | 'shared';
 
 export type TenantPreference = 'anyone' | 'bachelors' | 'family';
 
@@ -304,6 +302,8 @@ export interface ListingQueryParams {
   minPrice?: number;
   maxPrice?: number;
   genderPreference?: GenderPreference;
+  tenantPreference?: TenantPreference | 'all';
+  occupancyPreference?: OccupancyPreference | 'all';
   occupationPreference?: OccupationPreference;
   moveInDate?: string;
   availableFrom?: string;
@@ -390,6 +390,9 @@ export interface FlatmateListingItem {
   id: string;
   sourceType: 'property' | 'flatmate_requirement';
   postType?: PostType;
+  title?: string;
+  tenantPreference?: string;
+  occupancyPreference?: string;
   name: string;
   gender: "Male" | "Female";
   userImage?: string;
@@ -462,16 +465,20 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       : "Male";
 
     let lookingForGender = "Any";
+    let tenantPreferenceFormatted = "Anyone";
     if (property.tenantPreference) {
-      lookingForGender = property.tenantPreference === "bachelors"
+      tenantPreferenceFormatted = property.tenantPreference === "bachelors"
         ? "Bachelor's"
         : property.tenantPreference === "family"
           ? "Family"
           : "Anyone";
+      lookingForGender = tenantPreferenceFormatted;
     } else if (property.genderPreference === "male") {
       lookingForGender = "Male";
+      tenantPreferenceFormatted = "Male";
     } else if (property.genderPreference === "female") {
       lookingForGender = "Female";
+      tenantPreferenceFormatted = "Female";
     }
 
     let lookingForType = "PROPERTY";
@@ -538,6 +545,8 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
     return {
       id: property.slug || property._id,
       sourceType: "property",
+      title: property.title,
+      tenantPreference: tenantPreferenceFormatted,
       name: ownerName,
       gender,
       userImage: userAvatar,
@@ -576,7 +585,11 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       locString = flatmate.location;
     }
 
-    const titleOrName = flatmate.userId?.name || flatmate.title || "Flatmate Requirement";
+    // For partner requirement, name should be listing title instead of user's name
+    const titleOrName =
+      flatmate.postType === "partner"
+        ? flatmate.title || flatmate.userId?.name || "Flatmate Requirement"
+        : flatmate.userId?.name || flatmate.title || "Flatmate Requirement";
 
     const gender: "Male" | "Female" = flatmate.userId?.gender === "female"
       ? "Female"
@@ -592,15 +605,23 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
         ? "Female"
         : "Any";
 
-    let lookingForType = "FLATMATE";
-    if (isPropertyPost) {
-      lookingForType = flatmate.propertyType
-        ? flatmate.propertyType.replace(/_/g, " ").toUpperCase()
-        : "FLAT";
-    } else {
-      lookingForType = flatmate.partnerType
-        ? flatmate.partnerType.toUpperCase()
-        : "ROOMMATE";
+    let occupancyPrefFormatted = "Any";
+    if (flatmate.occupancyPreference) {
+      const occ = String(flatmate.occupancyPreference).toLowerCase();
+      occupancyPrefFormatted = occ.charAt(0).toUpperCase() + occ.slice(1);
+    }
+
+    let lookingForType = occupancyPrefFormatted;
+    if (!flatmate.occupancyPreference) {
+      if (isPropertyPost) {
+        lookingForType = flatmate.propertyType
+          ? flatmate.propertyType.replace(/_/g, " ").toUpperCase()
+          : "FLAT";
+      } else {
+        lookingForType = flatmate.partnerType
+          ? flatmate.partnerType.toUpperCase()
+          : "ROOMMATE";
+      }
     }
 
     const bhk = flatmate.propertyDetails?.bedrooms
@@ -647,6 +668,8 @@ export function mapUnifiedListingToCard(item: UnifiedListingItem): FlatmateListi
       id: flatmate.slug || flatmate._id,
       sourceType: "flatmate_requirement",
       postType: flatmate.postType,
+      title: flatmate.title,
+      occupancyPreference: occupancyPrefFormatted,
       name: titleOrName,
       gender,
       userImage: userAvatar,

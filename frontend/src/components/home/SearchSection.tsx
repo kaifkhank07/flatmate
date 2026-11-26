@@ -51,16 +51,18 @@ export default function SearchSection({
 
   const propertyTypeOptions: { label: string; value: string }[] = [
     { label: "All Property Types", value: "all" },
-    { label: "Flats / Apartments", value: "flats_apartments" },
-    { label: "Houses / Villas", value: "houses_villas" },
-    // { label: "Office Spaces", value: "office_spaces" },
-    // { label: "Shops / Commercial", value: "shops_commercial" },
+    { label: "Flat / Apartment", value: "flat_apartment" },
+    { label: "House", value: "house" },
+    { label: "Villa", value: "villa" },
   ];
 
   const propertyTypeLabels: Record<string, string> = {
     all: "All Property Types",
-    flats_apartments: "Flats / Apartments",
-    houses_villas: "Houses / Villas",
+    flat_apartment: "Flat / Apartment",
+    house: "House",
+    villa: "Villa",
+    flats_apartments: "Flat / Apartment",
+    houses_villas: "House",
     office_spaces: "Office Spaces",
     shops_commercial: "Shops / Commercial",
   };

@@ -167,6 +167,9 @@ export const getListingsQuerySchema = z.object({
         .enum([
           'residential',
           'commercial',
+          'flat_apartment',
+          'house',
+          'villa',
           'flats_apartments',
           'houses_villas',
           'office_spaces',
@@ -414,6 +417,9 @@ export const getMyListingsQuerySchema = z.object({
         .enum([
           'residential',
           'commercial',
+          'flat_apartment',
+          'house',
+          'villa',
           'flats_apartments',
           'houses_villas',
           'office_spaces',

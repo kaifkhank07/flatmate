@@ -301,8 +301,8 @@ export const getListings = async (req: Request, res: Response): Promise<Response
 
     // Occupancy Preference (Flatmate)
     const occupancyPref = query.occupancyPreference as string | undefined;
-    if (occupancyPref && occupancyPref !== 'all') {
-      flatmateFilter.occupancyPreference = occupancyPref;
+    if (occupancyPref && occupancyPref !== 'all' && occupancyPref !== 'any') {
+      flatmateFilter.occupancyPreference = { $in: [occupancyPref, 'any'] };
     }
 
     // Brokerage Filter
@@ -333,14 +333,17 @@ export const getListings = async (req: Request, res: Response): Promise<Response
       const pTypeStr = pType as string;
       if (
         [
+          'flat_apartment',
+          'house',
+          'villa',
           'flats_apartments',
           'houses_villas',
           'office_spaces',
           'shops_commercial',
         ].includes(pTypeStr)
       ) {
-        propertyFilter.propertyType = pTypeStr;
-        if (pTypeStr === 'flats_apartments') {
+        propertyFilter.propertyType = pTypeStr === 'flats_apartments' ? 'flat_apartment' : pTypeStr;
+        if (pTypeStr === 'flat_apartment' || pTypeStr === 'flats_apartments') {
           flatmateFilter.propertyType = 'flat';
         } else {
           flatmateFilter._id = null;
@@ -348,7 +351,7 @@ export const getListings = async (req: Request, res: Response): Promise<Response
       } else if (['room', 'flat', 'pg', 'shared_apartment'].includes(pTypeStr)) {
         flatmateFilter.propertyType = pTypeStr;
         if (pTypeStr === 'flat') {
-          propertyFilter.propertyType = 'flats_apartments';
+          propertyFilter.propertyType = { $in: ['flat_apartment', 'flats_apartments'] };
         } else {
           propertyFilter._id = null;
         }
@@ -1226,8 +1229,8 @@ export const getMyListings = async (
 
     // Occupancy Preference (Flatmate)
     const occupancyPref = query.occupancyPreference as string | undefined;
-    if (occupancyPref && occupancyPref !== 'all') {
-      flatmateFilter.occupancyPreference = occupancyPref;
+    if (occupancyPref && occupancyPref !== 'all' && occupancyPref !== 'any') {
+      flatmateFilter.occupancyPreference = { $in: [occupancyPref, 'any'] };
     }
 
     // Brokerage Filter
@@ -1269,14 +1272,17 @@ export const getMyListings = async (
       const myPTypeStr = myPType as string;
       if (
         [
+          'flat_apartment',
+          'house',
+          'villa',
           'flats_apartments',
           'houses_villas',
           'office_spaces',
           'shops_commercial',
         ].includes(myPTypeStr)
       ) {
-        propertyFilter.propertyType = myPTypeStr;
-        if (myPTypeStr === 'flats_apartments') {
+        propertyFilter.propertyType = myPTypeStr === 'flats_apartments' ? 'flat_apartment' : myPTypeStr;
+        if (myPTypeStr === 'flat_apartment' || myPTypeStr === 'flats_apartments') {
           flatmateFilter.propertyType = 'flat';
         } else {
           flatmateFilter._id = null;
@@ -1284,7 +1290,7 @@ export const getMyListings = async (
       } else if (['room', 'flat', 'pg', 'shared_apartment'].includes(myPTypeStr)) {
         flatmateFilter.propertyType = myPTypeStr;
         if (myPTypeStr === 'flat') {
-          propertyFilter.propertyType = 'flats_apartments';
+          propertyFilter.propertyType = { $in: ['flat_apartment', 'flats_apartments'] };
         } else {
           propertyFilter._id = null;
         }
