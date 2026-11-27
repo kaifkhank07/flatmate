@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface ImageGalleryModalProps {
@@ -20,6 +21,12 @@ export default function ImageGalleryModal({
   onSelectIndex,
   title = "Listing Image",
 }: ImageGalleryModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handlePrevImage = useCallback(() => {
     if (images.length === 0) return;
     onSelectIndex(selectedIndex === 0 ? images.length - 1 : selectedIndex - 1);
@@ -47,25 +54,24 @@ export default function ImageGalleryModal({
   useEffect(() => {
     if (isOpen) {
       window.addEventListener("keydown", handleKeyDown);
+      const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
+      return () => {
+        window.removeEventListener("keydown", handleKeyDown);
+        document.body.style.overflow = originalOverflow;
+      };
     }
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "";
-    };
   }, [isOpen, handleKeyDown]);
 
-  if (!isOpen || images.length === 0) return null;
+  if (!mounted || !isOpen || images.length === 0) return null;
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-label={`${title} full-screen image gallery`}
       onClick={onClose}
-      className="fixed inset-0 z-[9999] flex h-screen w-screen flex-col overflow-hidden bg-black/95 text-white animate-in fade-in duration-200 select-none"
+      className="fixed inset-0 z-[99999] flex h-screen h-[100dvh] w-screen w-full flex-col overflow-hidden bg-black/95 text-white animate-in fade-in duration-200 select-none"
     >
       {/* Top Header Bar */}
       <div
@@ -152,17 +158,17 @@ export default function ImageGalleryModal({
               onClick={() => onSelectIndex(idx)}
               aria-label={`View image ${idx + 1}`}
               aria-current={selectedIndex === idx ? "true" : undefined}
-              className={`h-14 w-14 sm:h-16 sm:w-20 shrink-0 cursor-pointer overflow-hidden rounded-xl border-2 transition-all ${
-                selectedIndex === idx
+              className={`h-14 w-14 sm:h-16 sm:w-20 shrink-0 cursor-pointer overflow-hidden rounded-xl border-2 transition-all ${selectedIndex === idx
                   ? "border-[#0066FF] ring-2 ring-white/60 opacity-100 scale-105"
                   : "border-transparent opacity-40 hover:opacity-80"
-              }`}
+                }`}
             >
               <img src={imgSrc} alt="" draggable={false} className="h-full w-full object-cover" />
             </button>
           ))}
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
