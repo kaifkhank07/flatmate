@@ -8,8 +8,6 @@ import {
   RecipientType,
   IChannelDelivery,
   EVENT_CATEGORY_MAP,
-  DEFAULT_SUPER_ADMIN_CHANNEL_PREFERENCES,
-  DEFAULT_SUPER_ADMIN_CATEGORY_PREFERENCES,
 } from '../../models/notification/notification.model';
 import {
   NotificationPreference,
@@ -19,6 +17,8 @@ import {
   DEFAULT_GLOBAL_CHANNEL_PREFERENCES,
   DEFAULT_USER_CATEGORY_PREFERENCES,
   DEFAULT_ADMIN_CATEGORY_PREFERENCES,
+  DEFAULT_SUPER_ADMIN_CHANNEL_PREFERENCES,
+  DEFAULT_SUPER_ADMIN_CATEGORY_PREFERENCES,
 } from '../../models/notification/notificationPreference.model';
 import { User } from '../../models/auth/user.model';
 import { Admin } from '../../models/auth/admin.model';
@@ -134,6 +134,7 @@ export const updateNotificationPreferences = async (
   return existing;
 };
 
+
 /**
  * Create a new notification, evaluate channel preferences, persist to MongoDB, and dispatch external channels
  */
@@ -176,6 +177,12 @@ export const createNotification = async (
 
   // 2. Preference evaluation
   const preferences = await getOrCreateNotificationPreferences(recipientId, recipientType);
+  if (!preferences) {
+    logger.info(
+      `[Notification Service] Notification preferences not found or disabled for ${recipientType} ${recipientId}`
+    );
+    return null;
+  }
 
   const inAppEnabled = preferences.isChannelEnabled(category, 'IN_APP', eventType);
   const emailEnabled =
@@ -385,13 +392,45 @@ export const notifyAdmins = async (payload: {
   superAdminOnly?: boolean;
 }): Promise<INotification[]> => {
   try {
-    const query: any = { status: 'active', isDeleted: false };
+    // Skip super admin notification even if preferences are available
     if (payload.superAdminOnly) {
-      query.role = 'super_admin';
+      return [];
     }
+
+    // Only query active, non-deleted admins (excluding super admins)
+    const query: any = {
+      status: 'active',
+      isDeleted: false,
+      role: { $ne: 'super_admin' },
+    };
+
     const admins = await Admin.find(query);
+    if (!admins.length) return [];
+
+    // Ensure notifications are processed only for admins who already have notification preferences
+    // Do not create new preferences for any admin or super admin
+    const adminIds = admins.map((admin) => admin._id);
+    const existingPreferences = await NotificationPreference.find({
+      ownerType: 'ADMIN',
+      ownerId: { $in: adminIds },
+    })
+      .select('ownerId')
+      .lean();
+
+    const adminsWithPrefSet = new Set(
+      existingPreferences.map((p) => p.ownerId.toString())
+    );
+
+    const eligibleAdmins = admins.filter(
+      (admin) =>
+        admin.role !== 'super_admin' &&
+        adminsWithPrefSet.has(admin._id.toString())
+    );
+
+    if (!eligibleAdmins.length) return [];
+
     const notifications = await Promise.all(
-      admins.map((admin) =>
+      eligibleAdmins.map((admin) =>
         createNotification({
           ...payload,
           recipientType: 'ADMIN',

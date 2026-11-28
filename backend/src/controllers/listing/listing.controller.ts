@@ -617,12 +617,14 @@ export const getListings = async (req: Request, res: Response): Promise<Response
       const lastName = profile?.lastName || '';
       const fullName = `${firstName} ${lastName}`.trim();
       const gender = profile?.gender || (userObj as any).gender || '';
+      const occupation = profile?.occupation || (userObj as any).occupation || '';
       const imageUrl = profile?.image?.url || (profile?.avatar as any)?.image?.url || null;
 
       return {
         ...userObj,
         name: fullName || (userObj as any).name || (userObj as any).email || 'User',
         gender: gender || '',
+        occupation: occupation || '',
         email: (userObj as any).email || '',
         contact: (userObj as any).mobile || (userObj as any).contact || '',
         mobile: (userObj as any).mobile || (userObj as any).contact || '',
@@ -718,12 +720,14 @@ export const getListingBySlug = async (req: Request, res: Response): Promise<Res
       const lastName = profile?.lastName || '';
       const fullName = `${firstName} ${lastName}`.trim();
       const gender = profile?.gender || (userObj as any).gender || '';
+      const occupation = profile?.occupation || (userObj as any).occupation || '';
       const imageUrl = profile?.image?.url || (profile?.avatar as any)?.image?.url || null;
 
       return {
         ...userObj,
         name: fullName || (userObj as any).name || (userObj as any).email || 'User',
         gender: gender || '',
+        occupation: occupation || '',
         email: (userObj as any).email || '',
         contact: (userObj as any).mobile || (userObj as any).contact || '',
         mobile: (userObj as any).mobile || (userObj as any).contact || '',
@@ -1735,6 +1739,11 @@ export const getMyListings = async (
         userObj.gender ||
         '';
 
+      const occupation =
+        profile?.occupation ||
+        userObj.occupation ||
+        '';
+
       const imageUrl =
         profile?.image?.url ||
         (profile?.avatar as any)?.image?.url ||
@@ -1750,6 +1759,8 @@ export const getMyListings = async (
           'User',
 
         gender,
+
+        occupation,
 
         email:
           userObj.email ||
@@ -2185,12 +2196,14 @@ export const getRelatedListings = async (
       const lastName = profile?.lastName || '';
       const fullName = `${firstName} ${lastName}`.trim();
       const gender = profile?.gender || (userObj as any).gender || '';
+      const occupation = profile?.occupation || (userObj as any).occupation || '';
       const imageUrl = profile?.image?.url || (profile?.avatar as any)?.image?.url || null;
 
       return {
         ...userObj,
         name: fullName || (userObj as any).name || (userObj as any).email || 'User',
         gender: gender || '',
+        occupation: occupation || '',
         email: (userObj as any).email || '',
         contact: (userObj as any).mobile || (userObj as any).contact || '',
         mobile: (userObj as any).mobile || (userObj as any).contact || '',

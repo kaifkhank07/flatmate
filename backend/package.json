@@ -7,20 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit",
-    "seed:super-admin": "tsx src/scripts/seed-super-admin.ts",
-    "seed:preferences": "tsx src/scripts/seed-user-preferences.ts",
-    "seed:users": "tsx src/scripts/seed-users.ts",
-    "seed:amenities": "tsx src/scripts/seed-property-amenities.ts",
-    "seed:properties": "tsx src/scripts/seed-properties.ts",
-    "seed:post-requirements": "tsx src/scripts/seed-post-requirements.ts",
-    "seed:reports": "tsx src/scripts/seed-reports.ts",
-    "seed:chats": "tsx src/scripts/seed-chats.ts",
-    "seed:blog-categories": "tsx src/scripts/seed-blog-categories.ts",
-    "seed:avatars": "tsx src/scripts/seed-avatars.ts",
-    "test:realtime-chat": "tsx src/scripts/testRealtimeChat.ts",
-    "test:cascading-deletion": "tsx src/scripts/testCascadingDeletion.ts",
-    "test:msg91-otp": "tsx src/scripts/test-msg91-otp.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.587.0",

@@ -166,6 +166,7 @@ export interface PropertyUser {
   _id: string;
   name?: string;
   gender?: string;
+  occupation?: string;
   email?: string;
   mobile?: string;
   contact?: string;

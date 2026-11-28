@@ -14,8 +14,8 @@ export default function Home() {
     <main className="w-full min-h-screen">
       <Hero />
       <LookingFor />
-      <WhyChooseUs />
       <Community />
+      <WhyChooseUs />
       <ExploreListings />
       <Cta />
       <ExploreCities />

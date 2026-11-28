@@ -681,8 +681,8 @@ export const useListingStore = create<ListingState>((set, get) => ({
           typeof rawPagination?.total === 'number'
             ? rawPagination.total
             : typeof (responseData as any).total === 'number'
-            ? (responseData as any).total
-            : (responseData.listings?.length ?? 0);
+              ? (responseData as any).total
+              : (responseData.listings?.length ?? 0);
 
         const pagination: PaginationInfo = {
           page: rawPagination?.page ?? (responseData as any).page ?? cleanParams.page,

@@ -4,8 +4,6 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   MapPin,
-  Phone,
-  MessageSquare,
   IndianRupee,
   Tv,
   Refrigerator,
@@ -34,9 +32,11 @@ import { useListingStore } from "@/store/useListingStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getMediaUrl } from "@/lib/api";
 import { toggleWishlistApi, checkWishlistStatusApi, addRecentlyViewedApi } from "@/lib/apiServices";
-import { CallModal, ChatModal, ReportModal } from "@/components/listing/shared/modals";
+import { ReportModal, WishlistLoginModal } from "@/components/listing/shared/modals";
 import ListingMediaGallery from "@/components/listing/shared/ListingMediaGallery";
 import RichTextRenderer from "@/components/listing/shared/RichTextRenderer";
+import OwnerDetails from "./OwnerDetails";
+import ContactAction from "./ContactAction";
 
 const getAmenityIcon = (name: string) => {
   const lower = name.toLowerCase();
@@ -81,9 +81,8 @@ export default function FlatmateRequirementPropertyDetails({
   const { user, isAuthenticated } = useAuthStore();
   const resolveImageUrl = (url?: string) => getMediaUrl(url);
 
-  const [showCallModal, setShowCallModal] = useState(false);
-  const [showChatModal, setShowChatModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showWishlistLoginModal, setShowWishlistLoginModal] = useState(false);
 
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
@@ -115,8 +114,7 @@ export default function FlatmateRequirementPropertyDetails({
 
   const handleToggleWishlist = async () => {
     if (!isAuthenticated) {
-      setWishlistMessage("Please log in to add to wishlist.");
-      setTimeout(() => setWishlistMessage(null), 3000);
+      setShowWishlistLoginModal(true);
       return;
     }
     if (!targetId || wishlistLoading) return;
@@ -138,26 +136,12 @@ export default function FlatmateRequirementPropertyDetails({
     }
   };
 
-  const handleCallClick = () => {
-    if (!isAuthenticated) {
-      router.push(`/login?redirect=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : "")}`);
-      return;
-    }
-    setShowCallModal(true);
-  };
-
-  const handleChatClick = () => {
-    if (!isAuthenticated) {
-      router.push(`/login?redirect=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : "")}`);
-      return;
-    }
-    setShowChatModal(true);
-  };
-
   const userObj = listing.userId;
   const ownerId = typeof userObj === "object" ? userObj?._id : userObj;
   const isOwner = Boolean(user?._id && ownerId && String(user._id) === String(ownerId));
   const name = listingData?.name || userObj?.name || "Requirement Creator";
+  const occupation = listingData?.occupation || (userObj as any)?.occupation;
+  const gender = listingData?.gender || (userObj as any)?.gender;
   const userMobile = listingData?.userMobile || userObj?.mobile || userObj?.contact || "+91 98765 43210";
   const uAny = userObj as any;
   const userImage =
@@ -167,7 +151,7 @@ export default function FlatmateRequirementPropertyDetails({
     undefined;
 
   const postTitle = listing.title || listingData?.pgName || "Looking for Room / Flat";
-  const categoryHeader = "LOOKING FOR ROOM / FLAT";
+  const categoryHeader = "LOOKING FOR ROOM";
 
   let locationText = "Location N/A";
   if (typeof listing.location === "object" && listing.location) {
@@ -262,56 +246,25 @@ export default function FlatmateRequirementPropertyDetails({
         </div>
       )} */}
 
-      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 drop-shadow-md p-6 sm:p-10 md:p-14 transition-all bg-white">
-        <div className="flex flex-col lg:flex-row items-center md:items-start gap-8 md:gap-14 lg:gap-16">
+      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 drop-shadow-md p-6 sm:p-10 md:p-14 transition-all bg-white overflow-hidden">
+        <div className="flex flex-col lg:flex-row items-center md:items-start gap-8 md:gap-14 lg:gap-16 w-full min-w-0">
 
           {/* LEFT SIDE / TOP (Mobile): Creator Avatar & Action Buttons */}
-          <div className="flex flex-row lg:flex-col items-center lg:items-center gap-4 sm:gap-5 lg:gap-4 shrink-0 w-full lg:w-64 pb-6 lg:pb-0 border-b border-gray-100 lg:border-b-0">
-            {/* Avatar */}
-            <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-56 lg:h-56 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-[#F59E0B] shadow-inner">
-              {userImage ? (
-                <img src={userImage} alt={name} className="w-full h-full object-cover" />
-              ) : (
-                <svg viewBox="0 0 100 100" fill="none" className="w-full h-full">
-                  <circle cx="50" cy="50" r="50" fill="#F59E0B" />
-                  <circle cx="50" cy="44" r="19" fill="#F8B195" />
-                  <path d="M18 96C18 76 32 68 50 68C68 68 82 76 82 96V100H18V96Z" fill="#3B82F6" />
-                </svg>
-              )}
-            </div>
-
-            {/* Right side on mobile (Name & Buttons) / Below on desktop */}
-            <div className="flex-1 lg:w-full flex flex-col items-start lg:items-center gap-2 lg:gap-3">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-medium lg:font-regular text-[#1E3A8A] text-left lg:text-center tracking-tight leading-tight">
-                {name}
-              </h2>
-
-              {isAuthenticated && !isOwner && (
-                <div className="flex flex-row lg:flex-col justify-start lg:justify-center gap-2.5 sm:gap-3 w-full items-center flex-wrap">
-                  <button
-                    type="button"
-                    onClick={handleCallClick}
-                    className="w-24 sm:w-28 py-1.5 sm:py-2 px-3 bg-blue-700 hover:bg-accent text-white font-medium text-xs sm:text-sm lg:text-base rounded-full flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer shadow-sm active:scale-95"
-                  >
-                    <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
-                    <span>Contact</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleChatClick}
-                    className="w-24 sm:w-28 py-1.5 sm:py-2 px-3 bg-accent hover:bg-blue-700 text-white font-medium text-xs sm:text-sm lg:text-base rounded-full flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer shadow-sm active:scale-95"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
-                    <span>Chat</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          <OwnerDetails
+            userObj={userObj}
+            listingData={listingData}
+            targetId={listing._id}
+            targetType="flatmaterequirement"
+            name={name}
+            occupation={occupation}
+            gender={gender}
+            userMobile={userMobile}
+            userImage={userImage}
+            isOwner={isOwner}
+          />
 
           {/* RIGHT SIDE: Flatmate Requirement Info */}
-          <div className="flex-1 w-full space-y-7 sm:space-y-8 md:space-y-10">
+          <div className="flex-1 w-full min-w-0 space-y-7 sm:space-y-8 md:space-y-10">
             {/* SECTION 1: REQUIREMENT OVERVIEW */}
             <div className="space-y-4">
               <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
@@ -325,11 +278,11 @@ export default function FlatmateRequirementPropertyDetails({
                     <h2 className="text-black text-xl sm:text-2xl md:text-3xl font-regular">
                       {postTitle}
                     </h2>
-                    {listing.postedBy && (
+                    {/* {listing.postedBy && (
                       <span className="px-3 py-0.5 rounded-full text-xs font-medium capitalize bg-blue-50 text-blue-700 border border-blue-200">
                         Posted by {listing.postedBy}
                       </span>
-                    )}
+                    )} */}
                   </div>
                   <p className="text-gray-500 text-sm sm:text-base font-regular">
                     {categoryHeader}
@@ -337,7 +290,7 @@ export default function FlatmateRequirementPropertyDetails({
                 </div>
 
                 {/* Wishlist Button */}
-                {isAuthenticated && !isOwner && (
+                {!isOwner && (
                   <div className="relative shrink-0 pt-1">
                     <button
                       type="button"
@@ -389,7 +342,7 @@ export default function FlatmateRequirementPropertyDetails({
                 RENTAL SPECIFICATIONS
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pt-1">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pt-1">
                 <div>
                   <span className="block text-gray-500 text-xs sm:text-sm font-medium">Occupancy Preference</span>
                   <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
@@ -398,7 +351,7 @@ export default function FlatmateRequirementPropertyDetails({
                 </div>
 
                 <div>
-                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Approx Rent Amount (₹/mo)</span>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Approx Rent (₹/mo)</span>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="w-5 h-5 flex items-center justify-center shrink-0 rounded-full border-2 border-accent">
                       <IndianRupee size={13} strokeWidth={2} className="text-accent" />
@@ -429,7 +382,7 @@ export default function FlatmateRequirementPropertyDetails({
                 PREFERENCES
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pt-1">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pt-1">
                 <div>
                   <span className="block text-gray-500 text-xs sm:text-sm font-medium">Gender Preference</span>
                   <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{genderPreference}</p>
@@ -442,9 +395,9 @@ export default function FlatmateRequirementPropertyDetails({
               </div>
 
               {/* Description */}
-              <div className="space-y-2 pt-2">
+              <div className="space-y-2 pt-2 min-w-0">
                 <span className="block text-gray-500 text-xs sm:text-sm font-medium">Description</span>
-                <div className="mt-1">
+                <div className="mt-1 min-w-0 break-words">
                   <RichTextRenderer content={description} />
                 </div>
               </div>
@@ -503,9 +456,27 @@ export default function FlatmateRequirementPropertyDetails({
               </>
             )} */}
 
-            {/* Report Footer */}
-            {isAuthenticated && !isOwner && (
+            {/* Contact Action & Report Footer */}
+            {!isOwner && (
               <>
+                <hr className="lg:hidden border-gray-200 border-t my-4" />
+                <div className="lg:hidden space-y-4 min-w-0">
+                  <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                    {`Contact ${userObj?.name}`}
+                  </h3>
+
+                  <ContactAction
+                    userObj={userObj}
+                    listing={listing}
+                    listingData={listingData}
+                    targetId={listing._id}
+                    targetType="flatmaterequirement"
+                    userMobile={String(userMobile)}
+                    userImage={userImage}
+                    isOwner={isOwner}
+                  />
+                </div>
+
                 <hr className="border-gray-200 border-t my-4" />
                 <div className="pt-2 text-base sm:text-lg lg:text-xl font-semibold text-gray-900 flex items-center gap-1.5 flex-wrap">
                   <span>Found Wrong Information?</span>
@@ -524,29 +495,17 @@ export default function FlatmateRequirementPropertyDetails({
       </div>
 
       {/* Modals */}
-      <CallModal
-        isOpen={showCallModal}
-        onClose={() => setShowCallModal(false)}
-        name={name}
-        userMobile={userMobile}
-      />
-
-      <ChatModal
-        isOpen={showChatModal}
-        onClose={() => setShowChatModal(false)}
-        name={name}
-        userImage={userImage}
-        receiverId={typeof userObj === "object" ? userObj?._id : userObj}
-        targetType="flatmaterequirement"
-        targetId={listing._id}
-      />
-
       <ReportModal
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
         targetType="flatmaterequirement"
         targetId={listing._id}
         ownerId={ownerId ? String(ownerId) : undefined}
+      />
+
+      <WishlistLoginModal
+        isOpen={showWishlistLoginModal}
+        onClose={() => setShowWishlistLoginModal(false)}
       />
     </section>
   );

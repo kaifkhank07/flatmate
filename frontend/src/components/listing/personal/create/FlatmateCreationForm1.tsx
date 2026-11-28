@@ -100,6 +100,21 @@ export default function FlatmateCreationForm1({
   // Submission & Status State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState("");
+
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const updated = { ...prev };
+      delete updated[field];
+      return updated;
+    });
+    setFormError("");
+    setErrorMessage(null);
+  };
+
+  const activeError = formError || errorMessage;
 
   // Fetch Preferences and Amenities on Mount
   useEffect(() => {
@@ -166,6 +181,7 @@ export default function FlatmateCreationForm1({
       setIsLocationDropdownOpen(false);
       const placeDetails = await getFrontendPlaceDetails(suggestion.placeId);
       setSelectedGooglePlace(placeDetails);
+      clearFieldError("location");
       setLocationSearchTerm("");
       setLocationSuggestions([]);
     } catch (err: any) {
@@ -177,11 +193,15 @@ export default function FlatmateCreationForm1({
 
   // Toggle Preference Selection
   const togglePreference = (prefId: string) => {
-    setSelectedPreferences((prev) =>
-      prev.includes(prefId)
+    setSelectedPreferences((prev) => {
+      const next = prev.includes(prefId)
         ? prev.filter((id) => id !== prefId)
-        : [...prev, prefId]
-    );
+        : [...prev, prefId];
+      if (next.length >= 3) {
+        clearFieldError("preferences");
+      }
+      return next;
+    });
   };
 
   // Toggle Amenity Selection
@@ -275,43 +295,61 @@ export default function FlatmateCreationForm1({
   // Form Submit Handler
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage(null);
+
+    const errors: Record<string, string> = {};
 
     if (!selectedGooglePlace) {
-      setErrorMessage("Please search and select a valid location.");
-      return;
+      errors.location = "Please search and select a property location.";
     }
 
     if (!title.trim()) {
-      setErrorMessage("Headline Title is required.");
-      return;
+      errors.title = "Please enter a headline title.";
     }
 
-    if (isRichTextEmpty(description)) {
-      setErrorMessage("Description is required.");
-      return;
-    }
-
-    const contactCheck = validateDescriptionContact(description);
-    if (contactCheck.hasContact) {
-      setErrorMessage(contactCheck.message || "Contact details are not allowed in the listing description.");
-      return;
+    if (!occupancyPreference) {
+      errors.occupancyPreference = "Please select an occupancy preference.";
     }
 
     if (!rent || isNaN(Number(rent)) || Number(rent) <= 0) {
-      setErrorMessage("Please enter a valid monthly rent amount.");
-      return;
+      errors.rent = "Please enter a valid monthly rent amount.";
     }
 
     if (!availableFrom) {
-      setErrorMessage("Available From date is required.");
-      return;
+      errors.availableFrom = "Please select a move-in date.";
+    }
+
+    if (!genderPreference) {
+      errors.genderPreference = "Please select a gender preference.";
+    }
+
+    if (!occupationPreference) {
+      errors.occupationPreference = "Please select an occupation preference.";
+    }
+
+    if (isRichTextEmpty(description)) {
+      errors.description = "Please enter a description.";
+    } else {
+      const contactCheck = validateDescriptionContact(description);
+      if (contactCheck.hasContact) {
+        errors.description = contactCheck.message || "Contact details are not allowed in the listing description.";
+      }
     }
 
     if (selectedPreferences.length < 3) {
-      setErrorMessage("Please select at least 3 user preferences.");
+      errors.preferences = "Please select at least 3 lifestyle preferences.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      const firstErrorMessage = Object.values(errors)[0];
+      setFormError(firstErrorMessage);
+      setErrorMessage(firstErrorMessage);
       return;
     }
+
+    setFieldErrors({});
+    setFormError("");
+    setErrorMessage(null);
 
     setIsSubmitting(true);
     const createdImageIds: string[] = [];
@@ -360,7 +398,7 @@ export default function FlatmateCreationForm1({
       }
 
       // Step 3: Save Location to DB
-      const locRes = await savePlaceLocationApi(selectedGooglePlace);
+      const locRes = await savePlaceLocationApi(selectedGooglePlace!);
       if (!locRes.success || !locRes.data?._id) {
         await cleanupUploadedMedia();
         setIsSubmitting(false);
@@ -425,7 +463,7 @@ export default function FlatmateCreationForm1({
     <section className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
       <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto space-y-6 sm:space-y-10 md:space-y-12">
         {/* Error Banner */}
-        {errorMessage && (
+        {/* {errorMessage && (
           <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between gap-4 text-rose-700 text-sm">
             <span>{errorMessage}</span>
             <button
@@ -436,7 +474,7 @@ export default function FlatmateCreationForm1({
               <X className="w-4 h-4" />
             </button>
           </div>
-        )}
+        )} */}
 
         {/* Main Card Wrapper */}
         <div className="bg-white border border-gray-100 rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 md:p-12 space-y-8 sm:space-y-10 md:space-y-12">
@@ -448,7 +486,7 @@ export default function FlatmateCreationForm1({
             />
           </ViewReveal>
 
-          <form onSubmit={handlePublish} className="space-y-8">
+          <form onSubmit={handlePublish} noValidate className="space-y-8">
             {/* SECTION 1: REQUIREMENT OVERVIEW */}
             <div className="space-y-4 pt-2">
               <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
@@ -458,7 +496,7 @@ export default function FlatmateCreationForm1({
               {/* Location Autocomplete Field */}
               <div className="space-y-2 relative" ref={locationDropdownRef}>
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  Location <span className="text-rose-500">*</span>
+                  Location <span className="text-red-500">*</span>
                 </label>
 
                 {selectedGooglePlace ? (
@@ -493,12 +531,15 @@ export default function FlatmateCreationForm1({
                     <input
                       type="text"
                       value={locationSearchTerm}
-                      onChange={(e) => setLocationSearchTerm(e.target.value)}
+                      onChange={(e) => {
+                        setLocationSearchTerm(e.target.value);
+                        clearFieldError("location");
+                      }}
                       onFocus={() => {
                         if (locationSearchTerm.trim()) setIsLocationDropdownOpen(true);
                       }}
                       placeholder="Search City, Area, Building Or Landmark…"
-                      className="w-full pl-11 pr-10 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
+                      className={`w-full pl-11 pr-10 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all border ${fieldErrors.location ? "border-red-400 focus:ring-red-100" : "border-transparent focus:ring-brand-blue/30"}`}
                     />
                     {locationSearchTerm && (
                       <button
@@ -514,6 +555,9 @@ export default function FlatmateCreationForm1({
                       </button>
                     )}
                   </div>
+                )}
+                {fieldErrors.location && (
+                  <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.location}</p>
                 )}
 
                 {/* Google Location Predictions Dropdown */}
@@ -546,16 +590,21 @@ export default function FlatmateCreationForm1({
               {/* Title */}
               <div className="space-y-2">
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  Title <span className="text-rose-500">*</span>
+                  Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    clearFieldError("title");
+                  }}
                   placeholder="e.g. Looking for 2 BHK Flat / Room in Koramangala"
-                  className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
-                  required
+                  className={`w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all border ${fieldErrors.title ? "border-red-400 focus:ring-red-100" : "border-transparent focus:ring-brand-blue/30"}`}
                 />
+                {fieldErrors.title && (
+                  <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.title}</p>
+                )}
               </div>
             </div>
 
@@ -569,34 +618,44 @@ export default function FlatmateCreationForm1({
                 {/* Occupancy Preference */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Occupancy Preference <span className="text-rose-500">*</span>
+                    Occupancy Preference <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={occupancyPreference}
-                    onChange={(e) => setOccupancyPreference(e.target.value as any)}
-                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                    required
+                    onChange={(e) => {
+                      setOccupancyPreference(e.target.value as any);
+                      clearFieldError("occupancyPreference");
+                    }}
+                    className={`w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all border cursor-pointer ${fieldErrors.occupancyPreference ? "border-red-400 focus:ring-red-100" : "border-transparent focus:ring-brand-blue/30"}`}
                   >
                     <option value="any">Any</option>
                     <option value="single">Single</option>
                     <option value="shared">Shared</option>
                   </select>
+                  {fieldErrors.occupancyPreference && (
+                    <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.occupancyPreference}</p>
+                  )}
                 </div>
 
                 {/* Rent Amount */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Approx Rent Amount (₹/mo) <span className="text-rose-500">*</span>
+                    Approx Rent Amount (₹/mo) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
                     min={0}
                     value={rent}
-                    onChange={(e) => setRent(e.target.value)}
+                    onChange={(e) => {
+                      setRent(e.target.value);
+                      clearFieldError("rent");
+                    }}
                     placeholder="e.g. 15000"
-                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
-                    required
+                    className={`w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all border ${fieldErrors.rent ? "border-red-400 focus:ring-red-100" : "border-transparent focus:ring-brand-blue/30"}`}
                   />
+                  {fieldErrors.rent && (
+                    <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.rent}</p>
+                  )}
                 </div>
 
                 {/* Security Deposit */}
@@ -663,15 +722,20 @@ export default function FlatmateCreationForm1({
                 {/* Available From */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Move-in Date <span className="text-rose-500">*</span>
+                    Move-in Date <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
                     value={availableFrom}
-                    onChange={(e) => setAvailableFrom(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                    required
+                    onChange={(e) => {
+                      setAvailableFrom(e.target.value);
+                      clearFieldError("availableFrom");
+                    }}
+                    className={`w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all border cursor-pointer ${fieldErrors.availableFrom ? "border-red-400 focus:ring-red-100" : "border-transparent focus:ring-brand-blue/30"}`}
                   />
+                  {fieldErrors.availableFrom && (
+                    <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.availableFrom}</p>
+                  )}
                 </div>
 
                 {/* Maintenance Amount */}
@@ -736,30 +800,37 @@ export default function FlatmateCreationForm1({
                 {/* Gender Preference */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Gender Preference <span className="text-rose-500">*</span>
+                    Gender Preference <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={genderPreference}
-                    onChange={(e) => setGenderPreference(e.target.value as any)}
-                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                    required
+                    onChange={(e) => {
+                      setGenderPreference(e.target.value as any);
+                      clearFieldError("genderPreference");
+                    }}
+                    className={`w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all border cursor-pointer ${fieldErrors.genderPreference ? "border-red-400 focus:ring-red-100" : "border-transparent focus:ring-brand-blue/30"}`}
                   >
                     <option value="any">Any Gender</option>
                     <option value="male">Male Only</option>
                     <option value="female">Female Only</option>
                   </select>
+                  {fieldErrors.genderPreference && (
+                    <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.genderPreference}</p>
+                  )}
                 </div>
 
                 {/* Occupation Preference */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Occupation Preference <span className="text-rose-500">*</span>
+                    Occupation Preference <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={occupationPreference}
-                    onChange={(e) => setOccupationPreference(e.target.value as any)}
-                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                    required
+                    onChange={(e) => {
+                      setOccupationPreference(e.target.value as any);
+                      clearFieldError("occupationPreference");
+                    }}
+                    className={`w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all border cursor-pointer ${fieldErrors.occupationPreference ? "border-red-400 focus:ring-red-100" : "border-transparent focus:ring-brand-blue/30"}`}
                   >
                     <option value="any">Any Occupation</option>
                     <option value="student">Student</option>
@@ -768,26 +839,37 @@ export default function FlatmateCreationForm1({
                     <option value="business_owner">Business Owner</option>
                     <option value="freelancer">Freelancer</option>
                   </select>
+                  {fieldErrors.occupationPreference && (
+                    <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.occupationPreference}</p>
+                  )}
                 </div>
               </div>
 
               {/* Description */}
               <div className="space-y-3">
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  Description <span className="text-rose-500">*</span>
+                  Description <span className="text-red-500">*</span>
                 </label>
-                <RichTextEditor
-                  value={description}
-                  onChange={setDescription}
-                  placeholder="e.g. I am looking for a room with roommate."
-                  restrictContactInfo={true}
-                />
+                <div className={fieldErrors.description ? "rounded-2xl ring-2 ring-red-400" : ""}>
+                  <RichTextEditor
+                    value={description}
+                    onChange={(val) => {
+                      setDescription(val);
+                      clearFieldError("description");
+                    }}
+                    placeholder="e.g. I am looking for a room with roommate."
+                    restrictContactInfo={true}
+                  />
+                </div>
+                {fieldErrors.description && (
+                  <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.description}</p>
+                )}
               </div>
 
               {/* Lifestyle Preferences Grid */}
               <div className="space-y-3">
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  Lifestyle Preferences ({selectedPreferences.length} /3 minimum selected) <span className="text-rose-500">*</span>
+                  Lifestyle Preferences ({selectedPreferences.length} /3 minimum selected) <span className="text-red-500">*</span>
                 </label>
 
                 {loadingPreferences ? (
@@ -840,6 +922,9 @@ export default function FlatmateCreationForm1({
                   <div className="p-8 bg-[#F8FBFE] rounded-3xl border border-[#E2EFF8] text-xs text-gray-400 text-center">
                     No preferences available
                   </div>
+                )}
+                {fieldErrors.preferences && (
+                  <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.preferences}</p>
                 )}
               </div>
 
@@ -1034,23 +1119,31 @@ export default function FlatmateCreationForm1({
             {/* </div> */}
 
             {/* Submit Button */}
-            <div className="flex justify-center sm:justify-start items-center gap-2 sm:gap-4 pt-4">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-accent hover:bg-accent/80 text-white py-3.5 px-10 md:px-14 rounded-2xl font-regular text-base md:text-lg transition-all cursor-pointer inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                {isSubmitting ? "Submitting…" : "Submit"}
-              </button>
+            <div className="space-y-4 pt-4">
+              {activeError && (
+                <p className="text-xs sm:text-sm text-red-500 font-medium pl-1 animate-in fade-in-50">
+                  {activeError}
+                </p>
+              )}
 
-              <button
-                type="button"
-                onClick={onBack}
-                className="bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7] text-[#407B9D] py-3.5 px-10 md:px-14 rounded-2xl font-regular text-base md:text-lg transition-all cursor-pointer inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
+              <div className="flex justify-center sm:justify-start items-center gap-2 sm:gap-4">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-accent hover:bg-accent/80 text-white py-3.5 px-10 md:px-14 rounded-2xl font-regular text-base md:text-lg transition-all cursor-pointer inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isSubmitting ? "Submitting…" : "Submit"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7] text-[#407B9D] py-3.5 px-10 md:px-14 rounded-2xl font-regular text-base md:text-lg transition-all cursor-pointer inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </form>
         </div>

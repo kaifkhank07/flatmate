@@ -49,14 +49,12 @@ export default function ExploreCities() {
     : [];
 
   return (
-    // <section className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
-    //   <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto space-y-6 sm:space-y-10 md:space-y-12">
     <section className="w-full py-16 md:py-20 overflow-hidden">
       <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto px-4 sm:px-6 lg:px-16 space-y-6 sm:space-y-10 md:space-y-12">
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row items-end justify-between gap-4">
           <SectionHeading
-            title="Find Flat & Flatmates Across India"
+            title="Find Rooms & Flatmates Across India"
             description="Present in major cities and growing fast."
             className="text-black max-w-3xl"
           />

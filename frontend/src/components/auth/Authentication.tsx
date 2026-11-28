@@ -11,11 +11,18 @@ import { useAuthStore } from "@/store/useAuthStore";
 
 interface AuthenticationProps {
   initialMode?: "login" | "signup";
+  redirectUrl?: string;
+  redirectTo?: string;
 }
 
-export default function Authentication({ initialMode = "login" }: AuthenticationProps) {
+export default function Authentication({
+  initialMode = "login",
+  redirectUrl,
+  redirectTo,
+}: AuthenticationProps) {
   const assets = useAssets();
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
+  const targetRedirect = redirectUrl || redirectTo;
 
   return (
     <section className="w-full min-h-screen grid grid-cols-1 lg:grid-cols-12 overflow-hidden border">
@@ -37,9 +44,15 @@ export default function Authentication({ initialMode = "login" }: Authentication
 
         {/* Dynamic Form Content */}
         {mode === "login" ? (
-          <Login onSwitchToSignUp={() => setMode("signup")} />
+          <Login
+            onSwitchToSignUp={() => setMode("signup")}
+            redirectUrl={targetRedirect}
+          />
         ) : (
-          <SignUp onSwitchToLogin={() => setMode("login")} />
+          <SignUp
+            onSwitchToLogin={() => setMode("login")}
+            redirectUrl={targetRedirect}
+          />
         )}
 
         {/* Bottom Footer Link */}

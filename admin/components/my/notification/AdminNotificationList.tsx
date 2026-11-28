@@ -109,8 +109,14 @@ export default function AdminNotificationList({
               totalPages: 1,
             }
           );
-          setUnreadCount(res.data.unreadCount || 0);
-          onUnreadRef.current?.(res.data.unreadCount || 0);
+          const newUnread = res.data.unreadCount || 0;
+          setUnreadCount(newUnread);
+          onUnreadRef.current?.(newUnread);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("admin_notifications_changed", { detail: { count: newUnread } })
+            );
+          }
         } else {
           setError(res.message || "Failed to load notifications");
         }
@@ -142,13 +148,25 @@ export default function AdminNotificationList({
   // Mark single notification read
   const handleMarkAsRead = async (id: string): Promise<boolean> => {
     try {
+      const targetItem = notifications.find((n) => n._id === id);
+      const wasUnread = targetItem ? !targetItem.isRead : true;
       const res = await markAdminNotificationAsRead(id);
       if (res.success) {
         setNotifications((prev) =>
           prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
         );
-        setUnreadCount((c) => Math.max(0, c - 1));
-        onUnreadCountChange?.(Math.max(0, unreadCount - 1));
+        if (wasUnread) {
+          setUnreadCount((c) => {
+            const next = Math.max(0, c - 1);
+            onUnreadRef.current?.(next);
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("admin_notifications_changed", { detail: { count: next } })
+              );
+            }
+            return next;
+          });
+        }
         return true;
       }
       return false;
@@ -166,7 +184,12 @@ export default function AdminNotificationList({
       if (res.success) {
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
         setUnreadCount(0);
-        onUnreadCountChange?.(0);
+        onUnreadRef.current?.(0);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("admin_notifications_changed", { detail: { count: 0 } })
+          );
+        }
         toast("All alerts marked as read");
       } else {
         toast(res.message || "Failed to mark all as read");
@@ -187,8 +210,16 @@ export default function AdminNotificationList({
         const wasUnread = item && !item.isRead;
         setNotifications((prev) => prev.filter((n) => n._id !== id));
         if (wasUnread) {
-          setUnreadCount((c) => Math.max(0, c - 1));
-          onUnreadCountChange?.(Math.max(0, unreadCount - 1));
+          setUnreadCount((c) => {
+            const next = Math.max(0, c - 1);
+            onUnreadRef.current?.(next);
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("admin_notifications_changed", { detail: { count: next } })
+              );
+            }
+            return next;
+          });
         }
         setPagination((p) => ({ ...p, total: Math.max(0, p.total - 1) }));
         toast("Notification deleted");

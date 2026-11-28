@@ -11,9 +11,15 @@ import { useWebOTP } from "@/hooks/useWebOTP";
 
 interface SignUpProps {
   onSwitchToLogin?: () => void;
+  redirectUrl?: string;
+  redirectTo?: string;
 }
 
-export default function SignUp({ onSwitchToLogin }: SignUpProps) {
+export default function SignUp({
+  onSwitchToLogin,
+  redirectUrl,
+  redirectTo,
+}: SignUpProps) {
   const router = useRouter();
   const {
     register,
@@ -170,6 +176,21 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
     }
   };
 
+  const getDestinationUrl = (): string => {
+    const propTarget = redirectUrl || redirectTo;
+    if (propTarget && propTarget.startsWith("/") && !propTarget.startsWith("//")) {
+      return propTarget;
+    }
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const queryTarget = params.get("redirect") || params.get("redirectTo");
+      if (queryTarget && queryTarget.startsWith("/") && !queryTarget.startsWith("//")) {
+        return queryTarget;
+      }
+    }
+    return "/";
+  };
+
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (fullOtp.length < 6) {
@@ -194,11 +215,12 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
     }
 
     if (success) {
+      const destination = getDestinationUrl();
       const isCompleted = await checkProfileCompletionStatus();
       if (!isCompleted) {
-        router.push("/profile");
+        router.push(destination !== "/" ? `/profile?redirect=${encodeURIComponent(destination)}` : "/profile");
       } else {
-        router.push("/");
+        router.push(destination);
       }
     }
   };

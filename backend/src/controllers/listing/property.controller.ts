@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
+import { enrichUserProfilesForListings, enrichSingleUser } from '../../utils/userEnrichment.util';
 import { Property, IProperty, PropertyStatus } from '../../models/listing/property.model';
 import { User } from '../../models/auth/user.model';
 import { PropertyAmenity } from '../../models/listing/propertyAmenity.model';
@@ -378,9 +379,10 @@ export const getProperties = async (req: Request, res: Response): Promise<Respon
     ]);
 
     const totalPages = Math.ceil(total / limit) || 1;
+    const enrichedItems = await enrichUserProfilesForListings(items);
 
     return sendSuccess(res, 'Properties fetched successfully', {
-      items,
+      items: enrichedItems,
       total,
       page,
       limit,
@@ -415,7 +417,12 @@ export const getPropertyById = async (req: Request, res: Response): Promise<Resp
       return sendError(res, 'Property listing not found', 404);
     }
 
-    return sendSuccess(res, 'Property details fetched successfully', property);
+    const enrichedUser = await enrichSingleUser(property.userId);
+
+    return sendSuccess(res, 'Property details fetched successfully', {
+      ...property,
+      userId: enrichedUser,
+    });
   } catch (error: any) {
     logger.error('[PropertyController] getPropertyById error:', error);
     return sendError(res, 'Failed to fetch property details', 500);
@@ -445,7 +452,12 @@ export const getPropertyBySlug = async (req: Request, res: Response): Promise<Re
       return sendError(res, 'Property listing not found for slug', 404);
     }
 
-    return sendSuccess(res, 'Property details fetched successfully', property);
+    const enrichedUser = await enrichSingleUser(property.userId);
+
+    return sendSuccess(res, 'Property details fetched successfully', {
+      ...property,
+      userId: enrichedUser,
+    });
   } catch (error: any) {
     logger.error('[PropertyController] getPropertyBySlug error:', error);
     return sendError(res, 'Failed to fetch property by slug', 500);

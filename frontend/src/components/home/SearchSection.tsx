@@ -44,7 +44,7 @@ export default function SearchSection({
 
   const categories: { label: ListingCategory; displayLabel: string }[] = [
     { label: "All", displayLabel: "All Listing" },
-    { label: "Flat", displayLabel: "Rooms" },
+    { label: "Flat", displayLabel: "Room" },
     { label: "Flatmate", displayLabel: "Flatmate" },
     { label: "Property", displayLabel: "Entire Property" },
   ];

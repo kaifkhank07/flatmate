@@ -31,12 +31,14 @@ export const enrichUserProfilesForListings = async (listings: any[]): Promise<an
     const lastName = profile?.lastName || '';
     const fullName = `${firstName} ${lastName}`.trim();
     const gender = profile?.gender || (userObj as any).gender || '';
+    const occupation = profile?.occupation || (userObj as any).occupation || '';
     const imageUrl = profile?.image?.url || (profile?.avatar as any)?.image?.url || null;
 
     const enrichedUser = {
       ...userObj,
       name: fullName || (userObj as any).name || (userObj as any).email || 'User',
       gender: gender || '',
+      occupation: occupation || '',
       email: (userObj as any).email || '',
       contact: (userObj as any).mobile || (userObj as any).contact || '',
       mobile: (userObj as any).mobile || (userObj as any).contact || '',
@@ -50,4 +52,34 @@ export const enrichUserProfilesForListings = async (listings: any[]): Promise<an
       userId: enrichedUser,
     };
   });
+};
+
+/**
+ * Utility to enrich a single user object with UserProfile details (name, gender, occupation, avatar/image, mobile/contact)
+ */
+export const enrichSingleUser = async (user: any): Promise<any> => {
+  if (!user) return user;
+  const uId = typeof user === 'object' && user._id ? user._id.toString() : user.toString();
+  const profile = await UserProfile.findOne({ userId: uId }).populate('avatar').lean();
+  const userObj = typeof user === 'object' ? user : { _id: user };
+
+  const firstName = profile?.firstName || '';
+  const lastName = profile?.lastName || '';
+  const fullName = `${firstName} ${lastName}`.trim();
+  const gender = profile?.gender || (userObj as any).gender || '';
+  const occupation = profile?.occupation || (userObj as any).occupation || '';
+  const imageUrl = profile?.image?.url || (profile?.avatar as any)?.image?.url || null;
+
+  return {
+    ...userObj,
+    name: fullName || (userObj as any).name || (userObj as any).email || 'User',
+    gender: gender || '',
+    occupation: occupation || '',
+    email: (userObj as any).email || '',
+    contact: (userObj as any).mobile || (userObj as any).contact || '',
+    mobile: (userObj as any).mobile || (userObj as any).contact || '',
+    image: imageUrl,
+    avatar: imageUrl,
+    profileImage: imageUrl,
+  };
 };

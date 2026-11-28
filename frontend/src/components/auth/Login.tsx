@@ -10,9 +10,15 @@ import { useWebOTP } from "@/hooks/useWebOTP";
 
 interface LoginProps {
   onSwitchToSignUp?: () => void;
+  redirectUrl?: string;
+  redirectTo?: string;
 }
 
-export default function Login({ onSwitchToSignUp }: LoginProps) {
+export default function Login({
+  onSwitchToSignUp,
+  redirectUrl,
+  redirectTo,
+}: LoginProps) {
   const router = useRouter();
   const { sendLoginOTP, verifyLoginOTP, checkProfileCompletionStatus, isLoading, error, clearError } = useAuthStore();
 
@@ -88,6 +94,21 @@ export default function Login({ onSwitchToSignUp }: LoginProps) {
     }
   };
 
+  const getDestinationUrl = (): string => {
+    const propTarget = redirectUrl || redirectTo;
+    if (propTarget && propTarget.startsWith("/") && !propTarget.startsWith("//")) {
+      return propTarget;
+    }
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const queryTarget = params.get("redirect") || params.get("redirectTo");
+      if (queryTarget && queryTarget.startsWith("/") && !queryTarget.startsWith("//")) {
+        return queryTarget;
+      }
+    }
+    return "/";
+  };
+
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (fullOtp.length < 6) {
@@ -103,11 +124,12 @@ export default function Login({ onSwitchToSignUp }: LoginProps) {
     });
 
     if (success) {
+      const destination = getDestinationUrl();
       const isCompleted = await checkProfileCompletionStatus();
       if (!isCompleted) {
-        router.push("/profile");
+        router.push(destination !== "/" ? `/profile?redirect=${encodeURIComponent(destination)}` : "/profile");
       } else {
-        router.push("/");
+        router.push(destination);
       }
     }
   };

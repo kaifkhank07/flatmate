@@ -72,6 +72,16 @@ export default function Topbar({ onSearch }: { onSearch: () => void }) {
 
     const interval = setInterval(refreshUnread, 30000); // 30s background sync
 
+    const handleUnreadUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ count?: number }>;
+      if (typeof customEvent.detail?.count === "number") {
+        setUnreadCount(customEvent.detail.count);
+      } else {
+        refreshUnread();
+      }
+    };
+    window.addEventListener("admin_notifications_changed", handleUnreadUpdate);
+
     const h = (e: MouseEvent) => {
       if (!ref.current?.contains(e.target as Node)) setPop(false);
       if (!userRef.current?.contains(e.target as Node)) setUserMenu(false);
@@ -79,6 +89,7 @@ export default function Topbar({ onSearch }: { onSearch: () => void }) {
     document.addEventListener("click", h);
     return () => {
       clearInterval(interval);
+      window.removeEventListener("admin_notifications_changed", handleUnreadUpdate);
       document.removeEventListener("click", h);
     };
   }, [refreshUnread]);
@@ -96,6 +107,11 @@ export default function Topbar({ onSearch }: { onSearch: () => void }) {
       if (res.success) {
         setRecentNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
         setUnreadCount(0);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("admin_notifications_changed", { detail: { count: 0 } })
+          );
+        }
         toast("All marked read");
       }
     } catch {
@@ -109,7 +125,15 @@ export default function Topbar({ onSearch }: { onSearch: () => void }) {
       setRecentNotifications((prev) =>
         prev.map((item) => (item._id === n._id ? { ...item, isRead: true } : item))
       );
-      setUnreadCount((c) => Math.max(0, c - 1));
+      setUnreadCount((c) => {
+        const next = Math.max(0, c - 1);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("admin_notifications_changed", { detail: { count: next } })
+          );
+        }
+        return next;
+      });
     }
     setPop(false);
     if (n.actionUrl) {

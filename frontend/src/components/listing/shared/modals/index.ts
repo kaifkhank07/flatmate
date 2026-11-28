@@ -4,3 +4,5 @@ export { default as ChatModal, type ChatModalProps } from "./ChatModal";
 export { default as ReportModal, type ReportModalProps } from "./ReportModal";
 export { default as ImageGalleryModal, type ImageGalleryModalProps } from "./ImageGalleryModal";
 export { default as DeleteConfirmModal, type DeleteConfirmModalProps } from "./DeleteConfirmModal";
+export { default as LoginRequiredView, type LoginRequiredViewProps } from "./LoginRequiredView";
+export { default as WishlistLoginModal, type WishlistLoginModalProps } from "./WishlistLoginModal";

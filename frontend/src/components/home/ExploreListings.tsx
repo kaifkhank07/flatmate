@@ -307,12 +307,12 @@ function ListingCard({
 
         {/* Parking button aligned at bottom, maintaining consistent layout when not present */}
         <div className="mt-auto pt-3 min-h-[44px] sm:min-h-[48px] flex items-center">
-          {item.parkingAvailable && (
-            <div className="bg-brand-blue text-white text-sm sm:text-base md:text-lg font-regular px-3.5 py-1.5 sm:py-2 rounded-xl flex items-center justify-center gap-1.5 w-fit shadow-sm">
-              <Bike size={20} className="shrink-0" />
-              <span>Parking Available</span>
-            </div>
-          )}
+
+          <div className="bg-brand-blue text-white text-sm sm:text-base md:text-lg font-regular px-3.5 py-1.5 sm:py-2 rounded-xl flex items-center justify-center gap-1.5 w-fit shadow-sm">
+            <Bike size={20} className="shrink-0" />
+            <span>{item.parkingAvailable ? "Parking Available" : "Parking Not Available"}</span>
+          </div>
+
         </div>
       </div>
     </Link>
@@ -353,13 +353,13 @@ export default function ExploreListings() {
       <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto px-4 sm:px-6 lg:px-16 space-y-6 sm:space-y-10 md:space-y-12">
         <div className="flex flex-col sm:flex-row items-end justify-between gap-4">
           <SectionHeading
-            title="Explore Flat & Flatmate"
+            title="Explore Entire Properties"
             description="Discover Verified Listings Near You."
           />
 
           <ArrowLink
             text="View All Listings"
-            href="/listing"
+            href="/listing?category=Property"
             className="hidden sm:inline-flex text-black text-xs sm:text-sm font-medium px-6 py-2.5 bg-transparent hover:bg-brand-blue/5 transition-all cursor-pointer whitespace-nowrap rounded-full border-2 border-brand-blue"
           />
         </div>
@@ -442,7 +442,7 @@ export default function ExploreListings() {
       <div className="mt-8 px-4 sm:hidden">
         <ArrowLink
           text="View All Listings"
-          href="/listing"
+          href="/listing?category=Property"
           className="flex sm:hidden w-fit mx-auto text-black text-xs sm:text-sm font-medium px-6 py-2.5 bg-transparent hover:bg-brand-blue/5 transition-all cursor-pointer whitespace-nowrap rounded-full border-2 border-brand-blue"
         />
       </div>

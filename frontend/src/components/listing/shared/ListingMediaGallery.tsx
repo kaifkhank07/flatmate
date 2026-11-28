@@ -37,9 +37,9 @@ export default function ListingMediaGallery({
 
   return (
     <>
-      <div className={`w-full relative group ${className}`}>
+      <div className={`w-full min-w-0 relative group ${className}`}>
         {/* DESKTOP / TABLET: Responsive Grid Layout (sm and up) */}
-        <div className="hidden sm:block">
+        <div className="hidden sm:block w-full min-w-0">
           {/* 1 Image: Full width single image */}
           {images.length === 1 && (
             <div

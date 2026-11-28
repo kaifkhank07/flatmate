@@ -5,6 +5,7 @@ import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { createReportApi, ReportReason, ReportTargetType } from "@/lib/apiServices";
 import BaseModal from "./BaseModal";
+import LoginRequiredView from "./LoginRequiredView";
 
 export interface ReportModalProps {
   isOpen: boolean;
@@ -88,7 +89,15 @@ export default function ReportModal({ isOpen, onClose, targetType, targetId, own
 
   return (
     <BaseModal isOpen={isOpen} onClose={onClose} maxWidth="max-w-md">
-      {reportSubmitted ? (
+      {!isAuthenticated ? (
+        <LoginRequiredView
+          title="Login to Report Listing"
+          description="Please log in to your account to submit a report for this listing."
+          icon={<AlertCircle className="w-8 h-8 text-amber-500 stroke-[2.2]" />}
+          actionText="Log In to Report"
+          onClose={onClose}
+        />
+      ) : reportSubmitted ? (
         <div className="py-8 text-center space-y-3">
           <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
             <Check className="w-8 h-8 stroke-[3]" />
@@ -148,21 +157,22 @@ export default function ReportModal({ isOpen, onClose, targetType, targetId, own
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-2">
+          <div className="pt-2 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+              disabled={isSubmittingReport}
+              className="px-5 py-2.5 text-gray-600 text-xs sm:text-sm font-medium hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmittingReport}
-              className="px-6 py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white font-semibold rounded-full text-xs shadow-md transition-colors cursor-pointer inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="px-6 py-2.5 bg-[#0066FF] hover:bg-blue-700 active:scale-95 text-white text-xs sm:text-sm font-semibold rounded-full shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {isSubmittingReport && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              {isSubmittingReport ? "Submitting..." : "Submit Report"}
+              {isSubmittingReport && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>{isSubmittingReport ? "Submitting..." : "Submit Report"}</span>
             </button>
           </div>
         </form>

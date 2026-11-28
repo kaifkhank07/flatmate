@@ -126,6 +126,23 @@ export default function ManageProfile() {
     text: string;
   } | null>(null);
 
+  // Field-level & Form-level Validation States
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string>("");
+
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+    if (formError) setFormError("");
+    if (statusMessage) setStatusMessage(null);
+  };
+
+  const activeError = formError || (statusMessage?.type === "error" ? statusMessage.text : "");
+
   // Deletion OTP Resend Cooldown Timer
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -284,6 +301,31 @@ export default function ManageProfile() {
 
   const handleSaveChanges = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const errors: Record<string, string> = {};
+
+    if (!firstName.trim()) {
+      errors.firstName = "Please enter your first name";
+    }
+
+    if (dateOfBirth && new Date(dateOfBirth) > new Date()) {
+      errors.dateOfBirth = "Date of birth cannot be in the future";
+    }
+
+    if (aboutMe && aboutMe.length > 1000) {
+      errors.aboutMe = "Bio cannot exceed 1000 characters";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      const firstErrorMessage = Object.values(errors)[0];
+      setFormError(firstErrorMessage);
+      setStatusMessage({ type: "error", text: firstErrorMessage });
+      return;
+    }
+
+    setFieldErrors({});
+    setFormError("");
     setIsSaving(true);
     setStatusMessage(null);
 
@@ -390,23 +432,6 @@ export default function ManageProfile() {
         <ViewReveal duration={800}>
           <SectionHeading title="Your Profile" />
         </ViewReveal>
-
-        {/* Notification Banner */}
-        {statusMessage && (
-          <div
-            className={`p-4 rounded-2xl flex items-center gap-3 text-sm transition-all duration-300 animate-in fade-in-50 ${statusMessage.type === "success"
-              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-              : "bg-red-50 text-red-800 border border-red-200"
-              }`}
-          >
-            {statusMessage.type === "success" ? (
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-            ) : (
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-            )}
-            <span className="font-medium">{statusMessage.text}</span>
-          </div>
-        )}
 
         {/* Profile Avatar / Photo & Completion Card */}
         <ViewReveal duration={900} startDelay={150}>
@@ -520,7 +545,7 @@ export default function ManageProfile() {
 
         {/* Profile Details Form */}
         <ViewReveal duration={900} startDelay={150}>
-          <form onSubmit={handleSaveChanges} className="space-y-10">
+          <form onSubmit={handleSaveChanges} noValidate className="space-y-10">
             {/* SECTION 1: Personal Details */}
             <div className="space-y-6">
               <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
@@ -546,12 +571,14 @@ export default function ManageProfile() {
                     value={firstName}
                     onChange={(e) => {
                       setFirstName(e.target.value);
-                      if (statusMessage) setStatusMessage(null);
+                      clearFieldError("firstName");
                     }}
                     placeholder="e.g. Neha"
-                    required
-                    className="w-full px-6 py-3.5 rounded-full bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9] placeholder:text-gray-400 transition-all"
+                    className={`w-full px-6 py-3.5 rounded-full bg-[#F3F9FD] border ${fieldErrors.firstName ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-[#E2EFF8] focus:border-[#0066F9] focus:ring-[#0066F9]/20"} text-gray-800 text-base focus:outline-none focus:ring-2 placeholder:text-gray-400 transition-all`}
                   />
+                  {fieldErrors.firstName && (
+                    <p className="text-xs text-red-500 mt-1.5 pl-4">{fieldErrors.firstName}</p>
+                  )}
                   <p className="text-sm text-gray-500 mt-2 font-normal">
                     Note: Users With Real Names Get{" "}
                     <span className="text-[#0066F9] font-medium">90% More Engagement.</span>
@@ -615,12 +642,15 @@ export default function ManageProfile() {
                       value={dateOfBirth}
                       onChange={(e) => {
                         setDateOfBirth(e.target.value);
-                        if (statusMessage) setStatusMessage(null);
+                        clearFieldError("dateOfBirth");
                       }}
                       max={new Date().toISOString().split("T")[0]}
-                      className="w-full px-6 py-3.5 rounded-full bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9] transition-all"
+                      className={`w-full px-6 py-3.5 rounded-full bg-[#F3F9FD] border ${fieldErrors.dateOfBirth ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-[#E2EFF8] focus:border-[#0066F9] focus:ring-[#0066F9]/20"} text-gray-800 text-base focus:outline-none focus:ring-2 transition-all`}
                     />
                   </div>
+                  {fieldErrors.dateOfBirth && (
+                    <p className="text-xs text-red-500 mt-1.5 pl-4">{fieldErrors.dateOfBirth}</p>
+                  )}
                 </div>
 
                 {/* Gender Field */}
@@ -734,11 +764,14 @@ export default function ManageProfile() {
                   value={aboutMe}
                   onChange={(e) => {
                     setAboutMe(e.target.value);
-                    if (statusMessage) setStatusMessage(null);
+                    clearFieldError("aboutMe");
                   }}
                   placeholder="Tell potential flatmates about your daily routine, lifestyle, cleanliness habits, hobbies, and what you look for in a flatmate..."
-                  className="w-full px-6 py-4 rounded-3xl bg-[#F3F9FD] border border-[#E2EFF8] text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-[#0066F9]/20 focus:border-[#0066F9] placeholder:text-gray-400 transition-all resize-none"
+                  className={`w-full px-6 py-4 rounded-3xl bg-[#F3F9FD] border ${fieldErrors.aboutMe ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-[#E2EFF8] focus:border-[#0066F9] focus:ring-[#0066F9]/20"} text-gray-800 text-base focus:outline-none focus:ring-2 placeholder:text-gray-400 transition-all resize-none`}
                 />
+                {fieldErrors.aboutMe && (
+                  <p className="text-xs text-red-500 mt-1.5 pl-4">{fieldErrors.aboutMe}</p>
+                )}
                 <div className="flex justify-end mt-1">
                   <span className="text-xs text-gray-400">
                     {aboutMe.length}/1000 characters
@@ -747,8 +780,30 @@ export default function ManageProfile() {
               </div>
             </div>
 
+            {/* Notification Banner */}
+            {statusMessage && (
+              <div
+                className={`p-4 rounded-2xl flex items-center gap-3 text-sm transition-all duration-300 animate-in fade-in-50 ${statusMessage.type === "success"
+                  ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                  : "bg-red-50 text-red-800 border border-red-200"
+                  }`}
+              >
+                {statusMessage.type === "success" ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                )}
+                <span className="font-medium">{statusMessage.text}</span>
+              </div>
+            )}
+
             {/* Save Changes Button */}
-            <div className="pt-4">
+            <div className="pt-4 flex flex-col items-start gap-3">
+              {/* {activeError && (
+                <p className="text-xs sm:text-sm text-red-500 font-medium pl-4 animate-in fade-in-50">
+                  {activeError}
+                </p>
+              )} */}
               <button
                 type="submit"
                 disabled={isSaving}
@@ -884,8 +939,8 @@ export default function ManageProfile() {
                         {isSendingDeleteOtp
                           ? "Sending..."
                           : resendCooldown > 0
-                          ? `Resend in ${resendCooldown}s`
-                          : "Resend Code"}
+                            ? `Resend in ${resendCooldown}s`
+                            : "Resend Code"}
                       </button>
                     </div>
 

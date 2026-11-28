@@ -111,6 +111,23 @@ export default function PropertyCreationForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Field-level & Form-level Validation States
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string>("");
+
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+    if (formError) setFormError("");
+    if (errorMessage) setErrorMessage(null);
+  };
+
+  const activeError = formError || errorMessage;
+
   // Fetch Amenities on Component Load
   useEffect(() => {
     setLoadingAmenities(true);
@@ -166,6 +183,7 @@ export default function PropertyCreationForm({
       setIsLocationDropdownOpen(false);
       const placeDetails = await getFrontendPlaceDetails(suggestion.placeId);
       setSelectedGooglePlace(placeDetails);
+      clearFieldError("location");
       setLocationSearchTerm("");
       setLocationSuggestions([]);
     } catch (err: any) {
@@ -177,11 +195,15 @@ export default function PropertyCreationForm({
 
   // Toggle Amenity Selection
   const toggleAmenity = (amenityId: string) => {
-    setSelectedAmenities((prev) =>
-      prev.includes(amenityId)
+    setSelectedAmenities((prev) => {
+      const next = prev.includes(amenityId)
         ? prev.filter((id) => id !== amenityId)
-        : [...prev, amenityId]
-    );
+        : [...prev, amenityId];
+      if (next.length >= 3) {
+        clearFieldError("amenities");
+      }
+      return next;
+    });
   };
 
   // Helper to render image / icon for property amenities matching PreferencesManager style
@@ -213,6 +235,7 @@ export default function PropertyCreationForm({
         previewUrl: URL.createObjectURL(file),
       }));
       setPhotoItems((prev) => [...prev, ...newItems]);
+      clearFieldError("photos");
       e.target.value = "";
     }
   };
@@ -254,60 +277,67 @@ export default function PropertyCreationForm({
   // Form Submit Handler
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage(null);
 
-    if (!title.trim()) {
-      setErrorMessage("Listing title is required.");
-      return;
-    }
-
-    if (isRichTextEmpty(description)) {
-      setErrorMessage("Description is required.");
-      return;
-    }
-
-    const contactCheck = validateDescriptionContact(description);
-    if (contactCheck.hasContact) {
-      setErrorMessage(contactCheck.message || "Contact details are not allowed in the listing description.");
-      return;
-    }
+    const errors: Record<string, string> = {};
 
     if (!selectedGooglePlace) {
-      setErrorMessage("Please search and select a property location.");
-      return;
+      errors.location = "Please search and select a property location.";
+    }
+
+    if (!title.trim()) {
+      errors.title = "Please enter a listing title.";
+    }
+
+    if (!propertyType) {
+      errors.propertyType = "Please select a property type.";
     }
 
     if (!rentAmount || Number(rentAmount) <= 0) {
-      setErrorMessage("Rent amount must be greater than 0.");
-      return;
+      errors.rentAmount = "Please enter a rent amount greater than 0.";
     }
 
     if (securityDeposit === "" || Number(securityDeposit) < 0) {
-      setErrorMessage("Security deposit is required.");
-      return;
+      errors.securityDeposit = "Please enter a security deposit amount.";
     }
 
     if (!availableFrom) {
-      setErrorMessage("Available from date is required.");
-      return;
-    }
-
-    if (photoItems.length === 0) {
-      setErrorMessage("At least one property photo is required.");
-      return;
-    }
-
-    if (selectedAmenities.length < 3) {
-      setErrorMessage("Please select at least 3 property amenities.");
-      return;
+      errors.availableFrom = "Please select an available from date.";
     }
 
     if (floor !== "" && totalFloors !== "") {
       if (Number(floor) > Number(totalFloors)) {
-        setErrorMessage("Floor cannot exceed total floors.");
-        return;
+        errors.floor = "Floor cannot exceed total floors.";
       }
     }
+
+    if (isRichTextEmpty(description)) {
+      errors.description = "Please enter a listing description.";
+    } else {
+      const contactCheck = validateDescriptionContact(description);
+      if (contactCheck.hasContact) {
+        errors.description = contactCheck.message || "Contact details are not allowed in the listing description.";
+      }
+    }
+
+    if (selectedAmenities.length < 3) {
+      errors.amenities = "Please select at least 3 property amenities.";
+    }
+
+    if (photoItems.length === 0) {
+      errors.photos = "Please upload at least one property photo.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      const firstErrorMessage = Object.values(errors)[0];
+      setFormError(firstErrorMessage);
+      setErrorMessage(firstErrorMessage);
+      return;
+    }
+
+    setFieldErrors({});
+    setFormError("");
+    setErrorMessage(null);
 
     setIsSubmitting(true);
     const createdImageIds: string[] = [];
@@ -352,7 +382,7 @@ export default function PropertyCreationForm({
       }
 
       // Step 3: Save Location to DB
-      const locRes = await savePlaceLocationApi(selectedGooglePlace);
+      const locRes = await savePlaceLocationApi(selectedGooglePlace!);
       if (!locRes.success || !locRes.data?._id) {
         await cleanupUploadedMedia();
         setIsSubmitting(false);
@@ -420,7 +450,7 @@ export default function PropertyCreationForm({
     <section className="w-full py-16 md:py-20 px-4 sm:px-6 lg:px-16 overflow-hidden">
       <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto space-y-6 sm:space-y-10 md:space-y-12">
         {/* Error Banner */}
-        {errorMessage && (
+        {/* {errorMessage && (
           <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between gap-4 text-rose-700 text-sm">
             <span>{errorMessage}</span>
             <button
@@ -431,7 +461,7 @@ export default function PropertyCreationForm({
               <X className="w-4 h-4" />
             </button>
           </div>
-        )}
+        )} */}
 
         {/* Main Card Wrapper */}
         <div className="bg-white border border-gray-100 rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 md:p-12 space-y-6 sm:space-y-10 md:space-y-12">
@@ -444,7 +474,7 @@ export default function PropertyCreationForm({
             />
           </ViewReveal>
 
-          <form onSubmit={handlePublish} className="space-y-8">
+          <form onSubmit={handlePublish} noValidate className="space-y-8">
             {/* SECTION 1: BASIC PROPERTY DETAILS */}
             <div className="space-y-4 pt-2">
               <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
@@ -454,7 +484,7 @@ export default function PropertyCreationForm({
               {/* Location Autocomplete Field */}
               <div className="space-y-2 relative" ref={locationDropdownRef}>
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  Location <span className="text-rose-500">*</span>
+                  Location <span className="text-red-500">*</span>
                 </label>
 
                 {selectedGooglePlace ? (
@@ -489,12 +519,15 @@ export default function PropertyCreationForm({
                     <input
                       type="text"
                       value={locationSearchTerm}
-                      onChange={(e) => setLocationSearchTerm(e.target.value)}
+                      onChange={(e) => {
+                        setLocationSearchTerm(e.target.value);
+                        clearFieldError("location");
+                      }}
                       onFocus={() => {
                         if (locationSearchTerm.trim()) setIsLocationDropdownOpen(true);
                       }}
                       placeholder="Search City, Area, Building Or Landmark…"
-                      className="w-full pl-11 pr-10 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
+                      className={`w-full pl-11 pr-10 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all border ${fieldErrors.location ? "border-red-400 focus:ring-red-100" : "border-transparent focus:ring-brand-blue/30"}`}
                     />
                     {locationSearchTerm && (
                       <button
@@ -510,6 +543,9 @@ export default function PropertyCreationForm({
                       </button>
                     )}
                   </div>
+                )}
+                {fieldErrors.location && (
+                  <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.location}</p>
                 )}
 
                 {/* Google Location Predictions Dropdown */}
@@ -542,16 +578,21 @@ export default function PropertyCreationForm({
               {/* Title */}
               <div className="space-y-2">
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  Title <span className="text-rose-500">*</span>
+                  Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    clearFieldError("title");
+                  }}
                   placeholder="e.g. Spacious 2BHK Apartment in Koramangala"
-                  className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
-                  required
+                  className={`w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all border ${fieldErrors.title ? "border-red-400 focus:ring-red-100" : "border-transparent focus:ring-brand-blue/30"}`}
                 />
+                {fieldErrors.title && (
+                  <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.title}</p>
+                )}
               </div>
             </div>
 
@@ -584,18 +625,23 @@ export default function PropertyCreationForm({
                 {/* Property Type */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Property Type <span className="text-rose-500">*</span>
+                    Property Type <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={propertyType}
-                    onChange={(e) => setPropertyType(e.target.value as PropertyType)}
-                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                    required
+                    onChange={(e) => {
+                      setPropertyType(e.target.value as PropertyType);
+                      clearFieldError("propertyType");
+                    }}
+                    className={`w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all border cursor-pointer ${fieldErrors.propertyType ? "border-red-400 focus:ring-red-100" : "border-transparent focus:ring-brand-blue/30"}`}
                   >
                     <option value="flat_apartment">Flat / Apartment</option>
                     <option value="house">House</option>
                     <option value="villa">Villa</option>
                   </select>
+                  {fieldErrors.propertyType && (
+                    <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.propertyType}</p>
+                  )}
                 </div>
 
                 {/* Area */}
@@ -696,10 +742,16 @@ export default function PropertyCreationForm({
                     type="number"
                     min={0}
                     value={floor}
-                    onChange={(e) => setFloor(e.target.value)}
+                    onChange={(e) => {
+                      setFloor(e.target.value);
+                      clearFieldError("floor");
+                    }}
                     placeholder="0 for Ground floor"
-                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
+                    className={`w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all border ${fieldErrors.floor ? "border-red-400 focus:ring-red-100" : "border-transparent focus:ring-brand-blue/30"}`}
                   />
+                  {fieldErrors.floor && (
+                    <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.floor}</p>
+                  )}
                 </div>
 
                 {/* Total Floors */}
@@ -711,7 +763,10 @@ export default function PropertyCreationForm({
                     type="number"
                     min={0}
                     value={totalFloors}
-                    onChange={(e) => setTotalFloors(e.target.value)}
+                    onChange={(e) => {
+                      setTotalFloors(e.target.value);
+                      clearFieldError("floor");
+                    }}
                     placeholder="e.g. 10"
                     className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
                   />
@@ -729,33 +784,43 @@ export default function PropertyCreationForm({
                 {/* Rent Amount */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Rent Amount (₹/mo) <span className="text-rose-500">*</span>
+                    Rent Amount (₹/mo) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
                     min={1}
                     value={rentAmount}
-                    onChange={(e) => setRentAmount(e.target.value)}
+                    onChange={(e) => {
+                      setRentAmount(e.target.value);
+                      clearFieldError("rentAmount");
+                    }}
                     placeholder="e.g. 15000"
-                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
-                    required
+                    className={`w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all border ${fieldErrors.rentAmount ? "border-red-400 focus:ring-red-100" : "border-transparent focus:ring-brand-blue/30"}`}
                   />
+                  {fieldErrors.rentAmount && (
+                    <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.rentAmount}</p>
+                  )}
                 </div>
 
                 {/* Security Deposit */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Security Deposit (₹) <span className="text-rose-500">*</span>
+                    Security Deposit (₹) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
                     min={0}
                     value={securityDeposit}
-                    onChange={(e) => setSecurityDeposit(e.target.value)}
+                    onChange={(e) => {
+                      setSecurityDeposit(e.target.value);
+                      clearFieldError("securityDeposit");
+                    }}
                     placeholder="e.g. 30000"
-                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
-                    required
+                    className={`w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all border ${fieldErrors.securityDeposit ? "border-red-400 focus:ring-red-100" : "border-transparent focus:ring-brand-blue/30"}`}
                   />
+                  {fieldErrors.securityDeposit && (
+                    <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.securityDeposit}</p>
+                  )}
                 </div>
 
                 {/* Brokerage Facility */}
@@ -776,15 +841,20 @@ export default function PropertyCreationForm({
                 {/* Available From */}
                 <div className="space-y-2">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Available From <span className="text-rose-500">*</span>
+                    Available From <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
                     value={availableFrom}
-                    onChange={(e) => setAvailableFrom(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                    required
+                    onChange={(e) => {
+                      setAvailableFrom(e.target.value);
+                      clearFieldError("availableFrom");
+                    }}
+                    className={`w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all border cursor-pointer ${fieldErrors.availableFrom ? "border-red-400 focus:ring-red-100" : "border-transparent focus:ring-brand-blue/30"}`}
                   />
+                  {fieldErrors.availableFrom && (
+                    <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.availableFrom}</p>
+                  )}
                 </div>
 
                 {/* Maintenance Charges */}
@@ -845,56 +915,27 @@ export default function PropertyCreationForm({
                     <option value="family">Family</option>
                   </select>
                 </div>
-
-                {/* Tenant Gender */}
-                {/* <div className="space-y-2">
-                  <label className="block text-sm sm:text-base font-regular text-black">
-                    Tenant Gender
-                  </label>
-                  <select
-                    value={genderPreference}
-                    onChange={(e) => setGenderPreference(e.target.value as any)}
-                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                  >
-                    <option value="any">Any Gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div> */}
-
-                {/* Occupation Preference */}
-                {/* <div className="space-y-2">
-                  <label className="block text-sm sm:text-base font-regular text-black">
-                    Occupation Preference
-                  </label>
-                  <select
-                    value={occupationPreference}
-                    onChange={(e) => setOccupationPreference(e.target.value as any)}
-                    className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none cursor-pointer"
-                  >
-                    <option value="any">Any Occupation</option>
-                    <option value="student">Student</option>
-                    <option value="working_professional">Working Professional</option>
-                    <option value="self_employed">Self Employed</option>
-                    <option value="business_owner">Business Owner</option>
-                    <option value="freelancer">Freelancer</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div> */}
               </div>
 
               {/* Description */}
               <div className="space-y-3">
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  Description <span className="text-rose-500">*</span>
+                  Description <span className="text-red-500">*</span>
                 </label>
-                <RichTextEditor
-                  value={description}
-                  onChange={setDescription}
-                  placeholder="Provide Property Highlights, Rules, Nearby Landmarks…"
-                  restrictContactInfo={true}
-                />
+                <div className={fieldErrors.description ? "rounded-2xl ring-2 ring-red-400" : ""}>
+                  <RichTextEditor
+                    value={description}
+                    onChange={(val) => {
+                      setDescription(val);
+                      clearFieldError("description");
+                    }}
+                    placeholder="Provide Property Highlights, Rules, Nearby Landmarks…"
+                    restrictContactInfo={true}
+                  />
+                </div>
+                {fieldErrors.description && (
+                  <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.description}</p>
+                )}
               </div>
             </div>
 
@@ -904,23 +945,9 @@ export default function PropertyCreationForm({
                 AMENITIES
               </h3>
 
-              {/* House Rules Input */}
-              {/* <div className="space-y-2">
-                <label className="block text-sm sm:text-base font-regular text-black">
-                  House Rules (Comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={houseRules}
-                  onChange={(e) => setHouseRules(e.target.value)}
-                  placeholder="e.g. No Smoking, No Late Night Parties, Pets Allowed"
-                  className="w-full px-4 py-3 bg-[#F3F4F6] text-gray-800 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all border-none"
-                />
-              </div> */}
-
               <div className="space-y-3">
                 <label className="block text-sm sm:text-base font-regular text-black">
-                  Amenities ({selectedAmenities.length}/3 minimum selected) <span className="text-rose-500">*</span>
+                  Amenities ({selectedAmenities.length}/3 minimum selected) <span className="text-red-500">*</span>
                 </label>
 
                 {loadingAmenities ? (
@@ -974,6 +1001,9 @@ export default function PropertyCreationForm({
                     No property amenities available
                   </div>
                 )}
+                {fieldErrors.amenities && (
+                  <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.amenities}</p>
+                )}
               </div>
             </div>
 
@@ -987,7 +1017,7 @@ export default function PropertyCreationForm({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="block text-sm sm:text-base font-regular text-black">
-                    Property Photos ({photoItems.length}) <span className="text-rose-500">*</span>
+                    Property Photos ({photoItems.length}) <span className="text-red-500">*</span>
                   </label>
                   <label className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-regular rounded-xl bg-brand-blue hover:bg-brand-blue/90 text-white cursor-pointer transition-all shadow-xs">
                     <Plus className="w-3.5 h-3.5 stroke-0.5" />
@@ -1004,7 +1034,7 @@ export default function PropertyCreationForm({
                 </div>
 
                 {photoItems.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3 bg-[#F8FAFC] border border-gray-100 rounded-2xl max-h-56 overflow-y-auto">
+                  <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3 bg-[#F8FAFC] border rounded-2xl max-h-56 overflow-y-auto ${fieldErrors.photos ? "border-red-400" : "border-gray-100"}`}>
                     {photoItems.map((item) => (
                       <div
                         key={item.id}
@@ -1028,7 +1058,7 @@ export default function PropertyCreationForm({
                     ))}
                   </div>
                 ) : (
-                  <label className="border-2 border-dashed border-gray-300 hover:border-brand-blue rounded-2xl py-8 px-4 flex flex-col justify-center items-center cursor-pointer bg-[#F8FAFC] hover:bg-blue-50/40 transition-colors group">
+                  <label className={`border-2 border-dashed rounded-2xl py-8 px-4 flex flex-col justify-center items-center cursor-pointer bg-[#F8FAFC] hover:bg-blue-50/40 transition-colors group ${fieldErrors.photos ? "border-red-400" : "border-gray-300 hover:border-brand-blue"}`}>
                     <input
                       type="file"
                       multiple
@@ -1043,90 +1073,37 @@ export default function PropertyCreationForm({
                     </span>
                   </label>
                 )}
-              </div>
-
-              {/* Videos Upload Section */}
-              {/* <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="block text-sm sm:text-base font-regular text-black">
-                    Walkthrough Videos ({videoItems.length})
-                  </label>
-
-                  <label className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-regular rounded-xl bg-brand-blue hover:bg-brand-blue/90 text-white cursor-pointer transition-all shadow-xs">
-                    <Plus className="w-3.5 h-3.5 stroke-0.5" />
-                    <span>Select Videos</span>
-                    <input
-                      type="file"
-                      multiple
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-
-                {videoItems.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 p-3 bg-[#F8FAFC] border border-gray-100 rounded-2xl max-h-64 overflow-y-auto">
-                    {videoItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="relative group rounded-xl overflow-hidden border border-gray-200 aspect-video bg-gray-900 flex items-center justify-center"
-                      >
-                        <video
-                          src={item.previewUrl}
-                          controls
-                          className="w-full h-full object-cover"
-                        />
-
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveVideo(item.id)}
-                          className="absolute top-1.5 right-1.5 bg-black/70 hover:bg-rose-600 text-white rounded-full p-1 transition-colors z-10"
-                          title="Remove Video"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <label className="border-2 border-dashed border-gray-300 hover:border-brand-blue rounded-2xl py-8 px-4 flex flex-col justify-center items-center cursor-pointer bg-[#F8FAFC] hover:bg-blue-50/40 transition-colors group">
-                    <input
-                      type="file"
-                      multiple
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                      className="hidden"
-                    />
-
-                    <UploadCloud className="w-8 h-8 text-brand-blue group-hover:scale-110 transition-transform duration-200" />
-
-                    <span className="text-xs text-gray-500 mt-2">
-                      Click to upload property video walkthroughs (MP4, WebM)
-                    </span>
-                  </label>
+                {fieldErrors.photos && (
+                  <p className="text-xs text-red-500 mt-1 pl-1">{fieldErrors.photos}</p>
                 )}
-              </div> */}
+              </div>
             </div>
 
             {/* Submit Button */}
-            <div className="flex justify-center sm:justify-start items-center gap-2 sm:gap-4 pt-4">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-accent hover:bg-accent/80 text-white py-3.5 px-10 md:px-14 rounded-2xl font-regular text-base md:text-lg transition-all cursor-pointer inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                {isSubmitting ? "Submitting…" : "Submit"}
-              </button>
+            <div className="space-y-4 pt-4">
+              {activeError && (
+                <p className="text-xs sm:text-sm text-red-500 font-medium pl-1 animate-in fade-in-50">
+                  {activeError}
+                </p>
+              )}
+              <div className="flex justify-center sm:justify-start items-center gap-2 sm:gap-4">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-accent hover:bg-accent/80 text-white py-3.5 px-10 md:px-14 rounded-2xl font-regular text-base md:text-lg transition-all cursor-pointer inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isSubmitting ? "Submitting…" : "Submit"}
+                </button>
 
-              <button
-                type="button"
-                onClick={onBack}
-                className="bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7] text-[#407B9D] py-3.5 px-10 md:px-14 rounded-2xl font-regular text-base md:text-lg transition-all cursor-pointer inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="bg-[#F3F9FD] border border-[#E2EFF8] hover:bg-[#EAF4FC] hover:border-[#D0E6F7] text-[#407B9D] py-3.5 px-10 md:px-14 rounded-2xl font-regular text-base md:text-lg transition-all cursor-pointer inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </form>
         </div>

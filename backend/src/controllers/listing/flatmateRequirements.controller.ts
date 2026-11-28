@@ -8,6 +8,7 @@ import { cleanupUnreferencedImages, cleanupUnreferencedVideos } from '../../util
 import { sendSuccess, sendError } from '../../utils/response.util';
 import { logger } from '../../utils/logger.util';
 import { Types } from 'mongoose';
+import { enrichUserProfilesForListings, enrichSingleUser } from '../../utils/userEnrichment.util';
 import { createNotification, notifyAdmins } from '../../services/notification/notification.service';
 import { flatmateRequirementDeletionService } from '../../services/deletion';
 import { processListingMatches } from '../../services/listing/propertyMatch.service';
@@ -269,7 +270,12 @@ export const getFlatmateRequirementById = async (req: Request, res: Response): P
       return sendError(res, 'Flatmate requirement not found', 404);
     }
 
-    return sendSuccess(res, 'Flatmate requirement fetched successfully', requirement);
+    const enrichedUser = await enrichSingleUser(requirement.userId);
+
+    return sendSuccess(res, 'Flatmate requirement fetched successfully', {
+      ...requirement,
+      userId: enrichedUser,
+    });
   } catch (error: any) {
     logger.error('[FlatmateRequirementController] getById error:', error);
     return sendError(res, 'Failed to fetch flatmate requirement', 500);
@@ -293,7 +299,12 @@ export const getFlatmateRequirementBySlug = async (req: Request, res: Response):
       return sendError(res, 'Flatmate requirement not found', 404);
     }
 
-    return sendSuccess(res, 'Flatmate requirement fetched successfully', requirement);
+    const enrichedUser = await enrichSingleUser(requirement.userId);
+
+    return sendSuccess(res, 'Flatmate requirement fetched successfully', {
+      ...requirement,
+      userId: enrichedUser,
+    });
   } catch (error: any) {
     logger.error('[FlatmateRequirementController] getBySlug error:', error);
     return sendError(res, 'Failed to fetch flatmate requirement', 500);
@@ -468,7 +479,7 @@ export const getPublicFlatmateRequirements = async (req: Request, res: Response)
       ];
     }
 
-    const [items, total] = await Promise.all([
+    const [rawItems, total] = await Promise.all([
       populateFlatmateRequirementFields(
         FlatmateRequirement.find(filter)
           .sort({ [sortBy]: order })
@@ -478,6 +489,7 @@ export const getPublicFlatmateRequirements = async (req: Request, res: Response)
       FlatmateRequirement.countDocuments(filter),
     ]);
 
+    const items = await enrichUserProfilesForListings(rawItems);
     const totalPages = Math.ceil(total / limit);
 
     return sendSuccess(res, 'Public flatmate requirements fetched successfully', {

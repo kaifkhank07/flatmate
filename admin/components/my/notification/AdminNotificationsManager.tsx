@@ -29,6 +29,25 @@ export default function AdminNotificationsManager({
 
   const handleUnreadCountChange = useCallback((count: number) => {
     setUnreadCount(count);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("admin_notifications_changed", { detail: { count } })
+      );
+    }
+  }, []);
+
+  // Sync unread count if updated externally
+  useEffect(() => {
+    const handleSync = (e: Event) => {
+      const customEvent = e as CustomEvent<{ count?: number }>;
+      if (typeof customEvent.detail?.count === "number") {
+        setUnreadCount(customEvent.detail.count);
+      }
+    };
+    window.addEventListener("admin_notifications_changed", handleSync);
+    return () => {
+      window.removeEventListener("admin_notifications_changed", handleSync);
+    };
   }, []);
 
   // Close dropdown on click outside
@@ -48,10 +67,16 @@ export default function AdminNotificationsManager({
     fetchAdminUnreadCount()
       .then((res) => {
         if (res.success && res.data) {
-          setUnreadCount(res.data.unreadCount || 0);
+          const count = res.data.unreadCount || 0;
+          setUnreadCount(count);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("admin_notifications_changed", { detail: { count } })
+            );
+          }
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const getHeading = () => {
@@ -79,31 +104,29 @@ export default function AdminNotificationsManager({
         actions={
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* Unread Badge (when on inbox) */}
-            {activeTab === "inbox" && unreadCount > 0 && (
+            {/* {activeTab === "inbox" && unreadCount > 0 && (
               <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--canvas-2)] border border-[var(--hair)] text-xs font-semibold text-[var(--ember)]">
                 <span className="w-2 h-2 rounded-full bg-[var(--ember)] animate-pulse" />
                 <span>{unreadCount > 99 ? "99+" : unreadCount} Unread</span>
               </div>
-            )}
+            )} */}
 
             {/* View Switcher / Settings Menu */}
-            <div className="relative" ref={dropdownRef}>
+            {/* <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer select-none ${
-                  activeTab === "preferences" || isSettingsOpen
+                className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer select-none ${activeTab === "preferences" || isSettingsOpen
                     ? "bg-[var(--ember)] text-white border-[var(--ember)] shadow-xs"
                     : "bg-[var(--card)] text-[var(--ink-2)] hover:text-[var(--ink-1)] border-[var(--hair)]"
-                }`}
+                  }`}
               >
                 <Sliders size={13} />
                 <span>{activeTab === "preferences" ? "Preferences" : "Settings"}</span>
                 <ChevronDown
                   size={12}
-                  className={`transition-transform duration-200 ${
-                    isSettingsOpen ? "rotate-180" : ""
-                  }`}
+                  className={`transition-transform duration-200 ${isSettingsOpen ? "rotate-180" : ""
+                    }`}
                 />
               </button>
 
@@ -138,11 +161,10 @@ export default function AdminNotificationsManager({
                       setActiveTab("preferences");
                       setIsSettingsOpen(false);
                     }}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-xs font-medium transition cursor-pointer ${
-                      activeTab === "preferences"
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-xs font-medium transition cursor-pointer ${activeTab === "preferences"
                         ? "bg-[var(--canvas-2)] text-[var(--ember)] font-semibold"
                         : "text-[var(--ink-2)] hover:bg-[var(--canvas-2)] hover:text-[var(--ink-1)]"
-                    }`}
+                      }`}
                   >
                     <Sliders size={14} />
                     <div>
@@ -154,7 +176,7 @@ export default function AdminNotificationsManager({
                   </button>
                 </div>
               )}
-            </div>
+            </div> */}
           </div>
         }
       />

@@ -174,7 +174,7 @@ export default function FlatmateRequirementPartnerDetails({
     ? listing.genderPreference.charAt(0).toUpperCase() + listing.genderPreference.slice(1)
     : "Any";
   const occupationPreference = listing.occupationPreference
-    ? listing.occupationPreference.replace(/_/g, " ").toUpperCase()
+    ? listing.occupationPreference.replace(/_/g, " ").charAt(0).toUpperCase() + listing.occupationPreference.replace(/_/g, " ").slice(1)
     : "Any";
   const availableFromDate = listing.availableFrom
     ? new Date(listing.availableFrom).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
@@ -245,111 +245,16 @@ export default function FlatmateRequirementPartnerDetails({
     <section className="w-full py-6 md:py-8 lg:py-12 px-4 sm:px-6 lg:px-16 overflow-hidden">
       {/* Top Image Gallery */}
       {imageList.length > 0 && (
-        <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto mb-6 sm:mb-8 md:mb-10">
+        <div className="lg:hidden w-full max-w-8xl 3xl:max-w-[1450px] mx-auto mb-6 sm:mb-8 md:mb-10">
           <ListingMediaGallery images={imageList} title={postTitle} />
         </div>
       )}
 
-      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 drop-shadow-md p-6 sm:p-10 md:p-14 transition-all bg-white">
+      <div className="w-full max-w-8xl 3xl:max-w-[1450px] mx-auto rounded-[32px] sm:rounded-[40px] border-1 border-gray-200 drop-shadow-md p-4 sm:p-10 md:p-14 transition-all bg-white">
         <div className="flex flex-col lg:flex-row items-center md:items-start gap-8 md:gap-14 lg:gap-16">
-
-          {/* LEFT SIDE: Partner Seeker Avatar & Action Buttons */}
-          {/* <div className="flex flex-col items-center gap-3 md:gap-4 shrink-0 w-full md:w-56 lg:w-64">
-            <div className="relative w-48 h-48 sm:w-56 sm:h-56 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-[#10B981] shadow-inner">
-              {userImage ? (
-                <img src={userImage} alt={name} className="w-full h-full object-cover" />
-              ) : (
-                <svg viewBox="0 0 100 100" fill="none" className="w-full h-full">
-                  <circle cx="50" cy="50" r="50" fill="#10B981" />
-                  <circle cx="50" cy="44" r="19" fill="#F8B195" />
-                  <path d="M18 96C18 76 32 68 50 68C68 68 82 76 82 96V100H18V96Z" fill="#6366F1" />
-                </svg>
-              )}
-            </div>
-
-            <h2 className="text-xl sm:text-2xl font-regular text-[#1E3A8A] text-center tracking-tight">
-              {name}
-            </h2>
-
-            <div className="flex flex-row lg:flex-col justify-center gap-3 w-full items-center">
-              <button
-                type="button"
-                onClick={() => setShowCallModal(true)}
-                className="w-28 py-2 px-3 bg-blue-700 hover:bg-accent text-white font-light text-sm sm:text-base md:text-lg rounded-full flex items-center justify-center gap-2.5 transition-all cursor-pointer"
-              >
-                <Phone size={20} />
-                <span>Call</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowChatModal(true)}
-                className="w-28 py-2 px-3 bg-accent hover:bg-blue-700 text-white font-light text-sm sm:text-base md:text-lg rounded-full flex items-center justify-center gap-2.5 transition-all cursor-pointer"
-              >
-                <MessageSquare size={20} />
-                <span>Chat</span>
-              </button>
-            </div>
-          </div> */}
 
           {/* RIGHT SIDE: Partner Requirement Info */}
           <div className="flex-1 w-full space-y-7 sm:space-y-8 md:space-y-10">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h2 className="text-black text-xl sm:text-2xl md:text-3xl font-regular">
-                    {postTitle}
-                  </h2>
-                  {status && (
-                    <span
-                      className={`px-3 py-0.5 rounded-full text-xs font-medium capitalize border ${status === "approved"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : status === "rejected"
-                          ? "bg-red-50 text-red-700 border-red-200"
-                          : status === "pending"
-                            ? "bg-amber-50 text-amber-700 border-amber-200"
-                            : "bg-gray-100 text-gray-700 border-gray-200"
-                        }`}
-                    >
-                      {status}
-                    </span>
-                  )}
-                  {listing.postedBy && (
-                    <span className="px-3 py-0.5 rounded-full text-xs font-medium capitalize bg-blue-50 text-blue-700 border border-blue-200">
-                      Posted by {listing.postedBy}
-                    </span>
-                  )}
-                </div>
-                <p className="text-gray-500 text-sm sm:text-base font-regular">
-                  {categoryHeader}
-                </p>
-              </div>
-
-              {/* Edit & Delete Buttons */}
-              <div className="flex items-center gap-2 shrink-0 pt-1">
-                {/* {(listing?.status === "pending" || listing?.status === "rejected") && ( */}
-                {(listing?.status === "pending") && (
-                  <Link
-                    href={`/my-listings/edit/${listing._id}`}
-                    className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer shadow-sm"
-                    title="Edit Listing"
-                  >
-                    <Pencil className="w-4 h-4" />
-                    <span className="hidden sm:inline">Edit</span>
-                  </Link>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteModal(true)}
-                  className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer shadow-sm"
-                  title="Delete Listing"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Delete</span>
-                </button>
-              </div>
-            </div>
 
             {/* Rejection Alert Banner */}
             {isRejected && (
@@ -399,6 +304,63 @@ export default function FlatmateRequirementPartnerDetails({
                 REQUIREMENT OVERVIEW
               </h3>
 
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="text-black text-xl sm:text-2xl md:text-3xl font-regular">
+                      {postTitle}
+                    </h2>
+                    {/* {status && (
+                    <span
+                      className={`px-3 py-0.5 rounded-full text-xs font-medium capitalize border ${status === "approved"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : status === "rejected"
+                          ? "bg-red-50 text-red-700 border-red-200"
+                          : status === "pending"
+                            ? "bg-amber-50 text-amber-700 border-amber-200"
+                            : "bg-gray-100 text-gray-700 border-gray-200"
+                        }`}
+                    >
+                      {status}
+                    </span>
+                  )} */}
+                    {/* {listing.postedBy && (
+                    <span className="px-3 py-0.5 rounded-full text-xs font-medium capitalize bg-blue-50 text-blue-700 border border-blue-200">
+                      Posted by {listing.postedBy}
+                    </span>
+                  )} */}
+                  </div>
+                  <p className="text-gray-500 text-sm sm:text-base font-regular">
+                    {categoryHeader}
+                  </p>
+                </div>
+
+                {/* Edit & Delete Buttons */}
+                <div className="flex items-center gap-2 shrink-0 pt-1">
+                  {/* {(listing?.status === "pending" || listing?.status === "rejected") && ( */}
+                  {(listing?.status === "pending") && (
+                    <Link
+                      href={`/my-listings/edit/${listing._id}`}
+                      className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer shadow-sm"
+                      title="Edit Listing"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      <span className="hidden sm:inline">Edit</span>
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteModal(true)}
+                    className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer shadow-sm"
+                    title="Delete Listing"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Delete</span>
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 gap-4 sm:gap-6 pt-1">
                 <div>
                   <span className="block text-gray-500 text-xs sm:text-sm font-medium">Location</span>
@@ -415,10 +377,28 @@ export default function FlatmateRequirementPartnerDetails({
               </div>
             </div>
 
-            <hr className="border-gray-200 border-t my-4" />
+            {/* SECTION 2: MEDIA ASSETS MANAGEMENT (Conditional) */}
+            {imageList.length > 0 && (
+              <div className="hidden lg:block min-w-0 w-full">
+                <hr className="border-gray-200 border-t my-4" />
+                <div className="space-y-4 min-w-0 w-full">
+                  <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
+                    MEDIA ASSETS MANAGEMENT
+                  </h3>
 
-            {/* SECTION 2: SPACE DETAILS */}
-            <div className="space-y-4">
+                  {imageList.length > 0 && (
+                    <div className="w-full min-w-0 mb-6 sm:mb-8 md:mb-10">
+                      <ListingMediaGallery images={imageList} title={postTitle} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* <hr className="border-gray-200 border-t my-4" /> */}
+
+            {/* SECTION 3: SPACE DETAILS */}
+            {/* <div className="space-y-4">
               <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
                 SPACE DETAILS
               </h3>
@@ -483,14 +463,14 @@ export default function FlatmateRequirementPartnerDetails({
                   </div>
                 )}
               </div>
-            </div>
+            </div> */}
 
             <hr className="border-gray-200 border-t my-4" />
 
-            {/* SECTION 3: RENTAL SPECIFICATIONS */}
+            {/* SECTION 4: RENTAL SPECIFICATIONS */}
             <div className="space-y-4">
               <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
-                RENTAL SPECIFICATIONS
+                ROOM SPECIFICATIONS
               </h3>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pt-1">
@@ -498,6 +478,13 @@ export default function FlatmateRequirementPartnerDetails({
                   <span className="block text-gray-500 text-xs sm:text-sm font-medium">Occupancy Preference</span>
                   <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
                     {listing.occupancyPreference ? listing.occupancyPreference.replace(/_/g, " ") : "Any"}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="block text-gray-500 text-xs sm:text-sm font-medium">Furnishing Status</span>
+                  <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1 capitalize">
+                    {listing.furnishing ? listing.furnishing.replace(/_/g, " ") : "N/A"}
                   </p>
                 </div>
 
@@ -524,7 +511,7 @@ export default function FlatmateRequirementPartnerDetails({
                 <div>
                   <span className="block text-gray-500 text-xs sm:text-sm font-medium">Brokerage Applicable</span>
                   <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">
-                    {listing.brokerage ? "Yes (Brokerage Applicable)" : "No (Zero Brokerage)"}
+                    {listing.brokerage ? "Yes" : "No"}
                   </p>
                 </div>
 
@@ -545,7 +532,7 @@ export default function FlatmateRequirementPartnerDetails({
                   </div>
                 ) : null}
 
-                {listing.maintenanceCharges?.frequency ? (
+                {(listing.maintenanceCharges?.amount && listing.maintenanceCharges?.frequency) ? (
                   <div>
                     <span className="block text-gray-500 text-xs sm:text-sm font-medium">Maintenance Frequency</span>
                     <p className="text-black text-sm sm:text-base md:text-lg font-medium mt-1">{maintenanceFrequencyText}</p>
@@ -556,7 +543,7 @@ export default function FlatmateRequirementPartnerDetails({
 
             <hr className="border-gray-200 border-t my-4" />
 
-            {/* SECTION 4: PREFERENCES */}
+            {/* SECTION 5: PREFERENCES */}
             <div className="space-y-4">
               <h3 className="text-brand-blue font-semibold text-sm sm:text-base md:text-lg lg:text-xl tracking-wide uppercase">
                 PREFERENCES
@@ -659,8 +646,8 @@ export default function FlatmateRequirementPartnerDetails({
               )}
             </div>
 
-            {/* SECTION 5: MEDIA ASSETS MANAGEMENT (Conditional) */}
-            {imageList.length > 0 && (
+            {/* SECTION 6: MEDIA ASSETS MANAGEMENT (Conditional) */}
+            {/* {imageList.length > 0 && (
               <>
                 <hr className="border-gray-200 border-t my-4" />
                 <div className="space-y-4">
@@ -672,11 +659,11 @@ export default function FlatmateRequirementPartnerDetails({
                   </p>
                 </div>
               </>
-            )}
+            )} */}
 
             <hr className="border-gray-200 border-t my-4" />
 
-            {/* SECTION: LISTING INFORMATION & ACTIVITY */}
+            {/* SECTION 7: LISTING INFORMATION & ACTIVITY */}
             <div className="space-y-4 pt-1">
               <div className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-brand-blue shrink-0" />
